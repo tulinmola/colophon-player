@@ -5,6 +5,7 @@
   "_player_boot",
   "_player_load_snapshot",
   "_player_run_frames",
+  "_player_run_until_retrace",
   "_player_press",
   "_player_release",
   "_player_release_all",

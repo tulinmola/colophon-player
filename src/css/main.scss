@@ -5,11 +5,3 @@ body {
   color: $foreground;
   font-family: $main-font;
 }
-
-// A raster line is not square: the height is doubled, as the emulator
-// doubles lines when it writes a screenshot.
-canvas {
-  width: 768px;
-  height: 544px;
-  image-rendering: pixelated;
-}

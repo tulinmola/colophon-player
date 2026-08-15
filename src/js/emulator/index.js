@@ -1,4 +1,4 @@
-import createModule from "../vendor/colophon-a8d456e.mjs"
+import createModule from "../vendor/colophon-f5661f7.mjs"
 
 const MACHINES = {
   cpc464: { romFile: "cpc464.rom", ramSize: 0x10000 },
@@ -45,6 +45,10 @@ class Machine {
 
   runFrames(frames) {
     this.#module._player_run_frames(frames)
+  }
+
+  runUntilRetrace(limit) {
+    return this.#module._player_run_until_retrace(limit)
   }
 
   pressKey(key) {

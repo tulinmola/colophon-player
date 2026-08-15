@@ -57,6 +57,28 @@ void player_run_frames(uint32_t frames) {
   }
 }
 
+/* The monitor sends the beam to the top-left corner as the frame sync
+ * reaches its length, so the moment it reports a retrace is the moment the
+ * framebuffer holds a whole frame and nothing of the next.
+ *
+ * Software decides how long a frame is, and may decide never to finish one:
+ * a rupture that leaves the vsync position past the vertical total stops the
+ * frames for as long as it holds. The caller says how long it is prepared to
+ * wait, so there is no frame to be waited for forever. */
+uint32_t player_run_until_retrace(uint32_t limit) {
+  bool retraced = cpc.monitor.frame_retraced;
+
+  for (uint32_t tick = 1; tick <= limit; tick++) {
+    cpc_tick(&cpc);
+    if (cpc.monitor.frame_retraced && !retraced) {
+      return tick;
+    }
+    retraced = cpc.monitor.frame_retraced;
+  }
+
+  return limit;
+}
+
 void player_press(uint8_t key) { keyboard_press(&cpc.keyboard, key); }
 void player_release(uint8_t key) { keyboard_release(&cpc.keyboard, key); }
 void player_release_all(void) { keyboard_release_all(&cpc.keyboard); }
