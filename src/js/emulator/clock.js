@@ -1,13 +1,11 @@
 const TICKS_PER_MILLISECOND = 4000
 
-// The slack allowed for a frame to finish beyond the time owed, so the
-// picture is presented whole. A standard frame is 312 lines of 64µs; one
-// that runs longer is a rupture, and is presented wherever it has reached.
+// A frame is 312 lines of 64µs. Running past the time owed by that much lets
+// one finish, so the picture is presented whole.
 const FRAME_SLACK_TICKS = 312 * 64 * 4
 
-// Coming back to a tab that has been hidden for an hour owes an hour of
-// emulation. The machine loses the time instead, as a machine switched off
-// would, and the page stays answerable.
+// A tab hidden for an hour owes an hour of emulation. The machine loses the
+// time instead, as one switched off would.
 const MAXIMUM_DEBT = 80 * TICKS_PER_MILLISECOND
 
 export function createClock(machine, draw) {

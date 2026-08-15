@@ -77,10 +77,10 @@ class Machine {
   }
 }
 
-export async function createMachine(name, romsUrl = "/roms") {
+export async function createMachine(name, { romsUrl = "/roms", signal } = {}) {
   const machine = MACHINES[name],
     module = await createModule(),
-    response = await fetch(`${romsUrl}/${machine.romFile}`),
+    response = await fetch(`${romsUrl}/${machine.romFile}`, { signal }),
     rom = new Uint8Array(await response.arrayBuffer())
 
   module.HEAPU8.set(rom, module._player_rom())
