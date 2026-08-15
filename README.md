@@ -10,13 +10,26 @@ It will not stop at watching. Colophon's machine is stepped one clock at a time 
 
 ## The element
 
-Nothing runs yet. The shape it is built toward is one tag:
+There is no player yet, only the page that will hold one. The shape it is built toward is a single tag:
 
 ```html
 <colophon-player machine="cpc464" snapshot="foo.sna"></colophon-player>
 ```
 
 A machine to build, a snapshot to start it from, and a canvas showing what its monitor shows.
+
+## Building
+
+Node and npm are the whole toolchain for now. The emulator is C, and the day it crosses into the page it will bring a compiler in with it.
+
+```sh
+npm install
+npm start        # serve the page
+npm run build    # write the site to dist/
+npm run check    # formatting, linting and the tests
+```
+
+The page says its own name and stops, which is the whole of it today.
 
 ## The machine
 
