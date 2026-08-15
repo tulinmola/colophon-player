@@ -1,0 +1,14 @@
+[
+  "_player_rom",
+  "_player_snapshot",
+  "_player_framebuffer",
+  "_player_boot",
+  "_player_load_snapshot",
+  "_player_run_frames",
+  "_player_press",
+  "_player_release",
+  "_player_release_all",
+  "_player_peek",
+  "_player_poke",
+  "_player_rgb"
+]

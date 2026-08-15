@@ -6,8 +6,10 @@ body {
   font-family: $main-font;
 }
 
-h1 {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: normal;
+// A raster line is not square: the height is doubled, as the emulator
+// doubles lines when it writes a screenshot.
+canvas {
+  width: 768px;
+  height: 544px;
+  image-rendering: pixelated;
 }

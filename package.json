@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "prettier:check": "npx prettier . --check",
     "prettier:write": "npx prettier . --write",
-    "lint": "eslint 'src/js/**/*.js'",
+    "lint": "eslint 'src/js/**/*.js' 'tools/**/*.js' 'eslint.config.js' --ignore-pattern 'src/js/vendor/**/*'",
+    "roms:fetch": "node tools/fetch_roms.js",
+    "emulator:build": "node tools/build_emulator.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest watch",
     "check": "npm run prettier:check && npm run lint && npm test"

@@ -1,16 +1,13 @@
+import { defineConfig } from "eslint/config"
 import globals from "globals"
 import js from "@eslint/js"
 
-export default [
-  js.configs.all,
+export default defineConfig([
   {
-    languageOptions: {
-      ecmaVersion: 2022,
-      globals: {
-        ...globals.browser
-      },
-      sourceType: "module"
-    },
+    files: ["**/*.{js,mjs,cjs}"],
+    plugins: { js },
+    extends: ["js/all"],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: {
       "capitalized-comments": "off",
       "class-methods-use-this": "off",
@@ -46,4 +43,4 @@ export default [
       "sort-vars": "off"
     }
   }
-]
+])

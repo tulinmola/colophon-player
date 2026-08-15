@@ -20,16 +20,20 @@ A machine to build, a snapshot to start it from, and a canvas showing what its m
 
 ## Building
 
-Node and npm are the whole toolchain for now. The emulator is C, and the day it crosses into the page it will bring a compiler in with it.
+The page is npm's. The machine is not: it is C, compiled here by Emscripten from a checkout of the emulator standing beside this one.
 
 ```sh
 npm install
-npm start        # serve the page
-npm run build    # write the site to dist/
-npm run check    # formatting, linting and the tests
+npm run roms:fetch       # fetch the firmware, once
+npm run emulator:build   # compile the machine into src/js/vendor
+npm start                # serve the page
+npm run build            # write the site to dist/
+npm run check            # formatting, linting and the tests
 ```
 
-The page says its own name and stops, which is the whole of it today.
+`npm run emulator:build` reads the emulator from `../colophon-emulator`, or from wherever `EMULATOR_DIR` points, and writes a module named after the commit it was built from — so a page can always say which machine it is running, and a build from an unclean tree cannot answer to a commit's name. The module is committed, and rebuilt only when the emulator moves.
+
+A CPC 464 boots on the page and stops at its Ready prompt, which is the whole of it today. Those are the same pixels the emulator's own screenshot writes — all 208,896 of them, compared one by one against `build/emulator boot --machine cpc464 --no-double`.
 
 ## The machine
 
