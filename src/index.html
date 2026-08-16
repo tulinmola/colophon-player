@@ -2,19 +2,23 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>Colophon Player</title>
-    <meta
-      name="viewport"
-      content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
+    <title>Colophon Debugger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="stylesheet" href="./css/index.css" />
     <meta name="theme-color" content="#000000" />
   </head>
   <body>
-    <colophon-player machine="cpc464"></colophon-player>
+    <colophon-cpc model="cpc6128">
+      <colophon-monitor></colophon-monitor>
+
+      <div class="panels">
+        <colophon-controls></colophon-controls>
+        <colophon-z80></colophon-z80>
+        <colophon-crtc></colophon-crtc>
+      </div>
+    </colophon-cpc>
+
     <script src="./js/index.js" type="module"></script>
   </body>
 </html>

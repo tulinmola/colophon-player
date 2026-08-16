@@ -86,4 +86,15 @@ void player_release_all(void) { keyboard_release_all(&cpc.keyboard); }
 uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
 void player_poke(uint16_t address, uint8_t value) { cpc_poke(&cpc, address, value); }
 
+z80_t *player_z80(void) { return &cpc.cpu; }
+crtc_t *player_crtc(void) { return &cpc.crtc; }
+
+void player_finish_instruction(void) { cpc_finish_instruction(&cpc); }
+
+/* Without the tick, a machine already between instructions would not move. */
+void player_step_instruction(void) {
+  cpc_tick(&cpc);
+  cpc_finish_instruction(&cpc);
+}
+
 uint32_t player_rgb(uint8_t colour_code) { return gate_array_rgb(colour_code); }

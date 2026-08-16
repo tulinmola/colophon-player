@@ -10,7 +10,7 @@
 
 const keyAt = (line, bit) => line * 8 + bit
 
-export const MATRIX = {
+export const KEY_MATRIX = {
   ArrowUp: keyAt(0, 0),
   ArrowRight: keyAt(0, 1),
   ArrowDown: keyAt(0, 2),

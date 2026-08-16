@@ -1,1 +1,1 @@
-import "./elements/player"
+import "./elements"

@@ -1,13 +1,15 @@
 import { execFileSync, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
+import { tmpdir } from "node:os"
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../.."),
   EMULATOR_DIR = resolve(ROOT, process.env.EMULATOR_DIR ?? "../colophon-emulator"),
   VENDOR_DIR = resolve(ROOT, "src/js/vendor"),
   EXPORTS = resolve(ROOT, "emulator/exports.json"),
-  HOST = resolve(ROOT, "emulator/player.c")
+  HOST = resolve(ROOT, "emulator/player.c"),
+  LAYOUT = resolve(ROOT, "emulator/layout.c")
 
 function git(...args) {
   return execFileSync("git", ["-C", EMULATOR_DIR, ...args], { encoding: "utf8" }).trim()
@@ -27,6 +29,30 @@ function machineSources() {
   return readdirSync(directory)
     .filter(name => name.endsWith(".c"))
     .map(name => resolve(directory, name))
+}
+
+// Built for WebAssembly and run under node: a struct's offsets belong to the
+// target that laid it out, not to the machine doing the building.
+function writeLayout(basename) {
+  const prefix = resolve(tmpdir(), "colophon-layout-"),
+    directory = mkdtempSync(prefix),
+    program = resolve(directory, "layout.js")
+
+  execFileSync("emcc", [
+    LAYOUT,
+    "-I",
+    resolve(EMULATOR_DIR, "src"),
+    "-std=c99",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-o",
+    program
+  ])
+
+  const layout = execFileSync("node", [program], { encoding: "utf8" })
+  rmSync(directory, { recursive: true })
+  writeFileSync(resolve(VENDOR_DIR, `${basename}.layout.mjs`), layout)
 }
 
 if (!existsSync(resolve(EMULATOR_DIR, "src"))) {
@@ -72,5 +98,7 @@ execFileSync(
   { stdio: "inherit" }
 )
 
-console.log(`==> Wrote src/js/vendor/${basename}.{mjs,wasm}`)
-console.log("==> Update the import in src/js/emulator/index.js if the name changed")
+writeLayout(basename)
+
+console.log(`==> Wrote src/js/vendor/${basename}.{mjs,wasm,layout.mjs}`)
+console.log("==> Update the imports in src/js/emulator/{module,layout}.js if the name changed")
