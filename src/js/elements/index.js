@@ -1,5 +1,6 @@
 import "./controls"
 import "./cpc"
 import "./crtc"
+import "./disassembly"
 import "./monitor"
 import "./z80"

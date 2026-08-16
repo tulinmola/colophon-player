@@ -35,9 +35,9 @@ colophon-monitor canvas {
 
 .panels {
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: 1rem;
-  min-width: 15rem;
 }
 
 h2 {
@@ -57,7 +57,7 @@ dl {
   margin: 0;
 
   &.registers {
-    grid-template-columns: repeat(3, auto auto);
+    grid-template-columns: repeat(4, auto auto);
   }
 }
 
@@ -71,10 +71,26 @@ dd {
 }
 
 colophon-z80,
-colophon-crtc {
+colophon-crtc,
+colophon-disassembly {
   display: block;
   border: 1px solid $line;
   padding: 0.6rem 0.75rem;
+}
+
+// An address is four digits, an instruction at most four bytes, and the
+// widest text the decoding can produce is "RES 0,(IX+&05),B". Sized to those
+// so no row ever wraps.
+.instruction {
+  display: grid;
+  grid-template-columns: 5ch 11ch 16ch;
+  gap: 0 0.75rem;
+  white-space: nowrap;
+  color: $dim;
+
+  &:first-of-type {
+    color: $foreground;
+  }
 }
 
 colophon-controls {

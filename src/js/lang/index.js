@@ -1,6 +1,5 @@
-function hex(value, digits) {
-  const text = value.toString(16).toUpperCase()
-  return `&${text.padStart(digits, "0")}`
+function hex(value, { digits = 2, prefix = "&" } = {}) {
+  return `${prefix}${value.toString(16).toUpperCase().padStart(digits, "0")}`
 }
 
 const html = String.raw

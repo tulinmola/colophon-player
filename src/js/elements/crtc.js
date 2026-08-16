@@ -34,11 +34,11 @@ class CrtcElement extends Viewer {
       registers = crtc.registers
 
     for (const name of COUNTERS) {
-      write(this.#fields[name], hex(crtc[name], 2))
+      write(this.#fields[name], hex(crtc[name]))
     }
 
     for (let number = 0; number < registers.length; number++) {
-      write(this.#fields[this.#registerNames[number]], hex(registers[number], 2))
+      write(this.#fields[this.#registerNames[number]], hex(registers[number]))
     }
   }
 }

@@ -20,7 +20,7 @@ class Z80Element extends Viewer {
   }
 
   #render(machine) {
-    write(this.#fields.pc, hex(machine.z80.pc, 4))
+    write(this.#fields.pc, hex(machine.z80.pc, { digits: 4 }))
   }
 }
 
