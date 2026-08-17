@@ -1,44 +1,111 @@
-import { hex, html, nodesByName, write } from "../lang"
+import { hex, html } from "../lang"
+import { renderInput, renderOutput, show } from "./fields"
 import { MachineObserver } from "./machine_observer"
 
-const COUNTERS = ["c0", "c4", "c9"]
+function renderCounter(number, meaning) {
+  return renderInput(`C${number}`, meaning, [`c${number}`])
+}
 
-function renderRow(name) {
-  return html`
-    <dt>${name.toUpperCase()}</dt>
-    <dd data-field="${name}"></dd>
-  `
+function renderRegister(number, meaning) {
+  return renderInput(`R${number}`, meaning, [`r${number}`])
+}
+
+function renderLightPen(number, meaning) {
+  return renderOutput(`R${number}`, meaning, `r${number}`)
 }
 
 class CrtcElement extends MachineObserver {
-  #nodes
-  #registerNames
+  #form
 
   watch(machine) {
-    this.#registerNames = Array.from(machine.crtc.registers, (_value, number) => `r${number}`)
-
     this.innerHTML = html`
       <h2>CRTC 6845</h2>
-      <dl>${COUNTERS.map(renderRow).join("")}</dl>
-      <dl class="registers">${this.#registerNames.map(renderRow).join("")}</dl>
+      <form>
+        <div class="fields counters">
+          ${[
+            renderCounter(0, "Horizontal character counter"),
+            renderCounter(9, "Scanline within the character row, driving RA"),
+            renderCounter(4, "Character row counter")
+          ].join("")}
+        </div>
+        <div class="fields registers">
+          ${[
+            renderRegister(0, "Horizontal total"),
+            renderRegister(1, "Horizontal displayed"),
+            renderRegister(2, "Horizontal sync position"),
+            renderRegister(3, "Sync widths: HSYNC in the low nibble, VSYNC in the high"),
+            renderRegister(4, "Vertical total"),
+            renderRegister(5, "Vertical total adjust"),
+            renderRegister(6, "Vertical displayed"),
+            renderRegister(7, "Vertical sync position"),
+            renderRegister(8, "Interlace and skew"),
+            renderRegister(9, "Maximum raster address"),
+            renderRegister(10, "Cursor start raster"),
+            renderRegister(11, "Cursor end raster"),
+            renderRegister(12, "Display start address, high"),
+            renderRegister(13, "Display start address, low"),
+            renderRegister(14, "Cursor address, high"),
+            renderRegister(15, "Cursor address, low"),
+            renderLightPen(16, "Light pen address, high"),
+            renderLightPen(17, "Light pen address, low")
+          ].join("")}
+        </div>
+      </form>
     `
 
-    this.#nodes = nodesByName(this)
+    this.#form = this.querySelector("form")
 
-    machine.addEventListener("changed", () => this.#render(machine), { signal: this.signal })
+    const { signal } = this
+    this.addEventListener("focusin", this.onFocusIn.bind(this), { signal })
+    this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
+
+    machine.addEventListener("changed", () => this.#render(machine), { signal })
     this.#render(machine)
+  }
+
+  onFocusIn(event) {
+    if (event.target.type == "text") {
+      event.target.select()
+    }
+  }
+
+  onKeyDown(event) {
+    if (event.key == "Escape") {
+      this.#form.reset()
+    }
+  }
+
+  onChanged(event) {
+    const input = event.target,
+      crtc = this.machine.crtc
+
+    if (input.checkValidity()) {
+      const value = parseInt(input.value, 16)
+
+      if (input.name.startsWith("r")) {
+        const index = Number(input.name.slice(1))
+        crtc.putRegister(index, value)
+      } else {
+        crtc[input.name] = value
+      }
+    }
+
+    input.blur()
+    this.machine.changed()
   }
 
   #render(machine) {
     const crtc = machine.crtc,
+      field = this.#form.elements,
       registers = crtc.registers
 
-    for (const name of COUNTERS) {
-      write(this.#nodes[name], hex(crtc[name], { prefix: "&" }))
-    }
+    show(field.c0, hex(crtc.c0))
+    show(field.c9, hex(crtc.c9))
+    show(field.c4, hex(crtc.c4))
 
     for (let number = 0; number < registers.length; number++) {
-      write(this.#nodes[this.#registerNames[number]], hex(registers[number], { prefix: "&" }))
+      show(field[`r${number}`], hex(registers[number]))
     }
   }
 }

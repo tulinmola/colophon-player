@@ -65,6 +65,14 @@ h2 {
   }
 
   // An interrupt mode and a raised line are not hex, so they wear no sigil.
+  &.counters {
+    grid-template-columns: repeat(3, auto auto);
+  }
+
+  &.registers {
+    grid-template-columns: repeat(4, auto auto);
+  }
+
   &.indicators {
     grid-template-columns: repeat(5, auto auto);
 
@@ -104,6 +112,10 @@ h2 {
     &::before {
       content: "&";
     }
+  }
+
+  output {
+    opacity: 0.75;
   }
 
   input {
@@ -176,76 +188,7 @@ h2 {
   }
 }
 
-dl {
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: start;
-  gap: 0.15rem 0.75rem;
-  margin: 0;
-
-  &.registers {
-    grid-template-columns: repeat(4, auto auto);
-  }
-
-  &.pairs {
-    grid-template-columns: repeat(2, auto auto);
-  }
-
-  &.indicators {
-    grid-template-columns: repeat(5, auto auto);
-  }
-}
-
-dt {
-  color: $dim;
-}
-
-dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-
-  input {
-    all: unset;
-    width: 2ch;
-    cursor: text;
-    background: $well;
-    text-transform: uppercase;
-
-    &:focus {
-      outline: 1px solid $dim;
-    }
-
-    &:invalid {
-      color: $invalid;
-    }
-  }
-
-  &.flags {
-    display: flex;
-    gap: 0.5ch;
-
-    label {
-      color: $line;
-      cursor: pointer;
-    }
-
-    label:has(:checked) {
-      color: $foreground;
-    }
-
-    label:has(:focus-visible) {
-      outline: 1px solid $dim;
-    }
-
-    input {
-      position: absolute;
-      width: 0;
-      opacity: 0;
-    }
-  }
-}
-
-colophon-z80 form {
+form {
   display: grid;
   gap: 0.5rem;
 }

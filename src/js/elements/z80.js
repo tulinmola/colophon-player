@@ -1,4 +1,5 @@
 import { hex, html } from "../lang"
+import { renderAbbreviation, renderInput, renderOutput, show } from "./fields"
 import { MachineObserver } from "./machine_observer"
 
 const FLAGS = [
@@ -12,45 +13,8 @@ const FLAGS = [
   ["flagC", "C", "Carry"]
 ]
 
-function renderAbbreviation(label, meaning) {
-  return meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label
-}
-
 function bit(on) {
   return on ? "1" : "."
-}
-
-function renderOutput(label, meaning, name) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<output
-      name="${name}"
-      aria-label="${label}"
-      aria-live="off"
-    ></output
-  ></label>`
-}
-
-function renderInput(label, meaning, names, digits = 2) {
-  // aria-label is what keeps the sigil and any sibling control from being read
-  // out as part of the name.
-  const controls = names.map(function (name, index) {
-    const next = names[index + 1],
-      announced = names.length > 1 ? name.toUpperCase().replace("_", " shadow") : label
-
-    return html`<input
-      name="${name}"
-      aria-label="${announced}"
-      maxlength="${digits}"
-      pattern="[0-9A-Fa-f]{1,${digits}}"
-      ${next ? `data-next="${next}"` : ""}
-    />`
-  })
-
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<span class="input-group"
-      >${controls.join("&nbsp;")}</span
-    ></label
-  >`
 }
 
 function renderMode(label, meaning, name) {
@@ -179,63 +143,47 @@ class Z80Element extends MachineObserver {
     this.machine.changed()
   }
 
-  // defaultValue is where a reset returns the control, so it holds the
-  // machine's value too.
-  #show(node, value) {
-    if (document.activeElement == node) {
-      return
-    }
-
-    if (node.type == "checkbox") {
-      node.checked = value
-      node.defaultChecked = value
-    } else {
-      node.value = value
-      node.defaultValue = value
-    }
-  }
-
   #render(machine) {
     const z80 = machine.z80,
       field = this.#form.elements
 
-    this.#show(field.a, hex(z80.a))
-    this.#show(field.f, hex(z80.f))
-    this.#show(field.b, hex(z80.b))
-    this.#show(field.c, hex(z80.c))
-    this.#show(field.d, hex(z80.d))
-    this.#show(field.e, hex(z80.e))
-    this.#show(field.h, hex(z80.h))
-    this.#show(field.l, hex(z80.l))
-    this.#show(field.ixh, hex(z80.ixh))
-    this.#show(field.ixl, hex(z80.ixl))
-    this.#show(field.iyh, hex(z80.iyh))
-    this.#show(field.iyl, hex(z80.iyl))
-    this.#show(field.i, hex(z80.i))
-    this.#show(field.r, hex(z80.r))
+    show(field.a, hex(z80.a))
+    show(field.f, hex(z80.f))
+    show(field.b, hex(z80.b))
+    show(field.c, hex(z80.c))
+    show(field.d, hex(z80.d))
+    show(field.e, hex(z80.e))
+    show(field.h, hex(z80.h))
+    show(field.l, hex(z80.l))
+    show(field.ixh, hex(z80.ixh))
+    show(field.ixl, hex(z80.ixl))
+    show(field.iyh, hex(z80.iyh))
+    show(field.iyl, hex(z80.iyl))
+    show(field.i, hex(z80.i))
+    show(field.r, hex(z80.r))
 
-    this.#show(field.a_, hex(z80.a_))
-    this.#show(field.f_, hex(z80.f_))
-    this.#show(field.b_, hex(z80.b_))
-    this.#show(field.c_, hex(z80.c_))
-    this.#show(field.d_, hex(z80.d_))
-    this.#show(field.e_, hex(z80.e_))
-    this.#show(field.h_, hex(z80.h_))
-    this.#show(field.l_, hex(z80.l_))
+    show(field.a_, hex(z80.a_))
+    show(field.f_, hex(z80.f_))
+    show(field.b_, hex(z80.b_))
+    show(field.c_, hex(z80.c_))
+    show(field.d_, hex(z80.d_))
+    show(field.e_, hex(z80.e_))
+    show(field.h_, hex(z80.h_))
+    show(field.l_, hex(z80.l_))
 
-    this.#show(field.sp, hex(z80.sp, { digits: 4 }))
-    this.#show(field.pc, hex(z80.pc, { digits: 4 }))
-    this.#show(field.wz, hex(z80.wz, { digits: 4 }))
+    show(field.sp, hex(z80.sp, { digits: 4 }))
+    show(field.pc, hex(z80.pc, { digits: 4 }))
+    show(field.wz, hex(z80.wz, { digits: 4 }))
 
     for (const [flag] of FLAGS) {
-      this.#show(field[flag], z80[flag])
+      show(field[flag], z80[flag])
     }
-    this.#show(field.iff1, z80.iff1)
-    this.#show(field.iff2, z80.iff2)
-    this.#show(field.halted, z80.halted)
+    show(field.iff1, z80.iff1)
+    show(field.iff2, z80.iff2)
+    show(field.halted, z80.halted)
 
-    this.#show(field.im, String(z80.im))
-    this.#show(field.intLine, bit(z80.intLine))
+    show(field.im, String(z80.im))
+    show(field.intLine, bit(z80.intLine))
   }
 }
 
