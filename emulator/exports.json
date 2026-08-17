@@ -1,6 +1,7 @@
 [
   "_player_rom",
   "_player_snapshot",
+  "_player_ram",
   "_player_framebuffer",
   "_player_boot",
   "_player_load_snapshot",

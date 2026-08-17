@@ -27,12 +27,8 @@ colophon-cpc {
   }
 }
 
-// A raster line is not square: the height is doubled, as the emulator
-// doubles lines when it writes a screenshot.
 colophon-monitor canvas {
   display: block;
-  width: 768px;
-  height: 544px;
   image-rendering: pixelated;
 }
 
@@ -195,11 +191,18 @@ form {
 
 colophon-z80,
 colophon-crtc,
-colophon-disassembly {
+colophon-disassembly,
+colophon-screen {
   display: block;
+  width: fit-content;
   background: $card;
   border: 1px solid $line;
   padding: 0.6rem 0.75rem;
+}
+
+colophon-screen canvas {
+  display: block;
+  image-rendering: pixelated;
 }
 
 // An address is four digits, an instruction at most four bytes, and the

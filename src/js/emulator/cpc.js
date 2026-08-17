@@ -35,6 +35,7 @@ export class Cpc extends Machine {
   #crtc
   #module
   #palette
+  #ramSize
   #z80
 
   static async create(model, { romsUrl = "/roms", snapshotUrl, signal } = {}) {
@@ -46,7 +47,7 @@ export class Cpc extends Machine {
     module.HEAPU8.set(rom, module._player_rom())
     module._player_boot(machine.ramSize)
 
-    const cpc = new Cpc(module)
+    const cpc = new Cpc(module, machine.ramSize)
     if (snapshotUrl) {
       const saved = await fetch(snapshotUrl, { signal }),
         bytes = new Uint8Array(await saved.arrayBuffer())
@@ -59,7 +60,7 @@ export class Cpc extends Machine {
     return cpc
   }
 
-  constructor(module) {
+  constructor(module, ramSize) {
     super()
 
     const z80Pointer = module._player_z80(),
@@ -67,6 +68,7 @@ export class Cpc extends Machine {
 
     this.#module = module
     this.#palette = readPalette(module)
+    this.#ramSize = ramSize
     this.#z80 = new Z80(module, z80Pointer)
     this.#crtc = new Crtc(module, crtcPointer)
   }
@@ -96,6 +98,12 @@ export class Cpc extends Machine {
       length = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT
 
     return this.#module.HEAPU8.subarray(pointer, pointer + length)
+  }
+
+  get ram() {
+    const pointer = this.#module._player_ram()
+
+    return this.#module.HEAPU8.subarray(pointer, pointer + this.#ramSize)
   }
 
   runFrames(frames) {

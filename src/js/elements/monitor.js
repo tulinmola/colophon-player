@@ -15,13 +15,17 @@ class MonitorElement extends MachineObserver {
   #pixels
 
   watch(machine) {
-    const canvas = document.createElement("canvas")
+    const zoom = Number(this.getAttribute("zoom") ?? 1),
+      canvas = document.createElement("canvas")
+
     canvas.width = CROP_WIDTH
     canvas.height = CROP_HEIGHT
+    canvas.style.width = `${(CROP_WIDTH / 2) * zoom}px`
+    canvas.style.height = `${CROP_HEIGHT * zoom}px`
     this.replaceChildren(canvas)
 
     const context = canvas.getContext("2d"),
-      image = context.createImageData(CROP_WIDTH, CROP_HEIGHT)
+      image = context.createImageData(canvas.width, canvas.height)
 
     this.#context = context
     this.#image = image

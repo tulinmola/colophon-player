@@ -34,6 +34,10 @@ static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
 uint8_t *player_rom(void) { return rom; }
 uint8_t *player_snapshot(void) { return snapshot; }
 
+/* Addresses into it are physical, the video hardware's own view; peek and
+   poke walk the CPU's banking instead. */
+uint8_t *player_ram(void) { return ram; }
+
 /* Hardware colour codes, one byte a sample, the whole raster. */
 uint8_t *player_framebuffer(void) { return framebuffer; }
 
