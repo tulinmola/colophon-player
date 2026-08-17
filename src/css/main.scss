@@ -59,6 +59,14 @@ dl {
   &.registers {
     grid-template-columns: repeat(4, auto auto);
   }
+
+  &.pairs {
+    grid-template-columns: repeat(2, auto auto);
+  }
+
+  &.indicators {
+    grid-template-columns: repeat(5, auto auto);
+  }
 }
 
 dt {

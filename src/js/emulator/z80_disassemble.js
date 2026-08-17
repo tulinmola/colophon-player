@@ -2,8 +2,7 @@ import { hex } from "../lang"
 
 // The decomposition of "Decoding Z80 Opcodes" (Cristian Dinu),
 // http://z80.info/decoding.htm: x, y and z cut from the opcode, p and q from
-// y, and these tables read with them. src/z80.c decodes by the same cuts, and
-// the groups below are the ones that document names.
+// y, and these tables read with them. src/z80.c decodes by the same cuts.
 const R = ["B", "C", "D", "E", "H", "L", "(HL)", "A"]
 const RP = ["BC", "DE", "HL", "SP"]
 const RP2 = ["BC", "DE", "HL", "AF"]
@@ -266,9 +265,8 @@ export function disassemble(peek, address) {
     }
   }
 
-  // Under DD or FD every operand is the indexed one, and the register field
-  // names a copy the documentation does not carry: "RLC (IX+d),B" and its
-  // like.
+  // Under an index prefix the register field names a copy the documentation
+  // does not carry: "RLC (IX+d),B" and its like.
   function rotated(opcode) {
     const x = opcode >> 6,
       y = (opcode >> 3) & 7,

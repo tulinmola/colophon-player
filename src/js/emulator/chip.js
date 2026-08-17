@@ -15,6 +15,10 @@ export class Chip {
     return this.#state.getUint16(offset, true)
   }
 
+  boolAt(offset) {
+    return this.#state.getUint8(offset) != 0
+  }
+
   bytesAt(offset, length) {
     const at = this.#state.byteOffset + offset
     return new Uint8Array(this.#state.buffer, at, length)
