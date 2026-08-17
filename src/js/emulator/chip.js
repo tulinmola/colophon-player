@@ -19,6 +19,18 @@ export class Chip {
     return this.#state.getUint8(offset) != 0
   }
 
+  putByteAt(offset, value) {
+    this.#state.setUint8(offset, value)
+  }
+
+  putWordAt(offset, value) {
+    this.#state.setUint16(offset, value, true)
+  }
+
+  putBoolAt(offset, on) {
+    this.#state.setUint8(offset, on ? 1 : 0)
+  }
+
   bytesAt(offset, length) {
     const at = this.#state.byteOffset + offset
     return new Uint8Array(this.#state.buffer, at, length)

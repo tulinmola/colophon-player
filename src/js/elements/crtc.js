@@ -1,5 +1,5 @@
-import { fields, hex, html, write } from "../lang"
-import { Viewer } from "./viewer"
+import { hex, html, nodesByName, write } from "../lang"
+import { MachineObserver } from "./machine_observer"
 
 const COUNTERS = ["c0", "c4", "c9"]
 
@@ -10,8 +10,8 @@ function renderRow(name) {
   `
 }
 
-class CrtcElement extends Viewer {
-  #fields
+class CrtcElement extends MachineObserver {
+  #nodes
   #registerNames
 
   watch(machine) {
@@ -23,9 +23,9 @@ class CrtcElement extends Viewer {
       <dl class="registers">${this.#registerNames.map(renderRow).join("")}</dl>
     `
 
-    this.#fields = fields(this)
+    this.#nodes = nodesByName(this)
 
-    machine.addEventListener("frame", () => this.#render(machine), { signal: this.signal })
+    machine.addEventListener("changed", () => this.#render(machine), { signal: this.signal })
     this.#render(machine)
   }
 
@@ -34,11 +34,11 @@ class CrtcElement extends Viewer {
       registers = crtc.registers
 
     for (const name of COUNTERS) {
-      write(this.#fields[name], hex(crtc[name]))
+      write(this.#nodes[name], hex(crtc[name], { prefix: "&" }))
     }
 
     for (let number = 0; number < registers.length; number++) {
-      write(this.#fields[this.#registerNames[number]], hex(registers[number]))
+      write(this.#nodes[this.#registerNames[number]], hex(registers[number], { prefix: "&" }))
     }
   }
 }

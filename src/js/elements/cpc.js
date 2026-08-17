@@ -119,9 +119,17 @@ class CpcElement extends Element {
     this.#machine?.releaseAllKeys()
   }
 
+  // Keys reach the machine only while the machine itself holds focus: a
+  // register being typed into is not the keyboard, and preventDefault here
+  // would swallow the keystroke.
+  //
   // Control is a key on this machine, and software reads it. Command is not.
   #matrixKey(event) {
-    return event.metaKey ? null : KEY_MATRIX[event.code]
+    if (event.metaKey || event.target != this) {
+      return null
+    }
+
+    return KEY_MATRIX[event.code]
   }
 }
 

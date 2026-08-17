@@ -62,6 +62,12 @@ export class Machine extends EventTarget {
   present() {
     const frame = new Event("frame")
     this.dispatchEvent(frame)
+    this.changed()
+  }
+
+  changed() {
+    const change = new Event("changed")
+    this.dispatchEvent(change)
   }
 
   onAnimationFrame(now) {

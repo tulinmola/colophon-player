@@ -23,6 +23,14 @@ function signed(value) {
   return value > 127 ? value - 256 : value
 }
 
+function hexByte(value) {
+  return hex(value, { prefix: "&" })
+}
+
+function hexWord(value) {
+  return hex(value, { digits: 4, prefix: "&" })
+}
+
 export function disassemble(peek, address) {
   let at = address,
     index = null,
@@ -48,13 +56,13 @@ export function disassemble(peek, address) {
       displacement = signed(next())
     }
 
-    const magnitude = hex(Math.abs(displacement))
+    const magnitude = hexByte(Math.abs(displacement))
     return `(${index}${displacement < 0 ? "-" : "+"}${magnitude})`
   }
 
   function relative() {
     const step = signed(next())
-    return hex((at + step) & 0xffff, { digits: 4 })
+    return hexWord((at + step) & 0xffff)
   }
 
   function operand(number) {
@@ -104,11 +112,11 @@ export function disassemble(peek, address) {
       case 1:
         return q == 0 ? "LD (DE),A" : "LD A,(DE)"
       case 2: {
-        const target = hex(word(), { digits: 4 })
+        const target = hexWord(word())
         return q == 0 ? `LD (${target}),${hl()}` : `LD ${hl()},(${target})`
       }
       default: {
-        const target = hex(word(), { digits: 4 })
+        const target = hexWord(word())
         return q == 0 ? `LD (${target}),A` : `LD A,(${target})`
       }
     }
@@ -119,9 +127,7 @@ export function disassemble(peek, address) {
       case 0:
         return relativeJumps(y)
       case 1:
-        return q == 0
-          ? `LD ${pair(RP, p)},${hex(word(), { digits: 4 })}`
-          : `ADD ${hl()},${pair(RP, p)}`
+        return q == 0 ? `LD ${pair(RP, p)},${hexWord(word())}` : `ADD ${hl()},${pair(RP, p)}`
       case 2:
         return indirectLoad(p, q)
       case 3:
@@ -132,7 +138,7 @@ export function disassemble(peek, address) {
         return `DEC ${operand(y)}`
       case 6: {
         const target = operand(y)
-        return `LD ${target},${hex(next())}`
+        return `LD ${target},${hexByte(next())}`
       }
       default:
         return ACCUMULATOR[y]
@@ -173,11 +179,11 @@ export function disassemble(peek, address) {
   function assortedOperations(y) {
     switch (y) {
       case 0:
-        return `JP ${hex(word(), { digits: 4 })}`
+        return `JP ${hexWord(word())}`
       case 2:
-        return `OUT (${hex(next())}),A`
+        return `OUT (${hexByte(next())}),A`
       case 3:
-        return `IN A,(${hex(next())})`
+        return `IN A,(${hexByte(next())})`
       case 4:
         return `EX (SP),${hl()}`
       case 5:
@@ -196,17 +202,17 @@ export function disassemble(peek, address) {
       case 1:
         return stackAndJumps(y, p, q)
       case 2:
-        return `JP ${CC[y]},${hex(word(), { digits: 4 })}`
+        return `JP ${CC[y]},${hexWord(word())}`
       case 3:
         return assortedOperations(y)
       case 4:
-        return `CALL ${CC[y]},${hex(word(), { digits: 4 })}`
+        return `CALL ${CC[y]},${hexWord(word())}`
       case 5:
-        return q == 0 ? `PUSH ${pair(RP2, p)}` : `CALL ${hex(word(), { digits: 4 })}`
+        return q == 0 ? `PUSH ${pair(RP2, p)}` : `CALL ${hexWord(word())}`
       case 6:
-        return `${ALU[y]}${hex(next())}`
+        return `${ALU[y]}${hexByte(next())}`
       default:
-        return `RST ${hex(y * 8)}`
+        return `RST ${hexByte(y * 8)}`
     }
   }
 
@@ -251,7 +257,7 @@ export function disassemble(peek, address) {
       case 2:
         return `${q == 0 ? "SBC" : "ADC"} HL,${RP[p]}`
       case 3: {
-        const target = hex(word(), { digits: 4 })
+        const target = hexWord(word())
         return q == 0 ? `LD (${target}),${RP[p]}` : `LD ${RP[p]},(${target})`
       }
       case 4:

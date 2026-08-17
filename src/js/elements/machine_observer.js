@@ -16,7 +16,7 @@ async function closestWith(element, property) {
   return null
 }
 
-export class Viewer extends Element {
+export class MachineObserver extends Element {
   #machine = null
 
   get machine() {

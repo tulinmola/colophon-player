@@ -1,4 +1,4 @@
-import { Viewer } from "./viewer"
+import { MachineObserver } from "./machine_observer"
 
 // The window the emulator crops its own screenshots to, and the reason the
 // two can be compared pixel for pixel.
@@ -9,7 +9,7 @@ const CROP_LEFT = 208,
 
 const FRAMEBUFFER_WIDTH = 1024
 
-class MonitorElement extends Viewer {
+class MonitorElement extends MachineObserver {
   #context
   #image
   #pixels

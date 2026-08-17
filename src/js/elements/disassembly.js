@@ -1,5 +1,5 @@
-import { fields, hex, html, write } from "../lang"
-import { Viewer } from "./viewer"
+import { hex, html, nodesByName, write } from "../lang"
+import { MachineObserver } from "./machine_observer"
 import { disassemble } from "../emulator"
 
 const ROWS = 16
@@ -12,8 +12,8 @@ function renderRow(number) {
   </div>`
 }
 
-class DisassemblyElement extends Viewer {
-  #fields
+class DisassemblyElement extends MachineObserver {
+  #nodes
 
   watch(machine) {
     const rows = Array.from({ length: ROWS }, (_row, number) => renderRow(number))
@@ -23,9 +23,9 @@ class DisassemblyElement extends Viewer {
       ${rows.join("")}
     `
 
-    this.#fields = fields(this)
+    this.#nodes = nodesByName(this)
 
-    machine.addEventListener("frame", () => this.#render(machine), { signal: this.signal })
+    machine.addEventListener("changed", () => this.#render(machine), { signal: this.signal })
     this.#render(machine)
   }
 
@@ -42,9 +42,9 @@ class DisassemblyElement extends Viewer {
         bytes.push(hex(value, { prefix: "" }))
       }
 
-      write(this.#fields[`address${number}`], hex(address, { digits: 4 }))
-      write(this.#fields[`bytes${number}`], bytes.join(" "))
-      write(this.#fields[`text${number}`], text)
+      write(this.#nodes[`address${number}`], hex(address, { digits: 4, prefix: "&" }))
+      write(this.#nodes[`bytes${number}`], bytes.join(" "))
+      write(this.#nodes[`text${number}`], text)
 
       address = (address + length) & 0xffff
     }

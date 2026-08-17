@@ -1,5 +1,8 @@
 $dim: color.adjust($foreground, $alpha: -0.45);
 $line: color.adjust($foreground, $alpha: -0.85);
+$card: color.adjust($foreground, $alpha: -0.92);
+$well: $background;
+$invalid: #ff6f5f;
 
 body {
   background: $background;
@@ -49,6 +52,130 @@ h2 {
   color: $dim;
 }
 
+// A label has no box of its own, so its text becomes a grid item beside the
+// value and inherits the dim colour from it.
+.fields {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  gap: 0.15rem 0.75rem;
+
+  &.pairs {
+    grid-template-columns: repeat(2, auto auto);
+  }
+
+  // An interrupt mode and a raised line are not hex, so they wear no sigil.
+  &.indicators {
+    grid-template-columns: repeat(5, auto auto);
+
+    output::before,
+    .input-group::before {
+      content: none;
+    }
+  }
+
+  label {
+    display: contents;
+  }
+
+  label,
+  .name {
+    color: $dim;
+  }
+
+  abbr {
+    text-decoration: none;
+  }
+
+  input,
+  output {
+    all: unset;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // An output is already the tag for a shown value; a span needs the class
+  // because it means nothing on its own. The sigil belongs to the number, so
+  // it takes the number's colour.
+  output,
+  .input-group {
+    color: $foreground;
+    white-space: nowrap;
+
+    &::before {
+      content: "&";
+    }
+  }
+
+  input {
+    width: 2ch;
+    cursor: text;
+    background: $well;
+    text-transform: uppercase;
+
+    &[maxlength="1"] {
+      width: 1ch;
+    }
+
+    &[maxlength="4"] {
+      width: 4ch;
+    }
+
+    &:focus {
+      outline: 1px solid $dim;
+    }
+
+    &:invalid {
+      color: $invalid;
+      font-weight: bold;
+    }
+  }
+
+  input.state {
+    width: 1ch;
+    background: none;
+    cursor: pointer;
+    appearance: none;
+    color: $foreground;
+
+    &::before {
+      content: ".";
+    }
+
+    &:checked::before {
+      content: "1";
+    }
+
+    &:focus-visible {
+      outline: 1px solid $dim;
+    }
+  }
+
+  .flags {
+    display: flex;
+    gap: 0.5ch;
+
+    label {
+      display: inline;
+      color: $dim;
+      cursor: pointer;
+    }
+
+    label:has(:checked) {
+      color: $foreground;
+    }
+
+    label:has(:focus-visible) {
+      outline: 1px solid $dim;
+    }
+
+    input {
+      position: absolute;
+      width: 0;
+      opacity: 0;
+    }
+  }
+}
+
 dl {
   display: grid;
   grid-template-columns: auto auto;
@@ -76,12 +203,58 @@ dt {
 dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+
+  input {
+    all: unset;
+    width: 2ch;
+    cursor: text;
+    background: $well;
+    text-transform: uppercase;
+
+    &:focus {
+      outline: 1px solid $dim;
+    }
+
+    &:invalid {
+      color: $invalid;
+    }
+  }
+
+  &.flags {
+    display: flex;
+    gap: 0.5ch;
+
+    label {
+      color: $line;
+      cursor: pointer;
+    }
+
+    label:has(:checked) {
+      color: $foreground;
+    }
+
+    label:has(:focus-visible) {
+      outline: 1px solid $dim;
+    }
+
+    input {
+      position: absolute;
+      width: 0;
+      opacity: 0;
+    }
+  }
+}
+
+colophon-z80 form {
+  display: grid;
+  gap: 0.5rem;
 }
 
 colophon-z80,
 colophon-crtc,
 colophon-disassembly {
   display: block;
+  background: $card;
   border: 1px solid $line;
   padding: 0.6rem 0.75rem;
 }

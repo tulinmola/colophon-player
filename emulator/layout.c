@@ -27,6 +27,17 @@ int main(void) {
   printf("export const Z80_AT_BC_ = %zu\n", offsetof(z80_t, bc_));
   printf("export const Z80_AT_DE_ = %zu\n", offsetof(z80_t, de_));
   printf("export const Z80_AT_HL_ = %zu\n", offsetof(z80_t, hl_));
+  /* The alternate set is stored as whole words, so its halves are addressed
+   * through the target's byte order: the low byte of a register first. */
+  printf("export const Z80_AT_A_ = %zu\n", offsetof(z80_t, af_) + 1);
+  printf("export const Z80_AT_F_ = %zu\n", offsetof(z80_t, af_));
+  printf("export const Z80_AT_B_ = %zu\n", offsetof(z80_t, bc_) + 1);
+  printf("export const Z80_AT_C_ = %zu\n", offsetof(z80_t, bc_));
+  printf("export const Z80_AT_D_ = %zu\n", offsetof(z80_t, de_) + 1);
+  printf("export const Z80_AT_E_ = %zu\n", offsetof(z80_t, de_));
+  printf("export const Z80_AT_H_ = %zu\n", offsetof(z80_t, hl_) + 1);
+  printf("export const Z80_AT_L_ = %zu\n", offsetof(z80_t, hl_));
+
   printf("export const Z80_AT_IXH = %zu\n", offsetof(z80_t, ixh));
   printf("export const Z80_AT_IXL = %zu\n", offsetof(z80_t, ixl));
   printf("export const Z80_AT_IYH = %zu\n", offsetof(z80_t, iyh));

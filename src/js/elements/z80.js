@@ -1,118 +1,241 @@
-import { fields, hex, html, write } from "../lang"
-import { Viewer } from "./viewer"
+import { hex, html } from "../lang"
+import { MachineObserver } from "./machine_observer"
+
+const FLAGS = [
+  ["flagS", "S", "Sign"],
+  ["flagZ", "Z", "Zero"],
+  ["flagY", "Y", "Undocumented, bit 5 of F"],
+  ["flagH", "H", "Half carry"],
+  ["flagX", "X", "Undocumented, bit 3 of F"],
+  ["flagPV", "P", "Parity/overflow"],
+  ["flagN", "N", "Add/subtract"],
+  ["flagC", "C", "Carry"]
+]
+
+function renderAbbreviation(label, meaning) {
+  return meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label
+}
 
 function bit(on) {
   return on ? "1" : "."
 }
 
-function halves(value) {
-  return `${hex(value >> 8)} ${hex(value & 0xff, { prefix: "" })}`
+function renderOutput(label, meaning, name) {
+  return html`<label
+    >${renderAbbreviation(label, meaning)}<output
+      name="${name}"
+      aria-label="${label}"
+      aria-live="off"
+    ></output
+  ></label>`
 }
 
-function flagLetters(z80) {
-  const letters = [
-    z80.flagS ? "S" : ".",
-    z80.flagZ ? "Z" : ".",
-    z80.flagY ? "Y" : ".",
-    z80.flagH ? "H" : ".",
-    z80.flagX ? "X" : ".",
-    z80.flagPV ? "P" : ".",
-    z80.flagN ? "N" : ".",
-    z80.flagC ? "C" : "."
-  ]
+function renderInput(label, meaning, names, digits = 2) {
+  // aria-label is what keeps the sigil and any sibling control from being read
+  // out as part of the name.
+  const controls = names.map(function (name, index) {
+    const next = names[index + 1],
+      announced = names.length > 1 ? name.toUpperCase().replace("_", " shadow") : label
 
-  return letters.join(" ")
+    return html`<input
+      name="${name}"
+      aria-label="${announced}"
+      maxlength="${digits}"
+      pattern="[0-9A-Fa-f]{1,${digits}}"
+      ${next ? `data-next="${next}"` : ""}
+    />`
+  })
+
+  return html`<label
+    >${renderAbbreviation(label, meaning)}<span class="input-group"
+      >${controls.join("&nbsp;")}</span
+    ></label
+  >`
 }
 
-class Z80Element extends Viewer {
-  #fields
+function renderMode(label, meaning, name) {
+  return html`<label
+    >${renderAbbreviation(label, meaning)}<span class="input-group"
+      ><input name="${name}" aria-label="${label}" maxlength="1" pattern="[0-2]" /></span
+  ></label>`
+}
+
+function renderState(label, meaning, name) {
+  return html`<label
+    >${renderAbbreviation(label, meaning)}<input
+      type="checkbox"
+      class="state"
+      name="${name}"
+      aria-label="${label}"
+  /></label>`
+}
+
+function renderFlag([field, letter, meaning]) {
+  return html`<label
+    ><input
+      type="checkbox"
+      name="${field}"
+      aria-label="${letter}"
+    />${renderAbbreviation(letter, meaning)}</label
+  >`
+}
+
+class Z80Element extends MachineObserver {
+  #form
 
   watch(machine) {
     this.innerHTML = html`
       <h2>Z80</h2>
-      <dl class="pairs">
-        <dt>A</dt>
-        <dd data-field="a"></dd>
-        <dt>AF'</dt>
-        <dd data-field="af_"></dd>
-        <dt>BC</dt>
-        <dd data-field="bc"></dd>
-        <dt>BC'</dt>
-        <dd data-field="bc_"></dd>
-        <dt>DE</dt>
-        <dd data-field="de"></dd>
-        <dt>DE'</dt>
-        <dd data-field="de_"></dd>
-        <dt>HL</dt>
-        <dd data-field="hl"></dd>
-        <dt>HL'</dt>
-        <dd data-field="hl_"></dd>
-        <dt>IX</dt>
-        <dd data-field="ix"></dd>
-        <dt>IY</dt>
-        <dd data-field="iy"></dd>
-        <dt>SP</dt>
-        <dd data-field="sp"></dd>
-        <dt>PC</dt>
-        <dd data-field="pc"></dd>
-        <dt>I</dt>
-        <dd data-field="i"></dd>
-        <dt>R</dt>
-        <dd data-field="r"></dd>
-        <dt>WZ</dt>
-        <dd data-field="wz"></dd>
-      </dl>
-      <dl>
-        <dt>F</dt>
-        <dd data-field="flags"></dd>
-      </dl>
-      <dl class="indicators">
-        <dt>IM</dt>
-        <dd data-field="im"></dd>
-        <dt>IFF1</dt>
-        <dd data-field="iff1"></dd>
-        <dt>IFF2</dt>
-        <dd data-field="iff2"></dd>
-        <dt>HALT</dt>
-        <dd data-field="halted"></dd>
-        <dt>INT</dt>
-        <dd data-field="intLine"></dd>
-      </dl>
+      <form>
+        <div class="fields pairs">
+          ${[
+            renderInput("AF", "Accumulator and flags", ["a", "f"]),
+            renderInput("AF'", "Shadow AF", ["a_", "f_"]),
+            renderInput("BC", null, ["b", "c"]),
+            renderInput("BC'", "Shadow BC", ["b_", "c_"]),
+            renderInput("DE", null, ["d", "e"]),
+            renderInput("DE'", "Shadow DE", ["d_", "e_"]),
+            renderInput("HL", null, ["h", "l"]),
+            renderInput("HL'", "Shadow HL", ["h_", "l_"])
+          ].join("")}
+        </div>
+        <div class="fields">
+          <span class="name">${renderAbbreviation("F", "Flags")}</span>
+          <span class="flags">${FLAGS.map(renderFlag).join("")}</span>
+        </div>
+        <div class="fields pairs">
+          ${[
+            renderInput("IX", "Index register IX", ["ixh", "ixl"]),
+            renderInput("IY", "Index register IY", ["iyh", "iyl"]),
+            renderInput("SP", "Stack pointer", ["sp"], 4),
+            renderInput("PC", "Program counter", ["pc"], 4),
+            renderInput("I", "Interrupt vector", ["i"]),
+            renderInput("R", "Memory refresh", ["r"]),
+            renderInput("WZ", "Internal address latch (MEMPTR)", ["wz"], 4)
+          ].join("")}
+        </div>
+        <div class="fields indicators">
+          ${[
+            renderMode("IM", "Interrupt mode", "im"),
+            renderState("IFF1", "Interrupt enable flip-flop 1", "iff1"),
+            renderState("IFF2", "Interrupt enable flip-flop 2", "iff2"),
+            renderState("HALT", "Stopped on HALT until an interrupt", "halted"),
+            renderOutput("INT", "Interrupt line, driven by the Gate Array", "intLine")
+          ].join("")}
+        </div>
+      </form>
     `
 
-    this.#fields = fields(this)
+    this.#form = this.querySelector("form")
 
-    machine.addEventListener("frame", () => this.#render(machine), { signal: this.signal })
+    const { signal } = this
+    this.addEventListener("focusin", this.onFocusIn.bind(this), { signal })
+    this.addEventListener("input", this.onInput.bind(this), { signal })
+    this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
+
+    machine.addEventListener("changed", () => this.#render(machine), { signal })
     this.#render(machine)
+  }
+
+  onFocusIn(event) {
+    if (event.target.type == "text") {
+      event.target.select()
+    }
+  }
+
+  onInput(event) {
+    const input = event.target,
+      next = input.dataset.next
+
+    if (next && input.value.length == input.maxLength && input.checkValidity()) {
+      const target = this.#form.elements[next]
+      target.focus()
+      target.select()
+    }
+  }
+
+  // Reset puts every value back to the machine's and raises no change event,
+  // so nothing is committed.
+  onKeyDown(event) {
+    if (event.key == "Escape") {
+      this.#form.reset()
+    }
+  }
+
+  onChanged(event) {
+    const input = event.target,
+      z80 = this.machine.z80
+
+    if (input.type == "checkbox") {
+      z80[input.name] = input.checked
+    } else {
+      if (input.checkValidity()) {
+        z80[input.name] = parseInt(input.value, 16)
+      }
+      input.blur()
+    }
+
+    this.machine.changed()
+  }
+
+  // defaultValue is where a reset returns the control, so it holds the
+  // machine's value too.
+  #show(node, value) {
+    if (document.activeElement == node) {
+      return
+    }
+
+    if (node.type == "checkbox") {
+      node.checked = value
+      node.defaultChecked = value
+    } else {
+      node.value = value
+      node.defaultValue = value
+    }
   }
 
   #render(machine) {
     const z80 = machine.z80,
-      shown = this.#fields
+      field = this.#form.elements
 
-    write(shown.a, hex(z80.a))
-    write(shown.af_, halves(z80.af_))
-    write(shown.bc, halves(z80.bc))
-    write(shown.bc_, halves(z80.bc_))
-    write(shown.de, halves(z80.de))
-    write(shown.de_, halves(z80.de_))
-    write(shown.hl, halves(z80.hl))
-    write(shown.hl_, halves(z80.hl_))
-    write(shown.ix, halves(z80.ix))
-    write(shown.iy, halves(z80.iy))
-    write(shown.sp, hex(z80.sp, { digits: 4 }))
-    write(shown.pc, hex(z80.pc, { digits: 4 }))
-    write(shown.i, hex(z80.i))
-    write(shown.r, hex(z80.r))
-    write(shown.wz, hex(z80.wz, { digits: 4 }))
+    this.#show(field.a, hex(z80.a))
+    this.#show(field.f, hex(z80.f))
+    this.#show(field.b, hex(z80.b))
+    this.#show(field.c, hex(z80.c))
+    this.#show(field.d, hex(z80.d))
+    this.#show(field.e, hex(z80.e))
+    this.#show(field.h, hex(z80.h))
+    this.#show(field.l, hex(z80.l))
+    this.#show(field.ixh, hex(z80.ixh))
+    this.#show(field.ixl, hex(z80.ixl))
+    this.#show(field.iyh, hex(z80.iyh))
+    this.#show(field.iyl, hex(z80.iyl))
+    this.#show(field.i, hex(z80.i))
+    this.#show(field.r, hex(z80.r))
 
-    write(shown.flags, flagLetters(z80))
+    this.#show(field.a_, hex(z80.a_))
+    this.#show(field.f_, hex(z80.f_))
+    this.#show(field.b_, hex(z80.b_))
+    this.#show(field.c_, hex(z80.c_))
+    this.#show(field.d_, hex(z80.d_))
+    this.#show(field.e_, hex(z80.e_))
+    this.#show(field.h_, hex(z80.h_))
+    this.#show(field.l_, hex(z80.l_))
 
-    write(shown.im, String(z80.im))
-    write(shown.iff1, bit(z80.iff1))
-    write(shown.iff2, bit(z80.iff2))
-    write(shown.halted, bit(z80.halted))
-    write(shown.intLine, bit(z80.intLine))
+    this.#show(field.sp, hex(z80.sp, { digits: 4 }))
+    this.#show(field.pc, hex(z80.pc, { digits: 4 }))
+    this.#show(field.wz, hex(z80.wz, { digits: 4 }))
+
+    for (const [flag] of FLAGS) {
+      this.#show(field[flag], z80[flag])
+    }
+    this.#show(field.iff1, z80.iff1)
+    this.#show(field.iff2, z80.iff2)
+    this.#show(field.halted, z80.halted)
+
+    this.#show(field.im, String(z80.im))
+    this.#show(field.intLine, bit(z80.intLine))
   }
 }
 
