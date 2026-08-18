@@ -273,16 +273,30 @@ colophon-memory {
     gap: 0.75rem;
   }
 
-  .at {
-    color: $dim;
-
-    &::before {
-      content: "&";
-    }
-  }
-
+  .at,
   .text {
     color: $dim;
+    user-select: none;
+  }
+
+  .at::before {
+    content: "&";
+  }
+
+  .bytes input {
+    all: unset;
+    width: 2ch;
+    background: $well;
+    color: $foreground;
+    text-transform: uppercase;
+
+    &:focus {
+      outline: 1px solid $dim;
+    }
+
+    &:invalid {
+      color: $invalid;
+    }
   }
 
   .zero {
