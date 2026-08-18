@@ -3,6 +3,7 @@ $line: color.adjust($foreground, $alpha: -0.85);
 $card: color.adjust($foreground, $alpha: -0.92);
 $well: $background;
 $invalid: #ff6f5f;
+$changed: #ffb454;
 
 body {
   background: $background;
@@ -128,6 +129,10 @@ h2 {
       width: 4ch;
     }
 
+    &[maxlength="5"] {
+      width: 5ch;
+    }
+
     &:focus {
       outline: 1px solid $dim;
     }
@@ -190,6 +195,7 @@ form {
 }
 
 colophon-z80,
+colophon-memory,
 colophon-crtc,
 colophon-disassembly,
 colophon-screen {
@@ -240,5 +246,50 @@ colophon-controls {
 
   &[running] button:first-child {
     color: $dim;
+  }
+}
+
+colophon-memory {
+  .fields {
+    grid-template-columns: repeat(2, auto auto);
+  }
+
+  select {
+    background: $well;
+    border: 1px solid $line;
+    color: $foreground;
+    font: inherit;
+    padding: 0 0.2rem;
+  }
+
+  .dump {
+    margin-top: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .at {
+    color: $dim;
+
+    &::before {
+      content: "&";
+    }
+  }
+
+  .text {
+    color: $dim;
+  }
+
+  .zero {
+    color: $line;
+  }
+
+  .changed {
+    color: $changed;
   }
 }
