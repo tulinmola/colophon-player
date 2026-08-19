@@ -9,6 +9,8 @@ const MODELS = {
   cpc6128: { romFile: "cpc6128.rom", ramSize: 0x20000 }
 }
 
+const DEFAULT_ROMS_URL = "/roms"
+
 const FRAMEBUFFER_WIDTH = 1024,
   FRAMEBUFFER_HEIGHT = 312,
   COLOUR_CODES = 32
@@ -38,10 +40,11 @@ export class Cpc extends Machine {
   #ramSize
   #z80
 
-  static async create(model, { romsUrl = "/roms", snapshotUrl, signal } = {}) {
+  static async create(model, { romsUrl, snapshotUrl, signal } = {}) {
     const machine = MODELS[model],
+      roms = romsUrl ?? DEFAULT_ROMS_URL,
       module = await createModule(),
-      response = await fetch(`${romsUrl}/${machine.romFile}`, { signal }),
+      response = await fetch(`${roms}/${machine.romFile}`, { signal }),
       rom = new Uint8Array(await response.arrayBuffer())
 
     module.HEAPU8.set(rom, module._player_rom())
