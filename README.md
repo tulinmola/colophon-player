@@ -38,7 +38,7 @@ The firmware images are Amstrad's, fetched by `npm run roms:fetch` under the per
 
 ## Documentation
 
-The player's documentation lives in `docs/`, beside the code it describes, and is gathered and published by [The Colophon Project](https://github.com/tulinmola/colophon-project). [The debugger](docs/debugger/) sets out the panels and what each one reads; [the machine](docs/machine/) says what the emulated hardware can and cannot do today.
+The player's documentation lives in `docs/`, beside the code it describes, and is gathered and published by [The Colophon Project](https://github.com/tulinmola/colophon-project). [The debugger](docs/debugger/index.en.md) sets out the panels and what each one reads; [the CPC](docs/cpc.en.md) is the machine it builds today, and the element that builds it.
 
 ## Releasing
 

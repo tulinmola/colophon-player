@@ -49,4 +49,8 @@ The counters and `R0` to `R15` are all editable, on the same terms as [the proce
 
 A register is written through the chip rather than into it, so a value is kept only in the bits that register actually has — exactly as much of it as a program's own write would have kept.
 
-`R16` and `R17` are the exception. The light pen address is something the chip records, not something a program sets, so the panel reads it and leaves it alone.
+`R16` and `R17` are the exception. The light pen address is something the chip records rather than something a program sets, so the panel reads it and leaves it alone.
+
+## What the machine does not act on
+
+The panel shows the whole register file, and [the 6845 here is a type 0 with parts of it missing](../../emulator/machine.en.md#video). `R8` is stored and never read, the cursor registers are stored and no cursor is drawn, and the light pen is not implemented at all, so `R16` and `R17` stand where a reset left them. A register that a program writes and this machine ignores still shows what was written, which is worth knowing before reading anything into it.

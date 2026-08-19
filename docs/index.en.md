@@ -8,7 +8,7 @@ A colophon is written to be read, and a machine is meant to be watched. The play
 
 Today that page is a debugger. It builds a machine, runs it at the speed the hardware ran, and lets a reader stop it between instructions and ask what it holds: the registers, the bytes, the counters of the chip drawing the picture, and the picture itself. [The debugger](debugger/index.en.md) sets out each of its panels and what each one reads.
 
-What the machine can do is whatever the emulator can do that day, and the emulator is young. [The machine](machine.en.md) says where it stands, and is honest about what it cannot do yet.
+The machine it builds today is [a CPC](cpc.en.md), and the element that builds one is named for it: a second machine will stand beside it rather than replace it.
 
 ## Carrying it into a page
 
