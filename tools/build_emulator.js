@@ -60,7 +60,7 @@ if (!existsSync(resolve(EMULATOR_DIR, "src"))) {
   process.exit(1)
 }
 
-const basename = `colophon-${emulatorVersion()}`
+const basename = `colophon-emulator-${emulatorVersion()}`
 
 console.log(`==> Building ${basename} from ${EMULATOR_DIR}`)
 console.log(execFileSync("emcc", ["--version"], { encoding: "utf8" }).split("\n")[0])
@@ -89,6 +89,8 @@ execFileSync(
     "-s",
     "ENVIRONMENT=web",
     "-s",
+    "SINGLE_FILE=1",
+    "-s",
     `EXPORTED_FUNCTIONS=@${EXPORTS}`,
     "-s",
     "EXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32",
@@ -100,5 +102,5 @@ execFileSync(
 
 writeLayout(basename)
 
-console.log(`==> Wrote src/js/vendor/${basename}.{mjs,wasm,layout.mjs}`)
+console.log(`==> Wrote src/js/vendor/${basename}.{mjs,layout.mjs}`)
 console.log("==> Update the imports in src/js/emulator/{module,layout}.js if the name changed")

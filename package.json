@@ -1,17 +1,30 @@
 {
   "name": "colophon-player",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Colophon Player",
-  "main": "src/js/index.js",
+  "main": "./dist/colophon-player.js",
+  "exports": {
+    ".": "./dist/colophon-player.js",
+    "./colophon-player.css": "./dist/colophon-player.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tulinmola/colophon-player.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "start": "vite --host",
     "build": "vite build",
+    "dist": "vite build --mode dist",
+    "prepack": "npm run dist",
     "preview": "vite preview",
     "prettier:check": "npx prettier . --check",
     "prettier:write": "npx prettier . --write",
-    "lint": "eslint 'src/js/**/*.js' 'tools/**/*.js' 'eslint.config.js' --ignore-pattern 'src/js/vendor/**/*'",
+    "lint": "eslint 'src/**/*.js' 'tools/**/*.js' 'eslint.config.js' --ignore-pattern 'src/js/vendor/**/*'",
     "roms:fetch": "node tools/fetch_roms.js",
     "emulator:build": "node tools/build_emulator.js",
     "test": "vitest run --passWithNoTests",
