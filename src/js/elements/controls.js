@@ -9,6 +9,8 @@ class ControlsElement extends MachineObserver {
       <button type="button" data-action="start">Run</button>
       <button type="button" data-action="stop">Stop</button>
       <button type="button" data-action="step">Step</button>
+      <button type="button" data-action="stepScanline">Scanline</button>
+      <button type="button" data-action="stepRow">Row</button>
       <button type="button" data-action="stepFrame">Frame</button>
     `
 

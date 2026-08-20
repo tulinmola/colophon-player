@@ -125,6 +125,35 @@ export class Cpc extends Machine {
     this.#module._player_step_instruction()
   }
 
+  // The guards outlive any line or row the CRTC can be programmed to make,
+  // so a machine wedged with its counters frozen still returns.
+  stepScanline() {
+    this.stop()
+
+    const crtc = this.#crtc,
+      c4 = crtc.c4,
+      c9 = crtc.c9
+
+    for (let guard = 0; guard < 512 && crtc.c4 == c4 && crtc.c9 == c9; guard++) {
+      this.stepInstruction()
+    }
+
+    this.present()
+  }
+
+  stepRow() {
+    this.stop()
+
+    const crtc = this.#crtc,
+      c4 = crtc.c4
+
+    for (let guard = 0; guard < 4096 && crtc.c4 == c4; guard++) {
+      this.stepInstruction()
+    }
+
+    this.present()
+  }
+
   pressKey(key) {
     this.#module._player_press(key)
   }
