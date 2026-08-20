@@ -14,7 +14,7 @@ order: 2
 | --------- | ------- | ---------------------------------------------------------------- |
 | `zoom`    | `1`     | Scales the picture on the page. It does not touch what is drawn. |
 
-It draws once a frame, on the machine's own event, and it carries no heading of its own: the element is a canvas and nothing else.
+It bears the heading `Monitor`, then draws once a frame on the machine's own event.
 
 ## The window
 

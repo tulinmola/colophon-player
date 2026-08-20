@@ -1,4 +1,5 @@
 import { MachineObserver } from "./machine_observer"
+import { html } from "../lang"
 
 // The window the emulator crops its own screenshots to, and the reason the
 // two can be compared pixel for pixel.
@@ -15,14 +16,18 @@ class MonitorElement extends MachineObserver {
   #pixels
 
   watch(machine) {
-    const zoom = Number(this.getAttribute("zoom") ?? 1),
-      canvas = document.createElement("canvas")
+    const zoom = Number(this.getAttribute("zoom") ?? 1)
 
+    this.innerHTML = html`
+      <h2>Monitor</h2>
+      <canvas></canvas>
+    `
+
+    const canvas = this.querySelector("canvas")
     canvas.width = CROP_WIDTH
     canvas.height = CROP_HEIGHT
     canvas.style.width = `${(CROP_WIDTH / 2) * zoom}px`
     canvas.style.height = `${CROP_HEIGHT * zoom}px`
-    this.replaceChildren(canvas)
 
     const context = canvas.getContext("2d"),
       image = context.createImageData(canvas.width, canvas.height)
