@@ -3,6 +3,7 @@ $line: color.adjust($foreground, $alpha: -0.85);
 $card: color.adjust($foreground, $alpha: -0.92);
 $well: $background;
 $invalid: #ff6f5f;
+$recording: #ff6f5f;
 $changed: #ffb454;
 
 body {
@@ -47,6 +48,39 @@ h2 {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: $dim;
+}
+
+colophon-recording button {
+  display: grid;
+  place-items: center;
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  background: none;
+  border: 0;
+  appearance: none;
+  color: $dim;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: $foreground;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $dim;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: $line;
+    cursor: default;
+  }
+}
+
+colophon-recording[recording] button {
+  color: $recording;
 }
 
 // A label has no box of its own, so its text becomes a grid item beside the
@@ -205,6 +239,18 @@ colophon-screen {
   background: $card;
   border: 1px solid $line;
   padding: 0.6rem 0.75rem;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+
+    h2 {
+      margin: 0;
+    }
+  }
 }
 
 colophon-screen .picture {

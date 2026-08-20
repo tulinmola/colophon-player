@@ -10,11 +10,18 @@ order: 2
 <colophon-monitor zoom="1.5"></colophon-monitor>
 ```
 
-| Attribute | Default | Read                                                             |
-| --------- | ------- | ---------------------------------------------------------------- |
-| `zoom`    | `1`     | Scales the picture on the page. It does not touch what is drawn. |
+| Attribute | Default | Read                                                                         |
+| --------- | ------- | ---------------------------------------------------------------------------- |
+| `zoom`    | `1`     | Scales the picture on the page. It does not touch what is drawn or recorded. |
+| `record`  | —       | Offers the mark at the heading's right that records the picture.             |
 
-It bears the heading `Monitor`, then draws once a frame on the machine's own event.
+It bears the heading `Monitor` and draws once a frame, on the machine's own event.
+
+## Recording
+
+Press the round mark to begin and the square that takes its place to stop. Stopping writes the recording as a video in a format the browser can make. The heading and its mark stay outside it: only the monitor's picture is kept. A browser that cannot record a canvas leaves the mark disabled.
+
+The recording is 384 by 272, the square-pixel size at which the element presents the monitor when `zoom` is `1`. Changing `zoom` changes the page and not the file.
 
 ## The window
 

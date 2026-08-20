@@ -27,10 +27,17 @@ order: 3
 | `mode`    | `1`              | How a byte becomes pixels: `0` for two of sixteen colours, `1` for four of four, `2` for eight of two.                                        |
 | `palette` | pens `0` to `15` | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.                                                  |
 | `label`   | the base address | The panel's heading.                                                                                                                          |
-| `zoom`    | `1`              | Scales the picture on the page.                                                                                                               |
+| `zoom`    | `1`              | Scales the picture on the page. It does not change a recording.                                                                               |
+| `record`  | —                | Offers the mark at the heading's right that records the picture.                                                                              |
 | `view`    | —                | Ways of showing the region, separated by spaces: `beam` divides the picture at the electron beam; `heat` marks what changed and how recently. |
 
 An address and a colour code are read as hexadecimal, with or without the `&` that announces it; a count is read as a decimal number. The picture is redrawn whenever the machine reports that its state has moved, which is once a frame while it runs and after every step and every edit while it is stopped.
+
+## Recording
+
+Given `record`, a round mark stands at the heading's right; it begins a recording, and the square that takes its place stops it and writes the video. The picture alone is kept, without the heading or the mark. Beam and heat views are part of that picture, so every layer seen on the page appears in the recording. A browser that cannot record a canvas leaves the mark disabled.
+
+The recording has one square pixel for every two samples across and every line down. `zoom` changes only how large the panel stands on the page; it does not change the file.
 
 ## What it reads and what it assumes
 

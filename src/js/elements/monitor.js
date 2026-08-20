@@ -16,10 +16,14 @@ class MonitorElement extends MachineObserver {
   #pixels
 
   watch(machine) {
-    const zoom = Number(this.getAttribute("zoom") ?? 1)
+    const zoom = Number(this.getAttribute("zoom") ?? 1),
+      record = this.hasAttribute("record")
 
     this.innerHTML = html`
-      <h2>Monitor</h2>
+      <header>
+        <h2>Monitor</h2>
+        ${record ? html`<colophon-recording></colophon-recording>` : ""}
+      </header>
       <canvas></canvas>
     `
 

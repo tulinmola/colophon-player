@@ -74,8 +74,13 @@ class ScreenElement extends MachineObserver {
       this.#greys = greyPalette(machine.palette)
     }
 
+    const record = this.hasAttribute("record")
+
     this.innerHTML = html`
-      <h2></h2>
+      <header>
+        <h2></h2>
+        ${record ? html`<colophon-recording></colophon-recording>` : ""}
+      </header>
       <div class="picture">
         <canvas></canvas>
       </div>

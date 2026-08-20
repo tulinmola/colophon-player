@@ -11,9 +11,10 @@
   <body>
     <colophon-cpc model="cpc6128" snapshot="game.sna">
       <div class="panels">
-        <colophon-monitor zoom="1.5"></colophon-monitor>
+        <colophon-monitor zoom="1.5" record></colophon-monitor>
         <colophon-screen
           label="Game screen"
+          record
           view="beam heat"
           base="&C000"
           width="51"
@@ -23,6 +24,7 @@
         ></colophon-screen>
         <colophon-screen
           label="HUD screen"
+          record
           view="beam heat"
           base="&8000"
           width="50"
