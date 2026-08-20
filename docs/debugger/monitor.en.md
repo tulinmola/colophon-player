@@ -20,4 +20,4 @@ It draws once a frame, on the machine's own event, and it carries no heading of 
 
 The canvas is 768 by 272, cut from the 1024 by 312 the beam actually sweeps, at 208 across and 34 down. That is not a framing choice. It is the same window [the emulator crops its own screenshots to](../../emulator/command-line.en.md#the-picture), so a picture on the page and a picture written on the command line can be laid over one another and compared pixel for pixel — which is how the two are held to the same account.
 
-The stylesheet presents the canvas at half its width, two samples to a displayed pixel, and turns smoothing off, so `zoom` enlarges without blurring.
+The element presents the canvas at half its width, two samples to a displayed pixel, and the stylesheet turns smoothing off, so `zoom` enlarges without blurring.

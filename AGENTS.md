@@ -26,7 +26,7 @@ Documentation lives in `docs/` and is the player's own: a page is a markdown fil
 
 The Colophon Project gathers `docs/` at build time and publishes it. Nothing about that site is written down here: it owns its own addresses, and a page that hardcodes one is wrong twice over.
 
-A page describes what the player does today. What it is built toward belongs in `README.md`, which is where a reader arriving at the repository starts.
+A page describes what the player does today, so a change to what the player does updates its pages in the same change: documentation left behind is a false claim in the project's own voice. What it is built toward belongs in `README.md`, which is where a reader arriving at the repository starts.
 
 ## Voice
 
