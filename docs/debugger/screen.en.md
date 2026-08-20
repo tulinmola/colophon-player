@@ -18,17 +18,17 @@ order: 3
 ></colophon-screen>
 ```
 
-| Attribute | Default          | Read                                                                                                   |
-| --------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| `base`    | `&C000`          | The address the first byte is read from.                                                               |
-| `width`   | `40`             | Characters across. A character is two bytes, whatever the mode.                                        |
-| `height`  | `25`             | Character rows down.                                                                                   |
-| `rasters` | `8`              | Lines in a character row.                                                                              |
-| `mode`    | `1`              | How a byte becomes pixels: `0` for two of sixteen colours, `1` for four of four, `2` for eight of two. |
-| `palette` | pens `0` to `15` | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.           |
-| `label`   | the base address | The panel's heading.                                                                                   |
-| `zoom`    | `1`              | Scales the picture on the page.                                                                        |
-| `view`    | —                | `beam` divides the picture at the electron beam while the machine is stopped.                          |
+| Attribute | Default          | Read                                                                                                                                          |
+| --------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base`    | `&C000`          | The address the first byte is read from.                                                                                                      |
+| `width`   | `40`             | Characters across. A character is two bytes, whatever the mode.                                                                               |
+| `height`  | `25`             | Character rows down.                                                                                                                          |
+| `rasters` | `8`              | Lines in a character row.                                                                                                                     |
+| `mode`    | `1`              | How a byte becomes pixels: `0` for two of sixteen colours, `1` for four of four, `2` for eight of two.                                        |
+| `palette` | pens `0` to `15` | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.                                                  |
+| `label`   | the base address | The panel's heading.                                                                                                                          |
+| `zoom`    | `1`              | Scales the picture on the page.                                                                                                               |
+| `view`    | —                | Ways of showing the region, separated by spaces: `beam` divides the picture at the electron beam; `heat` marks what changed and how recently. |
 
 An address and a colour code are read as hexadecimal, with or without the `&` that announces it; a count is read as a decimal number. The picture is redrawn whenever the machine reports that its state has moved, which is once a frame while it runs and after every step and every edit while it is stopped.
 
@@ -47,3 +47,11 @@ But that wiring is computed here from the attributes given, not read from the ch
 Both halves are the memory of this instant — the grey is the same bytes shown by their brightness alone, not a saved copy of the frame before. So a write landing ahead of the beam appears in grey and turns to colour the moment the beam commits it to glass, and a write landing behind it appears in colour the glass will not show until the next frame. That race is what this view exists to watch, and [the controls](controls.en.md) step by scanline and by row precisely so the boundary can be walked down the picture.
 
 The beam is placed by the 6845's own counters, and a screen claims it only while register 12 points into its own sixteen-kilobyte page. A stopped machine whose beam is elsewhere shows its picture whole and in colour, and so does a running one: sixty sweeps a second is a flicker, not a reading, so the division appears only when the machine is stopped. Stopping at the end of a frame shows everything grey, which is not a fault — the new frame has not begun, and the first step paints the first sliver of colour at the top.
+
+## The heat view
+
+`view="heat"` lays a transparent picture over the first and marks on it every byte written, brightest when the store is fresh and fading as frames pass. The colour is one the Gate Array cannot make, so a mark is never mistaken for the picture underneath.
+
+The mark is the bus's own record, not a comparison of pictures: [the tick already returns every store](../../emulator/observation.en.md#the-bus-is-already-the-tap), and the host stamps the frame it landed in, banking resolved. So a byte rewritten with the value it already held marks like any other — which is the point, because a renderer's redundant work is exactly what a comparison cannot see — and a mark's fading is exact, a count of real frames since the store. A poke stamps the same way and lights up the moment it is made.
+
+Ages are frames of the machine's own time, so stepping inside a frame keeps every mark at full heat, stepping a whole frame ages the map by exactly one, and running fades it at the machine's pace. The views compose: `view="beam heat"` shows fresh writes over the beam's division, and a mark in the grey is a write the glass has not yet shown.

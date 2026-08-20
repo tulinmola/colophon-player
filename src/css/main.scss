@@ -206,8 +206,15 @@ colophon-screen {
   padding: 0.6rem 0.75rem;
 }
 
+colophon-screen .picture {
+  position: relative;
+}
+
 colophon-screen canvas {
-  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   image-rendering: pixelated;
 }
 

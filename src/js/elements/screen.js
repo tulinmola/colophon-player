@@ -4,7 +4,25 @@ import { Screen } from "../emulator"
 
 const DEFAULT_PALETTE = Array.from({ length: 16 }, (_colour, pen) => pen)
 
-const SAMPLES_PER_CHARACTER = 16
+const SAMPLES_PER_BYTE = 8,
+  SAMPLES_PER_CHARACTER = 16
+
+const HEAT_DEPTH = 16
+
+// A colour the Gate Array cannot make, so a mark is never mistaken for the
+// picture underneath; the alpha fades a mark out as the write it reports ages.
+function heatTints() {
+  const tints = new Uint32Array(HEAT_DEPTH)
+
+  for (let age = 0; age < HEAT_DEPTH; age++) {
+    const alpha = Math.round(210 - (190 * age) / HEAT_DEPTH)
+    tints[age] = (alpha << 24) | (0x8c << 8) | 0xff
+  }
+
+  return tints
+}
+
+const HEAT_TINTS = heatTints()
 
 function parseHex(text) {
   const withoutPrefix = text.replace("&", "")
@@ -32,6 +50,7 @@ class ScreenElement extends MachineObserver {
   #beam = null
   #context
   #greys
+  #heat = null
   #image
   #pixels
   #screen
@@ -48,14 +67,18 @@ class ScreenElement extends MachineObserver {
     const screen = new Screen({ base, width, height, rasters, mode, palette })
     this.#screen = screen
 
-    if (this.getAttribute("view") == "beam") {
+    const views = new Set((this.getAttribute("view") ?? "").trim().split(/\s+/u))
+
+    if (views.has("beam")) {
       this.#beam = { bank: base >> 14, columns: width, height, rasters }
       this.#greys = greyPalette(machine.palette)
     }
 
     this.innerHTML = html`
       <h2></h2>
-      <canvas></canvas>
+      <div class="picture">
+        <canvas></canvas>
+      </div>
     `
 
     const label = this.getAttribute("label"),
@@ -63,11 +86,13 @@ class ScreenElement extends MachineObserver {
     this.querySelector("h2").textContent = label ?? `Screen ${address}`
 
     const zoom = Number(this.getAttribute("zoom") ?? 1),
-      canvas = this.querySelector("canvas")
+      picture = this.querySelector(".picture")
+    picture.style.width = `${(screen.samplesPerLine / 2) * zoom}px`
+    picture.style.height = `${screen.lines * zoom}px`
+
+    const canvas = this.querySelector("canvas")
     canvas.width = screen.samplesPerLine
     canvas.height = screen.lines
-    canvas.style.width = `${(screen.samplesPerLine / 2) * zoom}px`
-    canvas.style.height = `${screen.lines * zoom}px`
 
     const context = canvas.getContext("2d"),
       image = context.createImageData(canvas.width, canvas.height)
@@ -75,6 +100,22 @@ class ScreenElement extends MachineObserver {
     this.#context = context
     this.#image = image
     this.#pixels = new Uint32Array(image.data.buffer)
+
+    if (views.has("heat")) {
+      const layer = document.createElement("canvas")
+      layer.width = canvas.width
+      layer.height = canvas.height
+      picture.append(layer)
+
+      const layerContext = layer.getContext("2d"),
+        layerImage = layerContext.createImageData(layer.width, layer.height)
+
+      this.#heat = {
+        context: layerContext,
+        image: layerImage,
+        pixels: new Uint32Array(layerImage.data.buffer)
+      }
+    }
 
     machine.addEventListener("changed", () => this.#draw(machine), { signal: this.signal })
     this.#draw(machine)
@@ -85,7 +126,7 @@ class ScreenElement extends MachineObserver {
       samples = screen.samples,
       palette = machine.palette
 
-    screen.render(machine.ram)
+    screen.render(machine.ram, machine.writes)
 
     const scanned = this.#scannedSamples(machine)
 
@@ -98,6 +139,31 @@ class ScreenElement extends MachineObserver {
     }
 
     this.#context.putImageData(this.#image, 0, 0)
+
+    if (this.#heat) {
+      this.#drawHeat(machine)
+    }
+  }
+
+  // A mark is the frame a byte was last stored to, straight off the bus, so
+  // a write of the value already there marks like any other. A stamp of zero
+  // is a byte never written, and stays cold.
+  #drawHeat(machine) {
+    const heat = this.#heat,
+      written = this.#screen.written,
+      frame = machine.frame,
+      pixels = heat.pixels
+
+    for (let index = 0; index < written.length; index++) {
+      const stamp = written[index],
+        age = frame - stamp,
+        tint = stamp != 0 && age < HEAT_DEPTH ? HEAT_TINTS[age] : 0,
+        offset = index * SAMPLES_PER_BYTE
+
+      pixels.fill(tint, offset, offset + SAMPLES_PER_BYTE)
+    }
+
+    heat.context.putImageData(heat.image, 0, 0)
   }
 
   #scannedSamples(machine) {

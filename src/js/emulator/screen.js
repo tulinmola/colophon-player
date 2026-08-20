@@ -63,6 +63,7 @@ export class Screen {
   #samplesPerLine
   #words
   #write
+  #written
 
   constructor({ base, width, height, rasters, mode, palette }) {
     this.#base = base
@@ -73,6 +74,7 @@ export class Screen {
     this.#samplesPerLine = this.#bytesPerLine * SAMPLES_PER_BYTE
     this.#samples = new Uint8Array(this.#samplesPerLine * height * rasters)
     this.#words = new Uint32Array(this.#samples.buffer)
+    this.#written = new Uint32Array(this.#bytesPerLine * height * rasters)
     this.#write = MODE_WRITERS[mode]
   }
 
@@ -88,12 +90,18 @@ export class Screen {
     return this.#samples
   }
 
-  render(ram) {
+  get written() {
+    return this.#written
+  }
+
+  render(ram, writes) {
     const write = this.#write,
       palette = this.#palette,
-      words = this.#words
+      words = this.#words,
+      written = this.#written
 
-    let offset = 0
+    let offset = 0,
+      index = 0
     for (let row = 0; row < this.#height; row++) {
       const rowStart = row * this.#bytesPerLine
 
@@ -103,6 +111,7 @@ export class Screen {
         for (let byte = 0; byte < this.#bytesPerLine; byte++) {
           const address = slice | ((rowStart + byte) & 0x7ff)
 
+          written[index++] = writes[address]
           write(ram[address], palette, words, offset)
           offset += WORDS_PER_BYTE
         }

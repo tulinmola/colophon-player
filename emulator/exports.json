@@ -3,6 +3,8 @@
   "_player_snapshot",
   "_player_ram",
   "_player_framebuffer",
+  "_player_writes",
+  "_player_frame",
   "_player_boot",
   "_player_load_snapshot",
   "_player_run_frames",

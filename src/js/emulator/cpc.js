@@ -109,6 +109,16 @@ export class Cpc extends Machine {
     return this.#module.HEAPU8.subarray(pointer, pointer + this.#ramSize)
   }
 
+  get writes() {
+    const start = this.#module._player_writes() >> 2
+
+    return this.#module.HEAPU32.subarray(start, start + this.#ramSize)
+  }
+
+  get frame() {
+    return this.#module._player_frame()
+  }
+
   runFrames(frames) {
     this.#module._player_run_frames(frames)
   }
