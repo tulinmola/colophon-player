@@ -16,21 +16,37 @@ A program is written in names and runs as addresses. Whatever turned the one int
 
 The names are not the panel's. They are given to the machine by [`<colophon-cpc>`](../cpc.en.md), which fetches the file the `symbols` attribute names, and every panel that can use them draws on the same list — [the disassembly](disassembly.en.md#the-names) reads its listing back with them. A page that gives no symbol file may still place this panel, and it stands there counting nothing.
 
-## The file it reads
+## The files it reads
 
-The file today is the one sdld writes for the NoICE debugger, a `.noi` beside the map, which is what an SDCC build leaves behind — CPCtelera's among them. Each line is a definition and nothing else:
+Two dialects today, and which one a file is in is settled by the file rather than by what it is called. Half the assemblers in this world write a `.sym` and no two of them write the same one, so each reader is shown the file and says whether it knows it. A file neither of them recognises is refused by name, rather than read as an empty list and quietly believed.
+
+The first is the command file sdld writes for the NoICE debugger, a `.noi` beside the map, which is what an SDCC build leaves behind — CPCtelera's among them. Each line is a definition and nothing else:
 
 ```
 DEF _renderer_init 0x25C9
 ```
 
-Which file it is is decided by the file itself rather than by what it is called. Half the assemblers in this world write a `.sym` and no two of them write the same one, so the first line that carries anything is what settles the dialect. A file in a dialect the debugger does not know is refused by name, rather than read as an empty list and quietly believed.
+The second is [vasm](https://sun.hasenbraten.de/vasm/)'s listing, the `.lst` it writes under `-L`. It prints its symbols twice, once sorted by name and once by value, and only the first says what a symbol is:
+
+```
+Symbols by name:
+AMARILLO                         E:001E EXP
+wait_vblank_start                A:4000 EXP
+MainSubsong0DisarkByteRegionEnd101  A:8000
+wait_vblank_start               01:4000
+```
+
+A section number or an `A` marks a place; an `E`, an `R` or an `S` marks a value. It is the table sorted by name that is read, and never the one sorted by value, where a colour and a routine stand side by side and nothing tells them apart.
 
 ## What is left out
 
-A linker names more than a program does. It defines a start and a length for every area it lays out, and a length is a count rather than a place: read as an address, the size of the code area would be written across whatever byte happens to stand at that number. Those definitions are dropped as they are read, which is why a file of five hundred and thirty-one definitions arrives as five hundred and six names.
+A linker and an assembler both name more than a program does.
 
-What arrives is what the program made public. A routine the compiler kept to itself was never written down, and no file can be asked for what it does not hold.
+From a `.noi`, the areas: the linker defines a start and a length for every area it lays out, and a length is a count rather than a place. Read as an address, the size of the code area would be written across whatever byte happens to stand at that number. Those definitions are dropped as they are read, which is why a file of five hundred and thirty-one definitions arrives as five hundred and six names.
+
+From a vasm listing, the constants. `AMARILLO` is the colour yellow and `ATTRIBUTE_TYPE_ROCK_STATIC` is zero; neither is anywhere. They are dropped for the same reason, and it is the reason the table sorted by name is the one worth reading.
+
+What arrives is what the program placed somewhere. A routine the compiler kept to itself was never written down, and no file can be asked for what it does not hold.
 
 ## More than one name
 

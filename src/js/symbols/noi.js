@@ -7,6 +7,12 @@ const DEFINITION = /^DEF\s+(?<name>\S+)\s+(?<address>\S+)$/u
 // sdld writes this for NoICE under -j, one definition a line.
 // https://manpages.ubuntu.com/manpages/bionic/man1/sdld.1.html
 export function readNoice(lines) {
+  const first = lines.find(line => line.trim())
+
+  if (!first?.startsWith("DEF ")) {
+    return null
+  }
+
   const defined = []
 
   for (const line of lines) {
