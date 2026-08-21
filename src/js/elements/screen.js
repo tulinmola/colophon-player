@@ -28,23 +28,6 @@ function parseHex(text) {
   return parseInt(withoutPrefix, 16)
 }
 
-// Rec. 601 luma, so a colour keeps its brightness when it loses its hue.
-function greyPalette(palette) {
-  const greys = new Uint32Array(palette.length)
-
-  for (let code = 0; code < palette.length; code++) {
-    const colour = palette[code],
-      red = colour & 0xff,
-      green = (colour >> 8) & 0xff,
-      blue = (colour >> 16) & 0xff,
-      luma = Math.round(0.299 * red + 0.587 * green + 0.114 * blue)
-
-    greys[code] = 0xff000000 | (luma << 16) | (luma << 8) | luma
-  }
-
-  return greys
-}
-
 class ScreenElement extends MachineObserver {
   #context
   #greys = null
@@ -68,7 +51,7 @@ class ScreenElement extends MachineObserver {
     const views = new Set((this.getAttribute("view") ?? "").trim().split(/\s+/u))
 
     if (views.has("beam")) {
-      this.#greys = greyPalette(machine.palette)
+      this.#greys = machine.greys
     }
 
     const record = this.hasAttribute("record")

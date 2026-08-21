@@ -33,8 +33,26 @@ function readPalette(module) {
   return palette
 }
 
+// Rec. 601 luma, so a colour keeps its brightness when it loses its hue.
+function readGreys(module) {
+  const greys = new Uint32Array(COLOUR_CODES)
+
+  for (let code = 0; code < COLOUR_CODES; code++) {
+    const rgb = module._player_rgb(code),
+      red = (rgb >> 16) & 0xff,
+      green = (rgb >> 8) & 0xff,
+      blue = rgb & 0xff,
+      luma = Math.round(0.299 * red + 0.587 * green + 0.114 * blue)
+
+    greys[code] = 0xff000000 | (luma << 16) | (luma << 8) | luma
+  }
+
+  return greys
+}
+
 export class Cpc extends Machine {
   #crtc
+  #greys
   #module
   #palette
   #ramSize
@@ -71,6 +89,7 @@ export class Cpc extends Machine {
 
     this.#module = module
     this.#palette = readPalette(module)
+    this.#greys = readGreys(module)
     this.#ramSize = ramSize
     this.#z80 = new Z80(module, z80Pointer)
     this.#crtc = new Crtc(module, crtcPointer)
@@ -94,6 +113,10 @@ export class Cpc extends Machine {
 
   get palette() {
     return this.#palette
+  }
+
+  get greys() {
+    return this.#greys
   }
 
   get framebuffer() {
