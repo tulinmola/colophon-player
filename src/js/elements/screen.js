@@ -114,6 +114,7 @@ class ScreenElement extends MachineObserver {
 
       this.#heat = {
         context: layerContext,
+        idle: true,
         image: layerImage,
         pixels: new Uint32Array(layerImage.data.buffer)
       }
@@ -173,16 +174,39 @@ class ScreenElement extends MachineObserver {
   #drawHeat(machine) {
     const heat = this.#heat,
       written = this.#screen.written,
-      frame = machine.frame,
-      pixels = heat.pixels
+      frame = machine.frame
 
+    let hot = false
+    for (let index = 0; index < written.length; index++) {
+      const stamp = written[index]
+
+      if (stamp != 0 && frame - stamp < HEAT_DEPTH) {
+        hot = true
+        break
+      }
+    }
+
+    if (!hot) {
+      if (!heat.idle) {
+        heat.idle = true
+        heat.pixels.fill(0)
+        heat.context.putImageData(heat.image, 0, 0)
+      }
+      return
+    }
+
+    heat.idle = false
+
+    const pixels = heat.pixels
+    pixels.fill(0)
     for (let index = 0; index < written.length; index++) {
       const stamp = written[index],
-        age = frame - stamp,
-        tint = stamp != 0 && age < HEAT_DEPTH ? HEAT_TINTS[age] : 0,
-        offset = index * SAMPLES_PER_BYTE
+        age = frame - stamp
 
-      pixels.fill(tint, offset, offset + SAMPLES_PER_BYTE)
+      if (stamp != 0 && age < HEAT_DEPTH) {
+        const offset = index * SAMPLES_PER_BYTE
+        pixels.fill(HEAT_TINTS[age], offset, offset + SAMPLES_PER_BYTE)
+      }
     }
 
     heat.context.putImageData(heat.image, 0, 0)
