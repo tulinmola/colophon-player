@@ -52,10 +52,12 @@ function readGreys(module) {
 
 export class Cpc extends Machine {
   #crtc
+  #framebuffer
   #greys
   #module
   #palette
-  #ramSize
+  #ram
+  #writes
   #z80
 
   static async create(model, { romsUrl, snapshotUrl, signal } = {}) {
@@ -85,14 +87,26 @@ export class Cpc extends Machine {
     super()
 
     const z80Pointer = module._player_z80(),
-      crtcPointer = module._player_crtc()
+      crtcPointer = module._player_crtc(),
+      framebufferPointer = module._player_framebuffer(),
+      framebufferLength = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT,
+      ramPointer = module._player_ram(),
+      writesStart = module._player_writes() >> 2
 
     this.#module = module
     this.#palette = readPalette(module)
     this.#greys = readGreys(module)
-    this.#ramSize = ramSize
     this.#z80 = new Z80(module, z80Pointer)
     this.#crtc = new Crtc(module, crtcPointer)
+
+    // The module's memory never grows (player.c holds all of it in fixed
+    // storage), so a view taken once stays valid.
+    this.#framebuffer = module.HEAPU8.subarray(
+      framebufferPointer,
+      framebufferPointer + framebufferLength
+    )
+    this.#ram = module.HEAPU8.subarray(ramPointer, ramPointer + ramSize)
+    this.#writes = module.HEAPU32.subarray(writesStart, writesStart + ramSize)
   }
 
   get ticksPerMillisecond() {
@@ -120,22 +134,15 @@ export class Cpc extends Machine {
   }
 
   get framebuffer() {
-    const pointer = this.#module._player_framebuffer(),
-      length = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT
-
-    return this.#module.HEAPU8.subarray(pointer, pointer + length)
+    return this.#framebuffer
   }
 
   get ram() {
-    const pointer = this.#module._player_ram()
-
-    return this.#module.HEAPU8.subarray(pointer, pointer + this.#ramSize)
+    return this.#ram
   }
 
   get writes() {
-    const start = this.#module._player_writes() >> 2
-
-    return this.#module.HEAPU32.subarray(start, start + this.#ramSize)
+    return this.#writes
   }
 
   get frame() {
