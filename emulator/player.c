@@ -38,11 +38,6 @@ static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
 static uint32_t written[PLAYER_RAM_SIZE];
 static uint32_t frame;
 
-static void stamp_write(uint16_t address) {
-  size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
-  written[physical] = frame;
-}
-
 static void forget_writes(void) {
   memset(written, 0, sizeof written);
   frame = 1;
@@ -53,7 +48,9 @@ static void tick(void) {
   uint64_t pins = cpc_tick(&cpc);
 
   if ((pins & (Z80_MREQ | Z80_WR)) == (Z80_MREQ | Z80_WR)) {
-    stamp_write(z80_address(pins));
+    uint16_t address = z80_address(pins);
+    size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
+    written[physical] = frame;
   }
 
   if (cpc.monitor.frame_retraced && !retraced) {
@@ -135,13 +132,7 @@ void player_release(uint8_t key) { keyboard_release(&cpc.keyboard, key); }
 void player_release_all(void) { keyboard_release_all(&cpc.keyboard); }
 
 uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
-
-/* A poke is a store like any other, only not on the bus, so it stamps by
-   hand what the tap would have seen. */
-void player_poke(uint16_t address, uint8_t value) {
-  cpc_poke(&cpc, address, value);
-  stamp_write(address);
-}
+void player_poke(uint16_t address, uint8_t value) { cpc_poke(&cpc, address, value); }
 
 z80_t *player_z80(void) { return &cpc.cpu; }
 crtc_t *player_crtc(void) { return &cpc.crtc; }
