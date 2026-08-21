@@ -23,6 +23,7 @@ The debugger is not one element but a collection of them, each watching one part
 - [The CRTC](crtc.en.md) — the 6845 counting out the frame.
 - [The disassembly](disassembly.en.md) — the bytes at the program counter read back as instructions.
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
+- [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
 
 ## Nothing is added to the machine
 
@@ -39,3 +40,15 @@ Every panel draws on the machine's own events rather than on a clock of its own,
 A value the reader can change is a form control, and the platform carries the editing. A change reaches the machine when the control says it is committed and at no other moment, so a half-typed value is never written and a value the control refuses is never written either. A control holding focus is left alone by the redraw. Escape returns a panel to what the machine holds, committing nothing.
 
 None of this is done by the panel itself, which is the reason it can be relied on: it is what a form does.
+
+## Two registers, and what they mean
+
+The panels are written in two weights, and the difference carries meaning rather than emphasis.
+
+Full white is where the machine is standing and what the program itself declares: the instruction under the program counter, a byte just written, a name its author wrote down. Dim is everything the debugger works out for itself and everything a reader scans past — the decoding of an instruction, the arithmetic that says how far past a name the counter has got, the addresses down the side of a dump.
+
+So a name a symbol file gives an address is written in white and reads as the program's own word, while the same panel's account of where the counter is standing inside that routine is written dim. Both are true; only one of them was written by a person.
+
+## Options in the heading
+
+A panel's options ride in its heading rather than in its body, where they would cost it height and move whatever stands beneath it. They are set smaller than the heading, so that they read as options and not as part of the title, and each carries its own title against the day there are enough of them to want icons in place of words.

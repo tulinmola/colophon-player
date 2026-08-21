@@ -20,4 +20,26 @@ function write(node, text) {
   }
 }
 
-export { hex, html, nodesByName, write }
+function fit(text, room) {
+  if (text.length <= room) {
+    return text
+  }
+
+  const head = Math.ceil((room - 1) / 2),
+    tail = room - 1 - head
+
+  return `${text.slice(0, head)}\u2026${text.slice(text.length - tail)}`
+}
+
+function writeFitted(node, text, room) {
+  const fitted = fit(text, room),
+    whole = fitted == text ? "" : text
+
+  write(node, fitted)
+
+  if (node.title != whole) {
+    node.title = whole
+  }
+}
+
+export { hex, html, nodesByName, write, writeFitted }

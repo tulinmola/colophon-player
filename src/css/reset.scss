@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+// Any author display outbids the browser's own [hidden] rule.
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   width: 100%;

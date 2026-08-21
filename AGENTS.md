@@ -57,7 +57,8 @@ A page describes what the player does today, so a change to what the player does
 - Avoid cryptic shortened variable/function names.
 - One export a file. A folder's `index.js` is its surface and may name several; it is for outsiders, so files inside a folder import their siblings directly. Reaching a sibling through the index closes a cycle, and `extends` is evaluated too early to survive one.
 - Avoid passing a call's result directly as an argument; hoist it to a named `const` first (including the argument to `super(...)`).
-- Prefer self-documenting code over comments. Add a comment only when its absence would likely make a future editor introduce a bug (a non-obvious invariant, footgun, or external constraint). Explaining what the code does, or why an approach was chosen, does not qualify — that belongs in the commit message.
+- Prefer self-documenting code over comments, in stylesheets as much as in JavaScript. A comment is a battle the code, the design or the architecture lost: rename the thing, or reshape it, and the comment stops being needed. Add one only when its absence would likely make a future editor introduce a bug — a non-obvious invariant, a footgun, an external constraint — and then write the fact alone, in a line or two.
+- Explaining what the code does, why an approach was chosen, or what a decision cost does not qualify, however well it reads: that belongs in the commit message. Prose about the design is not documentation, and a stylesheet is not annotated rule by rule.
 - Avoid adding non-needed `.js` extension in imports.
 - Prefer `==` over `===`. Use strict comparison (`===`) only when strictly needed.
 - Prefer `for...of` for plain value iteration.

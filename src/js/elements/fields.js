@@ -37,6 +37,27 @@ function renderOutput(label, meaning, name) {
   ></label>`
 }
 
+function renderToggle(label, meaning, name, checked) {
+  return html`<label class="toggle" title="${meaning}"
+    ><input
+      type="checkbox"
+      name="${name}"
+      aria-label="${label}"
+      ${checked ? "checked" : ""}
+    />${label}</label
+  >`
+}
+
+const FUNNEL = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+  <path d="M1 2h10L7 6.5V11L5 9.5V6.5Z" />
+</svg>`
+
+function renderFilter(label, meaning, name) {
+  return html`<label class="filter" title="${meaning}"
+    >${FUNNEL}<input name="${name}" aria-label="${label}"
+  /></label>`
+}
+
 // A control holding focus is left alone, so a value being typed survives the
 // machine's own updates. defaultValue is where a reset returns the control, so
 // it carries the machine's value too.
@@ -54,4 +75,4 @@ function show(control, value) {
   }
 }
 
-export { renderAbbreviation, renderInput, renderOutput, show }
+export { renderAbbreviation, renderFilter, renderInput, renderOutput, renderToggle, show }

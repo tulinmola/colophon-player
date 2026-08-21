@@ -27,14 +27,14 @@ function hexByte(value) {
   return hex(value, { prefix: "&" })
 }
 
-function hexWord(value) {
-  return hex(value, { digits: 4, prefix: "&" })
-}
-
-export function disassemble(peek, address) {
+export function disassemble(peek, address, nameOf = null) {
   let at = address,
     index = null,
     displacement = null
+
+  function hexWord(value) {
+    return nameOf?.(value) ?? hex(value, { digits: 4, prefix: "&" })
+  }
 
   function next() {
     const value = peek(at & 0xffff)

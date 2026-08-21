@@ -2,6 +2,7 @@ import { Crtc } from "./crtc"
 import { Machine } from "./machine"
 import { Z80 } from "./z80"
 import { createModule } from "./module"
+import { readSymbols } from "../symbols"
 
 const MODELS = {
   cpc464: { romFile: "cpc464.rom", ramSize: 0x10000 },
@@ -60,7 +61,7 @@ export class Cpc extends Machine {
   #writes
   #z80
 
-  static async create(model, { romsUrl, snapshotUrl, signal } = {}) {
+  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, signal } = {}) {
     const machine = MODELS[model],
       roms = romsUrl ?? DEFAULT_ROMS_URL,
       module = await createModule(),
@@ -78,6 +79,18 @@ export class Cpc extends Machine {
       if (!cpc.loadSnapshot(bytes)) {
         throw new Error(`${snapshotUrl} is not a snapshot this machine can read`)
       }
+    }
+
+    if (symbolsUrl) {
+      const listed = await fetch(symbolsUrl, { signal }),
+        text = await listed.text(),
+        defined = readSymbols(text)
+
+      if (!defined) {
+        throw new Error(`${symbolsUrl} is not a symbol file this debugger can read`)
+      }
+
+      cpc.symbols.add(defined)
     }
 
     return cpc

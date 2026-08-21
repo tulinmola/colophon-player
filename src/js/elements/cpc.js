@@ -33,10 +33,11 @@ class CpcElement extends Element {
 
     const model = this.getAttribute("model") ?? DEFAULT_MODEL,
       romsUrl = this.getAttribute("roms"),
-      snapshotUrl = this.getAttribute("snapshot")
+      snapshotUrl = this.getAttribute("snapshot"),
+      symbolsUrl = this.getAttribute("symbols")
 
     try {
-      const machine = await Cpc.create(model, { signal, romsUrl, snapshotUrl })
+      const machine = await Cpc.create(model, { signal, romsUrl, snapshotUrl, symbolsUrl })
       this.#fit(machine)
     } catch (error) {
       if (error.name != "AbortError") {

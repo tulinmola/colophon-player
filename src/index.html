@@ -9,19 +9,9 @@
     <meta name="theme-color" content="#000000" />
   </head>
   <body>
-    <colophon-cpc model="cpc6128" snapshot="game.sna">
+    <colophon-cpc model="cpc6128" snapshot="game.sna" symbols="game.noi">
       <div class="panels">
         <colophon-monitor zoom="1.5" record></colophon-monitor>
-        <colophon-screen
-          label="Game screen"
-          record
-          view="beam heat"
-          base="&C000"
-          width="51"
-          height="20"
-          mode="0"
-          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
-        ></colophon-screen>
         <colophon-screen
           label="HUD screen"
           record
@@ -33,12 +23,23 @@
           mode="0"
           palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
         ></colophon-screen>
+        <colophon-screen
+          label="Game screen"
+          record
+          view="beam heat"
+          base="&C000"
+          width="51"
+          height="20"
+          mode="0"
+          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
+        ></colophon-screen>
       </div>
       <div class="panels">
         <colophon-controls></colophon-controls>
-        <colophon-memory></colophon-memory>
         <colophon-z80></colophon-z80>
         <colophon-disassembly></colophon-disassembly>
+        <colophon-symbols></colophon-symbols>
+        <colophon-memory></colophon-memory>
         <colophon-crtc></colophon-crtc>
       </div>
     </colophon-cpc>

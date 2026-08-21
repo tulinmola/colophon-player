@@ -1,3 +1,5 @@
+import { SymbolTable } from "../symbols"
+
 // A tab hidden for an hour owes an hour of emulation. The machine loses the
 // time instead, as one switched off would.
 const MAXIMUM_DEBT_MILLISECONDS = 80
@@ -7,6 +9,8 @@ export class Machine extends EventTarget {
   #debt = 0
   #last = 0
   #request = null
+
+  symbols = new SymbolTable()
 
   constructor() {
     super()

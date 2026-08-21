@@ -232,6 +232,7 @@ colophon-z80,
 colophon-memory,
 colophon-crtc,
 colophon-disassembly,
+colophon-symbols,
 colophon-monitor,
 colophon-screen {
   display: block;
@@ -265,18 +266,113 @@ colophon-screen canvas {
   image-rendering: pixelated;
 }
 
-// An address is four digits, an instruction at most four bytes, and the
-// widest text the decoding can produce is "RES 0,(IX+&05),B". Sized to those
-// so no row ever wraps.
 .instruction {
   display: grid;
-  grid-template-columns: 5ch 11ch 16ch;
-  gap: 0 0.75rem;
+  grid-template-columns: var(--columns);
+  gap: 0 var(--gap);
   white-space: nowrap;
   color: $dim;
 
-  &:first-of-type {
+  &.current {
     color: $foreground;
+  }
+}
+
+header form {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.8em;
+}
+
+.toggle {
+  color: $dim;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:has(:checked) {
+    color: $foreground;
+  }
+
+  &:has(:focus-visible) {
+    outline: 1px solid $dim;
+  }
+
+  input {
+    position: absolute;
+    width: 0;
+    opacity: 0;
+  }
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75ch;
+  color: $dim;
+
+  &:focus-within {
+    color: $foreground;
+  }
+
+  .icon {
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
+  }
+
+  input {
+    all: unset;
+    width: 12ch;
+    padding: 0 0.5ch;
+    background: $well;
+    color: $foreground;
+    cursor: text;
+    outline: 1px solid $line;
+
+    &:focus {
+      outline-color: $dim;
+    }
+  }
+}
+
+colophon-disassembly {
+  .label {
+    white-space: nowrap;
+
+    &.offset {
+      color: $dim;
+    }
+  }
+}
+
+colophon-symbols {
+  .list {
+    height: calc(var(--lines) * 1lh);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    margin-top: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .symbol {
+    display: grid;
+    grid-template-columns: var(--columns);
+    gap: 0 var(--gap);
+    color: $dim;
+
+    &.current {
+      color: $foreground;
+    }
+  }
+
+  .at {
+    user-select: none;
+
+    &::before {
+      content: "&";
+    }
   }
 }
 
