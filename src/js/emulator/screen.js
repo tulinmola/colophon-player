@@ -61,6 +61,7 @@ export class Screen {
   #rasters
   #samples
   #samplesPerLine
+  #swept
   #words
   #write
   #written
@@ -73,6 +74,7 @@ export class Screen {
     this.#rasters = rasters
     this.#samplesPerLine = this.#bytesPerLine * SAMPLES_PER_BYTE
     this.#samples = new Uint8Array(this.#samplesPerLine * height * rasters)
+    this.#swept = new Uint8Array(this.#bytesPerLine * height * rasters)
     this.#words = new Uint32Array(this.#samples.buffer)
     this.#written = new Uint32Array(this.#bytesPerLine * height * rasters)
     this.#write = MODE_WRITERS[mode]
@@ -92,6 +94,48 @@ export class Screen {
 
   get written() {
     return this.#written
+  }
+
+  get swept() {
+    return this.#swept
+  }
+
+  // The row start is the 6845's own VMA' latch, stable all row long, where
+  // the running counter is mid-stride between ticks.
+  sweep({ latch, column, raster, row, width, vsync }) {
+    const swept = this.#swept
+
+    if (row >= vsync) {
+      swept.fill(0)
+      return
+    }
+
+    if (width < 1 || ((latch >> 12) & 3) != this.#base >> 14) {
+      swept.fill(1)
+      return
+    }
+
+    const sectionBase = (latch - row * width) & 0x3ff,
+      bytesPerLine = this.#bytesPerLine
+
+    let index = 0
+    for (let r = 0; r < this.#height; r++) {
+      const rowStart = r * bytesPerLine
+
+      for (let s = 0; s < this.#rasters; s++) {
+        for (let byte = 0; byte < bytesPerLine; byte++) {
+          const word = ((rowStart + byte) & 0x7ff) >> 1,
+            distance = (word - sectionBase) & 0x3ff,
+            section = Math.floor(distance / width)
+
+          swept[index++] =
+            section < row ||
+            (section == row && (s < raster || (s == raster && distance - section * width < column)))
+              ? 1
+              : 0
+        }
+      }
+    }
   }
 
   render(ram, writes) {

@@ -70,6 +70,7 @@ int main(void) {
   printf("export const CRTC_AT_C0 = %zu\n", offsetof(crtc_t, c0));
   printf("export const CRTC_AT_C4 = %zu\n", offsetof(crtc_t, c4));
   printf("export const CRTC_AT_C9 = %zu\n", offsetof(crtc_t, c9));
+  printf("export const CRTC_AT_VMA_ = %zu\n", offsetof(crtc_t, vma_));
 
   return 0;
 }

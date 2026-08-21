@@ -50,3 +50,4 @@ export const CRTC_REGISTERS = 18
 export const CRTC_AT_C0 = 19
 export const CRTC_AT_C4 = 21
 export const CRTC_AT_C9 = 20
+export const CRTC_AT_VMA_ = 32

@@ -3,6 +3,7 @@ import {
   CRTC_AT_C4,
   CRTC_AT_C9,
   CRTC_AT_REGISTERS,
+  CRTC_AT_VMA_,
   CRTC_REGISTERS,
   CRTC_SIZE
 } from "./layout"
@@ -57,5 +58,9 @@ export class Crtc extends Chip {
 
   set c9(value) {
     this.putByteAt(CRTC_AT_C9, value & C9_BITS)
+  }
+
+  get vma_() {
+    return this.wordAt(CRTC_AT_VMA_)
   }
 }

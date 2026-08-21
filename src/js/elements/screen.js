@@ -4,8 +4,7 @@ import { Screen } from "../emulator"
 
 const DEFAULT_PALETTE = Array.from({ length: 16 }, (_colour, pen) => pen)
 
-const SAMPLES_PER_BYTE = 8,
-  SAMPLES_PER_CHARACTER = 16
+const SAMPLES_PER_BYTE = 8
 
 const HEAT_DEPTH = 16
 
@@ -47,9 +46,8 @@ function greyPalette(palette) {
 }
 
 class ScreenElement extends MachineObserver {
-  #beam = null
   #context
-  #greys
+  #greys = null
   #heat = null
   #image
   #pixels
@@ -70,7 +68,6 @@ class ScreenElement extends MachineObserver {
     const views = new Set((this.getAttribute("view") ?? "").trim().split(/\s+/u))
 
     if (views.has("beam")) {
-      this.#beam = { bank: base >> 14, columns: width, height, rasters }
       this.#greys = greyPalette(machine.palette)
     }
 
@@ -129,18 +126,38 @@ class ScreenElement extends MachineObserver {
   #draw(machine) {
     const screen = this.#screen,
       samples = screen.samples,
-      palette = machine.palette
+      palette = machine.palette,
+      pixels = this.#pixels
 
     screen.render(machine.ram, machine.writes)
 
-    const scanned = this.#scannedSamples(machine)
+    if (this.#greys == null || machine.running) {
+      for (let index = 0; index < samples.length; index++) {
+        pixels[index] = palette[samples[index]]
+      }
+    } else {
+      const crtc = machine.crtc,
+        registers = crtc.registers
+      screen.sweep({
+        latch: crtc.vma_,
+        column: crtc.c0,
+        raster: crtc.c9,
+        row: crtc.c4,
+        width: registers[1],
+        vsync: registers[7]
+      })
 
-    for (let index = 0; index < scanned; index++) {
-      this.#pixels[index] = palette[samples[index]]
-    }
+      const swept = screen.swept,
+        greys = this.#greys
 
-    for (let index = scanned; index < samples.length; index++) {
-      this.#pixels[index] = this.#greys[samples[index]]
+      let sample = 0
+      for (let index = 0; index < swept.length; index++) {
+        const colours = swept[index] ? palette : greys
+
+        for (let end = sample + SAMPLES_PER_BYTE; sample < end; sample++) {
+          pixels[sample] = colours[samples[sample]]
+        }
+      }
     }
 
     this.#context.putImageData(this.#image, 0, 0)
@@ -169,34 +186,6 @@ class ScreenElement extends MachineObserver {
     }
 
     heat.context.putImageData(heat.image, 0, 0)
-  }
-
-  #scannedSamples(machine) {
-    const beam = this.#beam,
-      total = this.#screen.samples.length
-
-    if (beam == null || machine.running) {
-      return total
-    }
-
-    const crtc = machine.crtc,
-      bank = (crtc.registers[12] >> 4) & 3,
-      row = crtc.c4
-
-    if (bank != beam.bank || row >= beam.height) {
-      return total
-    }
-
-    const samplesPerLine = this.#screen.samplesPerLine
-
-    if (crtc.c9 >= beam.rasters) {
-      return (row + 1) * beam.rasters * samplesPerLine
-    }
-
-    const line = row * beam.rasters + crtc.c9,
-      column = Math.min(crtc.c0, beam.columns)
-
-    return line * samplesPerLine + column * SAMPLES_PER_CHARACTER
   }
 }
 
