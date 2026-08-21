@@ -38,14 +38,22 @@ static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
 static uint32_t written[PLAYER_RAM_SIZE];
 static uint32_t frame;
 
+static void stamp_write(uint16_t address) {
+  size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
+  written[physical] = frame;
+}
+
+static void forget_writes(void) {
+  memset(written, 0, sizeof written);
+  frame = 1;
+}
+
 static void tick(void) {
   bool retraced = cpc.monitor.frame_retraced;
   uint64_t pins = cpc_tick(&cpc);
 
   if ((pins & (Z80_MREQ | Z80_WR)) == (Z80_MREQ | Z80_WR)) {
-    uint16_t address = z80_address(pins);
-    size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
-    written[physical] = frame;
+    stamp_write(z80_address(pins));
   }
 
   if (cpc.monitor.frame_retraced && !retraced) {
@@ -80,8 +88,7 @@ void player_boot(uint32_t ram_size) {
   cpc_init(&cpc, ram, ram_size, rom);
   cpc_set_upper_rom(&cpc, 0, rom + 0x4000);
   cpc_connect_monitor(&cpc, framebuffer);
-  memset(written, 0, sizeof written);
-  frame = 1;
+  forget_writes();
 }
 
 bool player_load_snapshot(uint32_t length) {
@@ -90,8 +97,7 @@ bool player_load_snapshot(uint32_t length) {
     return false;
   }
 
-  memset(written, 0, sizeof written);
-  frame = 1;
+  forget_writes();
   return true;
 }
 
@@ -134,8 +140,7 @@ uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
    hand what the tap would have seen. */
 void player_poke(uint16_t address, uint8_t value) {
   cpc_poke(&cpc, address, value);
-  size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
-  written[physical] = frame;
+  stamp_write(address);
 }
 
 z80_t *player_z80(void) { return &cpc.cpu; }
