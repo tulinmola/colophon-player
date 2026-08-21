@@ -114,14 +114,13 @@ void player_run_frames(uint32_t frames) {
  * frames for as long as it holds. The caller says how long it is prepared to
  * wait, so there is no frame to be waited for forever. */
 uint32_t player_run_until_retrace(uint32_t limit) {
-  bool retraced = cpc.monitor.frame_retraced;
+  uint32_t start = frame;
 
   for (uint32_t count = 1; count <= limit; count++) {
     tick();
-    if (cpc.monitor.frame_retraced && !retraced) {
+    if (frame != start) {
       return count;
     }
-    retraced = cpc.monitor.frame_retraced;
   }
 
   return limit;
