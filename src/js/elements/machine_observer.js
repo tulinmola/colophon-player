@@ -29,7 +29,7 @@ export class MachineObserver extends Element {
     if (host.machine) {
       this.#watch(host.machine)
     } else {
-      host.addEventListener("machine", () => this.#watch(host.machine), {
+      host.addEventListener("colophon:machine", () => this.#watch(host.machine), {
         once: true,
         signal: this.signal
       })

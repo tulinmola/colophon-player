@@ -33,6 +33,10 @@ Two things are handled that a plain forwarding would get wrong. The browser repe
 
 Focus leaving the element releases everything it was holding down.
 
+## What it brings with it
+
+Two things are the debugger's own rather than any page's, and the element puts them inside itself wherever it is placed: the options offered by the right button, and the form that takes down a breakpoint. Neither takes a place among the panels, and neither has to be asked for — a page that named no panel at all still has both, because what they carry belongs to the machine and not to the furniture that lists it.
+
 ## When the machine arrives
 
 The module that carries the machine is fetched after the elements have reached the page, so there is a moment in which `<colophon-cpc>` is standing there holding nothing. The panels are built for it: they wait, and begin watching when the element announces that a machine has arrived. Nothing placed inside should look for one once and expect to find it.

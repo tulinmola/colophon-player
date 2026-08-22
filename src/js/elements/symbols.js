@@ -32,13 +32,13 @@ class SymbolsElement extends MachineObserver {
 
     this.innerHTML = html`
       <header>
-        <h2>Symbols <span class="count"></span></h2>
+        <h2>Symbols <span></span></h2>
         <form>${funnel}</form>
       </header>
       <div class="list">${rows.join("")}</div>
     `
 
-    this.#count = this.querySelector(".count")
+    this.#count = this.querySelector("h2 span")
     this.#form = this.querySelector("form")
     this.#rows = Array.from(this.querySelectorAll(".symbol"))
 

@@ -24,7 +24,9 @@ A read here means read as data — a byte copied, compared or summed. The fetch 
 
 ## Setting one
 
-The `+` in the panel's heading opens a small dialog, and the platform carries it: Escape or Cancel abandons it, Add commits it.
+The `+` in the panel's heading opens a small form, and the platform carries it: Escape or Cancel abandons it, Add commits it. [A byte in the memory](memory.en.md#what-can-be-done-with-a-byte) opens the same form with its address already filled in, and does so whether or not this panel is anywhere on the page — the form belongs to the debugger rather than to this panel, and the marks belong to the machine, which this panel only lists.
+
+The pencil beside a mark opens it again for changing, every field of it, and what is saved takes the old one's place. The cross beside that takes it away.
 
 `At` takes a name or an address: a bare word is looked up among [the symbols](symbols.en.md) first — with or without the underscore a compiler prefixes — and read as hex if no name matches, while the `&` sigil forces an address outright. `Kind` chooses what the mark watches for.
 

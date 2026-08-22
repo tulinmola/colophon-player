@@ -52,7 +52,7 @@ h2 {
 }
 
 colophon-recording button,
-colophon-breakpoints header .add {
+colophon-breakpoints header button {
   display: grid;
   place-items: center;
   width: 1em;
@@ -280,6 +280,37 @@ colophon-screen canvas {
   image-rendering: pixelated;
 }
 
+colophon-options,
+colophon-breakpoint-form {
+  display: contents;
+}
+
+colophon-options menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0.2rem;
+  background: $background;
+  border: 1px solid $line;
+  color: $foreground;
+  font: inherit;
+  list-style: none;
+
+  button {
+    all: unset;
+    display: block;
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: $line;
+    }
+  }
+}
+
 dialog {
   background: $background;
   color: $foreground;
@@ -400,11 +431,7 @@ colophon-disassembly {
   }
 }
 
-colophon-breakpoints {
-  .fields {
-    grid-template-columns: auto auto;
-  }
-
+colophon-breakpoint-form {
   input[name="at"] {
     width: 12ch;
   }
@@ -412,7 +439,9 @@ colophon-breakpoints {
   input[name="label"] {
     width: 16ch;
   }
+}
 
+colophon-breakpoints {
   .list {
     height: calc(var(--lines) * 1lh);
     overflow-y: auto;

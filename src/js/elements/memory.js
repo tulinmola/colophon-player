@@ -1,6 +1,8 @@
 import { hex, html, write } from "../lang"
 import { renderInput, show } from "./fields"
+import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Options } from "./options"
 
 const BYTES_PER_ROW = 16,
   ROWS = 16,
@@ -60,6 +62,7 @@ class MemoryElement extends MachineObserver {
     const { signal } = this
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })
+    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
     this.addEventListener("focusout", this.onFocusOut.bind(this), { signal })
     this.addEventListener("input", this.onInput.bind(this), { signal })
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
@@ -75,6 +78,30 @@ class MemoryElement extends MachineObserver {
 
     if (index >= 0) {
       this.#edit(index)
+    }
+  }
+
+  onContextMenu(event) {
+    const index = this.#cells.indexOf(event.target)
+
+    if (index < 0) {
+      return
+    }
+
+    const inProcessorSpace = this.#form.elements.space.value == "cpu",
+      at = this.#base + index,
+      items = []
+
+    if (inProcessorSpace) {
+      items.push({
+        label: "Add breakpoint…",
+        execute: () => BreakpointForm.create(this.machine, { address: at })
+      })
+    }
+
+    if (items.length > 0) {
+      event.preventDefault()
+      Options.create(event, items)
     }
   }
 

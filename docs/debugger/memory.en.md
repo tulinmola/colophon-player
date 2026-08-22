@@ -26,6 +26,12 @@ Click a byte and the cell becomes a field with that byte in it. Two accepted dig
 
 A byte written into `RAM` goes to the bank; a byte written into `CPU` goes wherever the processor would have put it.
 
+## What can be done with a byte
+
+The right button on a byte asks what may be done with it, and the panel answers for its own: today, setting a breakpoint on that address, which opens [the breakpoint dialog](breakpoints.en.md#setting-one) with the address already in it.
+
+In `RAM` the panel offers nothing and the browser keeps its own menu, because a breakpoint is set on an address the processor can reach and that view is showing the banks themselves.
+
 ## The marks
 
 A byte that changed since the last redraw is lit, so a value moving under a stopped machine is visible without hunting for it. The window moving does not count as a change, or every byte would light at once. A zero is dimmed, which is what makes the shape of written data stand out from the memory around it.

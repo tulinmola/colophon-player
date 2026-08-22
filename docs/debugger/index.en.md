@@ -54,6 +54,16 @@ So a name a symbol file gives an address is written in white and reads as the pr
 
 Red is the third voice, and it is the reader's: a breakpoint armed on an address, the mark that fired. It is neither the machine's state nor the program's word but an intention laid over both, and it is the one colour on the page that is meant to shout.
 
+## The right button
+
+The right button on anything a panel shows asks what may be done with it, and each panel answers for its own items: it knows what they are, which nothing outside it does. A byte in the memory knows it is an address; a name in the symbols knows the address it stands for.
+
+What a panel offers falls into two kinds. Some of it belongs to the machine — a breakpoint is set on the machine and stays set whether or not any panel lists it — and a panel offers those directly. The rest belongs to another panel, which alone knows how to do it, and those travel as events: a panel says what it wants done and does not care who does it, or whether anyone does. A page that has not been given the panel that would answer simply sees nothing offered, which is the honest result: there is no view there to move.
+
+What answers is not a panel either. [`<colophon-cpc>`](../cpc.en.md#what-it-brings-with-it) carries the options and the breakpoint form itself, so the road from a byte to a mark is open on every page, however few panels it was given.
+
+Nothing is offered by the right button alone. Every one of them can be reached another way, so the menu is a shortcut and never the only road.
+
 ## Options in the heading
 
 A panel's options ride in its heading rather than in its body, where they would cost it height and move whatever stands beneath it. They are set smaller than the heading, so that they read as options and not as part of the title, and each carries its own title against the day there are enough of them to want icons in place of words.

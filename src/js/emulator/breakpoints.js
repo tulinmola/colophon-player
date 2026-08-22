@@ -20,6 +20,10 @@ export class Breakpoints {
     })
   }
 
+  get(address, kind) {
+    return this.#entries.get(`${address} ${kind}`)
+  }
+
   add(address, kind, { until = address, label = "" } = {}) {
     this.#entries.set(`${address} ${kind}`, { address, until, kind, label, enabled: true })
     this.#sync()
@@ -37,8 +41,7 @@ export class Breakpoints {
     this.#sync()
   }
 
-  // The whole table is laid again rather than the one entry unset, because
-  // ranges overlap and a byte two of them want must survive losing one.
+  // Ranges overlap: a byte two of them want must survive losing one.
   #sync() {
     this.#module._player_clear_breakpoints()
 

@@ -39,12 +39,7 @@ function renderOutput(label, meaning, name) {
 
 function renderToggle(label, meaning, name, checked) {
   return html`<label class="toggle" title="${meaning}"
-    ><input
-      type="checkbox"
-      name="${name}"
-      aria-label="${label}"
-      ${checked ? "checked" : ""}
-    />${label}</label
+    ><input type="checkbox" name="${name}" ${checked ? "checked" : ""} />${label}</label
   >`
 }
 
