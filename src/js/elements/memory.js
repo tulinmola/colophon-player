@@ -73,7 +73,7 @@ class MemoryElement extends MachineObserver {
     this.addEventListener("submit", this.onSubmit.bind(this), { signal })
     this.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
 
-    machine.addEventListener("changed", () => this.#render(), { signal })
+    machine.addEventListener("machine:changed", () => this.#render(), { signal })
     machine.addEventListener("memory:center", event => this.#center(event.detail.at), { signal })
     this.#moveTo(0)
   }

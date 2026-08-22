@@ -103,7 +103,7 @@ class ScreenElement extends MachineObserver {
       }
     }
 
-    machine.addEventListener("changed", () => this.#draw(machine), { signal: this.signal })
+    machine.addEventListener("machine:changed", () => this.#draw(machine), { signal: this.signal })
     this.#draw(machine)
   }
 

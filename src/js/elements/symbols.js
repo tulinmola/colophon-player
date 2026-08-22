@@ -62,7 +62,7 @@ class SymbolsElement extends MachineObserver {
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
     this.addEventListener("submit", this.onSubmit.bind(this), { signal })
 
-    machine.addEventListener("changed", () => this.#mark(machine), { signal })
+    machine.addEventListener("machine:changed", () => this.#mark(machine), { signal })
     this.#filter()
     this.#mark(machine)
   }

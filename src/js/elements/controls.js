@@ -17,8 +17,8 @@ class ControlsElement extends MachineObserver {
     this.addEventListener("click", this.onClick.bind(this), { signal })
 
     const showRunning = () => this.toggleAttribute("running", machine.running)
-    machine.addEventListener("start", showRunning, { signal })
-    machine.addEventListener("stop", showRunning, { signal })
+    machine.addEventListener("machine:start", showRunning, { signal })
+    machine.addEventListener("machine:stop", showRunning, { signal })
     showRunning()
   }
 

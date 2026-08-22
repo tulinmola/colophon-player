@@ -33,7 +33,7 @@ export class Machine extends EventTarget {
     this.trap = null
     this.#request = requestAnimationFrame(this.#advance)
 
-    const started = new Event("start")
+    const started = new Event("machine:start")
     this.dispatchEvent(started)
   }
 
@@ -46,7 +46,7 @@ export class Machine extends EventTarget {
     this.#request = null
     this.finishInstruction()
 
-    const stopped = new Event("stop")
+    const stopped = new Event("machine:stop")
     this.dispatchEvent(stopped)
     this.present()
   }
@@ -71,7 +71,7 @@ export class Machine extends EventTarget {
   }
 
   present() {
-    const frame = new Event("frame")
+    const frame = new Event("machine:frame")
     this.dispatchEvent(frame)
     this.changed()
   }
@@ -83,7 +83,7 @@ export class Machine extends EventTarget {
   }
 
   changed() {
-    const change = new Event("changed")
+    const change = new Event("machine:changed")
     this.dispatchEvent(change)
   }
 
@@ -120,7 +120,7 @@ export class Machine extends EventTarget {
 
   #announceTrap() {
     if (this.trap) {
-      const trapped = new Event("break")
+      const trapped = new Event("machine:break")
       this.dispatchEvent(trapped)
     }
   }

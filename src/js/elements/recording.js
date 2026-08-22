@@ -65,7 +65,7 @@ class RecordingElement extends MachineObserver {
       button.title = "Recording is not supported by this browser"
     }
 
-    machine.addEventListener("changed", () => this.#recorder?.capture(this.#layers), {
+    machine.addEventListener("machine:changed", () => this.#recorder?.capture(this.#layers), {
       signal: this.signal
     })
   }

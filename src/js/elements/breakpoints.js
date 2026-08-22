@@ -82,7 +82,7 @@ class BreakpointsElement extends MachineObserver {
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })
 
-    machine.addEventListener("changed", () => this.#render(machine), { signal })
+    machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
     this.#render(machine)
   }
 

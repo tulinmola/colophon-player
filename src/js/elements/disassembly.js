@@ -83,7 +83,7 @@ class DisassemblyElement extends MachineObserver {
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
 
-    machine.addEventListener("changed", () => this.#render(machine), { signal })
+    machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
     this.#render(machine)
   }
 

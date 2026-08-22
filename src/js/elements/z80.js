@@ -98,7 +98,7 @@ class Z80Element extends MachineObserver {
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
     this.addEventListener("change", this.onChanged.bind(this), { signal })
 
-    machine.addEventListener("changed", () => this.#render(machine), { signal })
+    machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
     this.#render(machine)
   }
 

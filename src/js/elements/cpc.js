@@ -106,10 +106,10 @@ class CpcElement extends Element {
       return
     }
 
-    machine.addEventListener("frame", this.onPresent.bind(this), { signal })
+    machine.addEventListener("machine:frame", this.onPresent.bind(this), { signal })
     this.#machine = machine
 
-    const ready = new Event("colophon:machine")
+    const ready = new Event("machine:ready")
     this.dispatchEvent(ready)
 
     machine.start()

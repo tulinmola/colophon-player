@@ -40,7 +40,7 @@ class MonitorElement extends MachineObserver {
     this.#image = image
     this.#pixels = new Uint32Array(image.data.buffer)
 
-    machine.addEventListener("frame", () => this.#draw(machine), { signal: this.signal })
+    machine.addEventListener("machine:frame", () => this.#draw(machine), { signal: this.signal })
     this.#draw(machine)
   }
 
