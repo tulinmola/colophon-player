@@ -117,7 +117,8 @@ class DisassemblyElement extends MachineObserver {
       {
         label: "Add breakpoint…",
         execute: () => BreakpointForm.create(machine, { address: row.address })
-      }
+      },
+      { label: "Show in memory", execute: () => machine.showMemory(row.address) }
     ])
   }
 

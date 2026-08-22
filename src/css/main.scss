@@ -585,6 +585,11 @@ colophon-memory {
     user-select: none;
   }
 
+  .found {
+    background: $foreground;
+    color: $background;
+  }
+
   .at::before {
     content: "&";
   }

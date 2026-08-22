@@ -60,7 +60,7 @@ The panel does not change size as it narrows. A filter that took a panel in with
 
 ## What can be done with a name
 
-The right button on a name opens [the breakpoint form](breakpoints.en.md#setting-one) with its address already in it.
+The right button on a name opens [the breakpoint form](breakpoints.en.md#setting-one) with its address already in it, and offers to show that address in [the memory](memory.en.md#moving).
 
 ## How far a name reaches
 

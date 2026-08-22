@@ -79,7 +79,8 @@ class SymbolsElement extends MachineObserver {
 
     event.preventDefault()
     Options.create(event, [
-      { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address }) }
+      { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address }) },
+      { label: "Show in memory", execute: () => machine.showMemory(address) }
     ])
   }
 

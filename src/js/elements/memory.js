@@ -35,6 +35,7 @@ class MemoryElement extends MachineObserver {
   #base = 0
   #cells
   #characters
+  #found = null
   #editing = null
   #form
   #input = createByteInput()
@@ -73,6 +74,7 @@ class MemoryElement extends MachineObserver {
     this.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
 
     machine.addEventListener("changed", () => this.#render(), { signal })
+    machine.addEventListener("memory:center", event => this.#center(event.detail.at), { signal })
     this.#moveTo(0)
   }
 
@@ -223,9 +225,17 @@ class MemoryElement extends MachineObserver {
     }
   }
 
-  #moveTo(address) {
+  #center(address) {
+    this.#form.elements.space.value = "cpu"
+    this.#moveTo(address - WINDOW / 2, address)
+    this.scrollIntoView({ block: "nearest" })
+  }
+
+  #moveTo(address, marked = null) {
     const { size, digits } = this.#space(),
       last = size - WINDOW
+
+    this.#found = marked
 
     this.#base = Math.min(Math.max(0, address), last) & ~(BYTES_PER_ROW - 1)
     show(this.#form.elements.at, hex(this.#base, { digits }))
@@ -246,14 +256,18 @@ class MemoryElement extends MachineObserver {
           value = read(at + column),
           node = this.#cells[index]
 
+        const found = this.#found == at + column
+
         if (index != this.#editing) {
           write(node, hex(value))
           node.classList.toggle("changed", !moved && this.#previous[index] != value)
           node.classList.toggle("zero", value == 0)
         }
 
+        node.classList.toggle("found", found)
         this.#previous[index] = value
         write(this.#characters[index], character(value))
+        this.#characters[index].classList.toggle("found", found)
       }
     }
 
