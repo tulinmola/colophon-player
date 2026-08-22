@@ -24,10 +24,13 @@ The debugger is not one element but a collection of them, each watching one part
 - [The disassembly](disassembly.en.md) — the bytes at the program counter read back as instructions.
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
 - [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
+- [The breakpoints](breakpoints.en.md) — the marks a reader sets on the memory, and the machine that stops itself on reaching one.
 
 ## Nothing is added to the machine
 
 A debugger usually works by putting apparatus inside the thing it is measuring. This one does not, because it does not have to. The machine is a step function whose every chip is a plain structure anyone may read, and the bus is the value each tick already returns. There is nothing to install and nothing to switch on: the panels read what is there anyway, and a machine with no panels watching it is the same machine running at the same speed.
+
+The breakpoints are the one exception, and they prove the rule's shape: a trap the reader arms is observation policy, so it lives in the player's run loop and never in a chip. The machine's own step is untouched, and with nothing armed the loop skips every check, so a machine nobody is trapping still runs at the hardware's own speed.
 
 That is why the apparatus stands out here rather than in there, and why these elements are observers and not features of the emulator. [A machine fact belongs in the machine and observation policy belongs in the host](../../emulator/observation.en.md#the-rule) is the rule the machine was built to, and this page is one thing that rule makes possible. A page of panels is one thing that can be built on a machine like that. A command line drawing a map of every write the boot made is another, and neither needs to know the other exists.
 
@@ -48,6 +51,8 @@ The panels are written in two weights, and the difference carries meaning rather
 Full white is where the machine is standing and what the program itself declares: the instruction under the program counter, a byte just written, a name its author wrote down. Dim is everything the debugger works out for itself and everything a reader scans past — the decoding of an instruction, the arithmetic that says how far past a name the counter has got, the addresses down the side of a dump.
 
 So a name a symbol file gives an address is written in white and reads as the program's own word, while the same panel's account of where the counter is standing inside that routine is written dim. Both are true; only one of them was written by a person.
+
+Red is the third voice, and it is the reader's: a breakpoint armed on an address, the mark that fired. It is neither the machine's state nor the program's word but an intention laid over both, and it is the one colour on the page that is meant to shout.
 
 ## Options in the heading
 

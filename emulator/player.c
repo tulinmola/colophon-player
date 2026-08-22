@@ -38,6 +38,20 @@ static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
 static uint32_t written[PLAYER_RAM_SIZE];
 static uint32_t frame;
 
+/* One byte an address, in the processor's own space. */
+#define PLAYER_TRAP_NONE 0
+#define PLAYER_TRAP_EXECUTE 1
+#define PLAYER_TRAP_READ 2
+#define PLAYER_TRAP_WRITE 4
+
+static uint8_t breakpoints[0x10000];
+/* Every kind set anywhere: each check below costs nothing until some
+   breakpoint asks for it. Maintained here so it cannot disagree with the
+   table it summarises. */
+static uint8_t trapping;
+static uint8_t trap_kind;
+static uint16_t trap_address;
+
 static void forget_writes(void) {
   memset(written, 0, sizeof written);
   frame = 1;
@@ -51,6 +65,20 @@ static void tick(void) {
     uint16_t address = z80_address(pins);
     size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
     written[physical] = frame;
+  }
+
+  if ((trapping & (PLAYER_TRAP_READ | PLAYER_TRAP_WRITE)) != 0 && trap_kind == PLAYER_TRAP_NONE) {
+    /* M1 keeps opcode fetches out of the read tap: read means read as data. */
+    uint64_t memory = pins & (Z80_M1 | Z80_MREQ | Z80_RD | Z80_WR);
+    uint16_t address = z80_address(pins);
+
+    if (memory == (Z80_MREQ | Z80_WR) && (breakpoints[address] & PLAYER_TRAP_WRITE) != 0) {
+      trap_kind = PLAYER_TRAP_WRITE;
+      trap_address = address;
+    } else if (memory == (Z80_MREQ | Z80_RD) && (breakpoints[address] & PLAYER_TRAP_READ) != 0) {
+      trap_kind = PLAYER_TRAP_READ;
+      trap_address = address;
+    }
   }
 
   if (cpc.monitor.frame_retraced && !retraced) {
@@ -78,6 +106,24 @@ uint8_t *player_framebuffer(void) { return framebuffer; }
 
 uint32_t *player_writes(void) { return written; }
 uint32_t player_frame(void) { return frame; }
+
+void player_clear_breakpoints(void) {
+  memset(breakpoints, 0, sizeof breakpoints);
+  trapping = PLAYER_TRAP_NONE;
+}
+
+/* Inclusive of both ends, and `at` is wider than the address it holds so a
+   range reaching &FFFF finishes instead of wrapping. */
+void player_set_breakpoint(uint16_t from, uint16_t until, uint8_t kinds) {
+  for (uint32_t at = from; at <= until; at++) {
+    breakpoints[at] |= kinds;
+  }
+
+  trapping |= kinds;
+}
+
+uint32_t player_trap_kind(void) { return trap_kind; }
+uint32_t player_trap_address(void) { return trap_address; }
 
 /* The operating system fills the lower half of the image, BASIC the upper
  * as ROM 0. */
@@ -116,8 +162,30 @@ void player_run_frames(uint32_t frames) {
 uint32_t player_run_until_retrace(uint32_t limit) {
   uint32_t start = frame;
 
+  /* Left standing, the last stop's record would trap the resume on itself. */
+  trap_kind = PLAYER_TRAP_NONE;
+
   for (uint32_t count = 1; count <= limit; count++) {
     tick();
+
+    if (trap_kind != PLAYER_TRAP_NONE) {
+      /* A watch fires mid-instruction; the stop waits for the boundary, and
+         for it ahead of any retrace. */
+      if (z80_instruction_complete(&cpc.cpu)) {
+        return count;
+      }
+      continue;
+    }
+
+    if ((trapping & PLAYER_TRAP_EXECUTE) != 0 && z80_instruction_complete(&cpc.cpu) &&
+        (breakpoints[cpc.cpu.pc] & PLAYER_TRAP_EXECUTE) != 0) {
+      /* Where PC has arrived, not where it left: the marked instruction has
+         not run, and a resume walks off the mark without being told to. */
+      trap_kind = PLAYER_TRAP_EXECUTE;
+      trap_address = cpc.cpu.pc;
+      return count;
+    }
+
     if (frame != start) {
       return count;
     }
@@ -138,8 +206,10 @@ crtc_t *player_crtc(void) { return &cpc.crtc; }
 
 void player_finish_instruction(void) { finish_instruction(); }
 
-/* Without the tick, a machine already between instructions would not move. */
+/* Without the tick, a machine already between instructions would not move.
+   Uncleared, the record would be the last stop's rather than this step's. */
 void player_step_instruction(void) {
+  trap_kind = PLAYER_TRAP_NONE;
   tick();
   finish_instruction();
 }

@@ -1,4 +1,4 @@
-import { hex, html, nodesByName, write, writeFitted } from "../lang"
+import { hex, html, write, writeFitted } from "../lang"
 import { MachineObserver } from "./machine_observer"
 import { disassemble } from "../emulator"
 import { renderToggle } from "./fields"
@@ -13,12 +13,26 @@ const ADDRESS = 5,
   GAP = 1
 
 function renderRow(_row, number) {
-  return html`<div class="label" data-field="label${number}" hidden></div>
-    <div class="instruction${number == 0 ? " current" : ""}" data-field="row${number}">
-      <span data-field="address${number}"></span>
-      <span data-field="bytes${number}"></span>
-      <span data-field="text${number}"></span>
+  return html`<div class="label" hidden></div>
+    <div class="instruction${number == 0 ? " current" : ""}">
+      <span class="at"></span>
+      <span class="bytes"></span>
+      <span class="text"></span>
     </div>`
+}
+
+function collectRows(root) {
+  const labels = root.querySelectorAll(".label")
+
+  return Array.from(root.querySelectorAll(".instruction"), function (instruction, number) {
+    return {
+      label: labels[number],
+      instruction,
+      at: instruction.querySelector(".at"),
+      bytes: instruction.querySelector(".bytes"),
+      text: instruction.querySelector(".text")
+    }
+  })
 }
 
 function heading(names, standing) {
@@ -39,7 +53,7 @@ class DisassemblyElement extends MachineObserver {
   #form = null
   #labelRoom
   #lines
-  #nodes
+  #rows
   #textRoom
 
   watch(machine) {
@@ -62,7 +76,7 @@ class DisassemblyElement extends MachineObserver {
       ${rows.join("")}
     `
 
-    this.#nodes = nodesByName(this)
+    this.#rows = collectRows(this)
     this.#form = this.querySelector("form")
 
     const { signal } = this
@@ -99,17 +113,18 @@ class DisassemblyElement extends MachineObserver {
       number = 0
 
     for (; number < this.#lines && lines < this.#lines; number++) {
-      const names = naming ? symbols.namesAt(address) : [],
+      const row = this.#rows[number],
+        names = naming ? symbols.namesAt(address) : [],
         above = heading(names, number == 0 ? standing : null)
 
-      this.#writeLabel(number, above, names.length == 0)
+      this.#writeLabel(row, above, names.length == 0)
 
       if (above) {
         lines++
       }
 
       if (lines == this.#lines) {
-        this.#blankRow(number)
+        this.#blankRow(row)
         continue
       }
 
@@ -121,34 +136,34 @@ class DisassemblyElement extends MachineObserver {
         bytes.push(hex(value, { prefix: "" }))
       }
 
-      this.#nodes[`row${number}`].hidden = false
-      write(this.#nodes[`address${number}`], hex(address, { digits: 4, prefix: "&" }))
-      write(this.#nodes[`bytes${number}`], bytes.join(" "))
-      writeFitted(this.#nodes[`text${number}`], text, this.#textRoom)
+      row.instruction.hidden = false
+      write(row.at, hex(address, { digits: 4, prefix: "&" }))
+      write(row.bytes, bytes.join(" "))
+      writeFitted(row.text, text, this.#textRoom)
 
       address = (address + length) & 0xffff
       lines++
     }
 
     for (; number < this.#lines; number++) {
-      this.#writeLabel(number, "", false)
-      this.#blankRow(number)
+      const row = this.#rows[number]
+
+      this.#writeLabel(row, "", false)
+      this.#blankRow(row)
     }
   }
 
-  #writeLabel(number, text, offset) {
-    const label = this.#nodes[`label${number}`]
-
-    writeFitted(label, text, this.#labelRoom)
-    label.classList.toggle("offset", offset && text != "")
-    label.hidden = text == ""
+  #writeLabel(row, text, offset) {
+    writeFitted(row.label, text, this.#labelRoom)
+    row.label.classList.toggle("offset", offset && text != "")
+    row.label.hidden = text == ""
   }
 
-  #blankRow(number) {
-    write(this.#nodes[`address${number}`], "")
-    write(this.#nodes[`bytes${number}`], "")
-    writeFitted(this.#nodes[`text${number}`], "", this.#textRoom)
-    this.#nodes[`row${number}`].hidden = true
+  #blankRow(row) {
+    write(row.at, "")
+    write(row.bytes, "")
+    writeFitted(row.text, "", this.#textRoom)
+    row.instruction.hidden = true
   }
 }
 

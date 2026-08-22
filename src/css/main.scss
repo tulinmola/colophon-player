@@ -4,6 +4,7 @@ $card: color.adjust($foreground, $alpha: -0.92);
 $well: $background;
 $invalid: #ff6f5f;
 $recording: #ff6f5f;
+$trap: #ff6f5f;
 $changed: #ffb454;
 
 body {
@@ -50,7 +51,8 @@ h2 {
   color: $dim;
 }
 
-colophon-recording button {
+colophon-recording button,
+colophon-breakpoints header .add {
   display: grid;
   place-items: center;
   width: 1em;
@@ -135,6 +137,10 @@ colophon-recording[recording] button {
   // An output is already the tag for a shown value; a span needs the class
   // because it means nothing on its own. The sigil belongs to the number, so
   // it takes the number's colour.
+  .input-group input {
+    text-transform: uppercase;
+  }
+
   output,
   .input-group {
     color: $foreground;
@@ -153,7 +159,6 @@ colophon-recording[recording] button {
     width: 2ch;
     cursor: text;
     background: $well;
-    text-transform: uppercase;
 
     &[maxlength="1"] {
       width: 1ch;
@@ -175,6 +180,14 @@ colophon-recording[recording] button {
       color: $invalid;
       font-weight: bold;
     }
+  }
+
+  select {
+    background: $well;
+    border: 1px solid $line;
+    color: $foreground;
+    font: inherit;
+    padding: 0 0.2rem;
   }
 
   input.state {
@@ -233,6 +246,7 @@ colophon-memory,
 colophon-crtc,
 colophon-disassembly,
 colophon-symbols,
+colophon-breakpoints,
 colophon-monitor,
 colophon-screen {
   display: block;
@@ -264,6 +278,46 @@ colophon-screen canvas {
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+}
+
+dialog {
+  background: $background;
+  color: $foreground;
+  border: 1px solid $line;
+  padding: 0.75rem;
+
+  &::backdrop {
+    background: rgb(0 0 0 / 60%);
+  }
+
+  .fields input {
+    padding: 0 0.5ch;
+    outline: 1px solid $line;
+
+    &:focus {
+      outline-color: $dim;
+    }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+
+    button {
+      padding: 0.4rem 0.5rem;
+      background: transparent;
+      border: 1px solid $line;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+
+      &:hover {
+        border-color: $dim;
+      }
+    }
+  }
 }
 
 .instruction {
@@ -346,6 +400,78 @@ colophon-disassembly {
   }
 }
 
+colophon-breakpoints {
+  .fields {
+    grid-template-columns: auto auto;
+  }
+
+  input[name="at"] {
+    width: 12ch;
+  }
+
+  input[name="label"] {
+    width: 16ch;
+  }
+
+  .list {
+    height: calc(var(--lines) * 1lh);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    margin-top: 0.5rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .breakpoint {
+    display: grid;
+    grid-template-columns: var(--columns);
+    gap: 0 var(--gap);
+    color: $dim;
+
+    &.hit {
+      color: $trap;
+    }
+
+    .at::before {
+      content: "&";
+    }
+
+    input {
+      all: unset;
+      width: 1ch;
+      cursor: pointer;
+
+      &::before {
+        content: "○";
+      }
+
+      &:checked::before {
+        content: "●";
+        color: $trap;
+      }
+
+      &:focus-visible {
+        outline: 1px solid $dim;
+      }
+    }
+
+    button {
+      all: unset;
+      width: 1ch;
+      text-align: center;
+      cursor: pointer;
+
+      &:hover {
+        color: $foreground;
+      }
+
+      &:focus-visible {
+        outline: 1px solid $dim;
+      }
+    }
+  }
+}
+
 colophon-symbols {
   .list {
     height: calc(var(--lines) * 1lh);
@@ -402,14 +528,6 @@ colophon-controls {
 colophon-memory {
   .fields {
     grid-template-columns: repeat(2, auto auto);
-  }
-
-  select {
-    background: $well;
-    border: 1px solid $line;
-    color: $foreground;
-    font: inherit;
-    padding: 0 0.2rem;
   }
 
   .dump {

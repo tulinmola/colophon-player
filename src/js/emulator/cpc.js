@@ -1,3 +1,4 @@
+import { Breakpoints } from "./breakpoints"
 import { Crtc } from "./crtc"
 import { Machine } from "./machine"
 import { Z80 } from "./z80"
@@ -11,6 +12,8 @@ const MODELS = {
 }
 
 const DEFAULT_ROMS_URL = "/roms"
+
+const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write" }
 
 const FRAMEBUFFER_WIDTH = 1024,
   FRAMEBUFFER_HEIGHT = 312,
@@ -52,6 +55,7 @@ function readGreys(module) {
 }
 
 export class Cpc extends Machine {
+  #breakpoints
   #crtc
   #framebuffer
   #greys
@@ -107,6 +111,7 @@ export class Cpc extends Machine {
       writesStart = module._player_writes() >> 2
 
     this.#module = module
+    this.#breakpoints = new Breakpoints(module)
     this.#palette = readPalette(module)
     this.#greys = readGreys(module)
     this.#z80 = new Z80(module, z80Pointer)
@@ -132,6 +137,10 @@ export class Cpc extends Machine {
 
   get z80() {
     return this.#z80
+  }
+
+  get breakpoints() {
+    return this.#breakpoints
   }
 
   get crtc() {
@@ -168,6 +177,16 @@ export class Cpc extends Machine {
 
   runUntilRetrace(limit) {
     return this.#module._player_run_until_retrace(limit)
+  }
+
+  readTrap() {
+    const kind = this.#module._player_trap_kind()
+
+    if (kind == 0) {
+      return null
+    }
+
+    return { kind: TRAP_KINDS[kind], address: this.#module._player_trap_address() }
   }
 
   finishInstruction() {

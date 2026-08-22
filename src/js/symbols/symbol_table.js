@@ -55,6 +55,16 @@ export class SymbolTable {
     return { name: this.#names.get(found)[0], address: found, offset: address - found }
   }
 
+  addressOf(name) {
+    for (const [address, names] of this.#names) {
+      if (names.includes(name) || names.includes(`_${name}`)) {
+        return address
+      }
+    }
+
+    return null
+  }
+
   all() {
     const listed = []
 

@@ -12,6 +12,8 @@ export class Machine extends EventTarget {
 
   symbols = new SymbolTable()
 
+  trap = null
+
   constructor() {
     super()
     this.#advance = this.onAnimationFrame.bind(this)
@@ -28,6 +30,7 @@ export class Machine extends EventTarget {
 
     this.#last = performance.now()
     this.#debt = 0
+    this.trap = null
     this.#request = requestAnimationFrame(this.#advance)
 
     const started = new Event("start")
@@ -51,7 +54,9 @@ export class Machine extends EventTarget {
   step() {
     this.stop()
     this.stepInstruction()
+    this.trap = this.readTrap()
     this.present()
+    this.#announceTrap()
   }
 
   // Twice a frame's length, so a program that has made this one longer than
@@ -60,7 +65,9 @@ export class Machine extends EventTarget {
     this.stop()
     this.runUntilRetrace(this.ticksPerFrame * 2)
     this.finishInstruction()
+    this.trap = this.readTrap()
     this.present()
+    this.#announceTrap()
   }
 
   present() {
@@ -90,10 +97,25 @@ export class Machine extends EventTarget {
       const limit = Math.ceil(this.#debt) + this.ticksPerFrame
       this.#debt -= this.runUntilRetrace(limit)
       ran = true
+
+      const trap = this.readTrap()
+      if (trap) {
+        this.trap = trap
+        this.stop()
+        this.#announceTrap()
+        return
+      }
     }
 
     if (ran) {
       this.present()
+    }
+  }
+
+  #announceTrap() {
+    if (this.trap) {
+      const trapped = new Event("break")
+      this.dispatchEvent(trapped)
     }
   }
 }

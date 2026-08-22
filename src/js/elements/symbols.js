@@ -1,4 +1,4 @@
-import { hex, html, nodesByName, write, writeFitted } from "../lang"
+import { hex, html, write, writeFitted } from "../lang"
 import { MachineObserver } from "./machine_observer"
 import { renderFilter } from "./fields"
 
@@ -15,8 +15,8 @@ function renderRow() {
 class SymbolsElement extends MachineObserver {
   #current = null
   #entries
+  #count
   #form
-  #nodes
   #rows
   #starts = new Map()
 
@@ -32,24 +32,22 @@ class SymbolsElement extends MachineObserver {
 
     this.innerHTML = html`
       <header>
-        <h2>Symbols <span data-field="shown"></span></h2>
+        <h2>Symbols <span class="count"></span></h2>
         <form>${funnel}</form>
       </header>
       <div class="list">${rows.join("")}</div>
     `
 
-    this.#nodes = nodesByName(this)
+    this.#count = this.querySelector(".count")
     this.#form = this.querySelector("form")
     this.#rows = Array.from(this.querySelectorAll(".symbol"))
 
-    const places = this.querySelectorAll(".symbol .at"),
-      names = this.querySelectorAll(".symbol .name")
-
     for (let index = 0; index < this.#entries.length; index++) {
-      const { name, address } = this.#entries[index]
+      const { name, address } = this.#entries[index],
+        row = this.#rows[index]
 
-      write(places[index], hex(address, { digits: 4 }))
-      writeFitted(names[index], name, NAME)
+      write(row.querySelector(".at"), hex(address, { digits: 4 }))
+      writeFitted(row.querySelector(".name"), name, NAME)
 
       if (!this.#starts.has(address)) {
         this.#starts.set(address, index)
@@ -98,7 +96,7 @@ class SymbolsElement extends MachineObserver {
       }
     }
 
-    write(this.#nodes.shown, shown == total ? `(${total})` : `(${shown}/${total})`)
+    write(this.#count, shown == total ? `(${total})` : `(${shown}/${total})`)
   }
 
   #mark(machine) {
