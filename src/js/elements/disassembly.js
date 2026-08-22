@@ -1,5 +1,7 @@
 import { hex, html, write, writeFitted } from "../lang"
+import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Options } from "./options"
 import { disassemble } from "../emulator"
 import { renderToggle } from "./fields"
 
@@ -25,12 +27,17 @@ function collectRows(root) {
   const labels = root.querySelectorAll(".label")
 
   return Array.from(root.querySelectorAll(".instruction"), function (instruction, number) {
+    const [at, bytes, text] = instruction.children
+
     return {
       label: labels[number],
       instruction,
-      at: instruction.querySelector(".at"),
-      bytes: instruction.querySelector(".bytes"),
-      text: instruction.querySelector(".text")
+      at,
+      bytes,
+      text,
+      address: null,
+      length: 0,
+      target: null
     }
   })
 }
@@ -81,9 +88,29 @@ class DisassemblyElement extends MachineObserver {
 
     const { signal } = this
     this.addEventListener("change", () => this.#render(machine), { signal })
+    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
 
     machine.addEventListener("changed", () => this.#render(machine), { signal })
     this.#render(machine)
+  }
+
+  onContextMenu(event) {
+    const instruction = event.target.closest(".instruction"),
+      row = this.#rows.find(found => found.instruction == instruction)
+
+    if (!row || row.address == null) {
+      return
+    }
+
+    const machine = this.machine
+
+    event.preventDefault()
+    Options.create(event, [
+      {
+        label: "Add breakpoint…",
+        execute: () => BreakpointForm.create(machine, { address: row.address })
+      }
+    ])
   }
 
   #layout(naming) {
@@ -136,6 +163,7 @@ class DisassemblyElement extends MachineObserver {
         bytes.push(hex(value, { prefix: "" }))
       }
 
+      row.address = address
       row.instruction.hidden = false
       write(row.at, hex(address, { digits: 4, prefix: "&" }))
       write(row.bytes, bytes.join(" "))
@@ -160,6 +188,7 @@ class DisassemblyElement extends MachineObserver {
   }
 
   #blankRow(row) {
+    row.address = null
     write(row.at, "")
     write(row.bytes, "")
     writeFitted(row.text, "", this.#textRoom)

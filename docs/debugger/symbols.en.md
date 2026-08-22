@@ -58,6 +58,10 @@ The funnel in the panel's heading narrows the list to the names holding what is 
 
 The panel does not change size as it narrows. A filter that took a panel in with every keystroke would move everything standing below it, so the list keeps its height whether it is holding five hundred names or one, and a name longer than its column is cut in the middle, keeping its head and its tail, with the whole of it on its title.
 
+## What can be done with a name
+
+The right button on a name opens [the breakpoint form](breakpoints.en.md#setting-one) with its address already in it.
+
 ## How far a name reaches
 
 A symbol file names one byte and says nothing about how many follow it. The extent of a routine is therefore not knowable, only guessed at from where the next name begins, and this debugger does not guess: a name is taken to reach a thousand and twenty-four bytes past its own address and no further.

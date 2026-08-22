@@ -9,10 +9,11 @@ const BYTES_PER_ROW = 16,
   WINDOW = ROWS * BYTES_PER_ROW
 
 function renderRow() {
-  const bytes = Array.from({ length: BYTES_PER_ROW }, () => html`<span></span>`)
+  const cells = Array.from({ length: BYTES_PER_ROW }, () => html`<span></span>`)
 
   return html`<div class="row">
-    <span class="at"></span><span class="bytes">${bytes.join(" ")}</span><span class="text"></span>
+    <span class="at"></span><span class="bytes">${cells.join(" ")}</span
+    ><span class="text">${cells.join("")}</span>
   </div>`
 }
 
@@ -33,6 +34,7 @@ function createByteInput() {
 class MemoryElement extends MachineObserver {
   #base = 0
   #cells
+  #characters
   #editing = null
   #form
   #input = createByteInput()
@@ -58,6 +60,7 @@ class MemoryElement extends MachineObserver {
     this.#form = this.querySelector("form")
     this.#rows = Array.from(this.querySelectorAll(".row"))
     this.#cells = Array.from(this.querySelectorAll(".bytes span"))
+    this.#characters = Array.from(this.querySelectorAll(".text span"))
 
     const { signal } = this
     this.addEventListener("change", this.onChanged.bind(this), { signal })
@@ -82,7 +85,8 @@ class MemoryElement extends MachineObserver {
   }
 
   onContextMenu(event) {
-    const index = this.#cells.indexOf(event.target)
+    const cell = this.#cells.indexOf(event.target),
+      index = cell < 0 ? this.#characters.indexOf(event.target) : cell
 
     if (index < 0) {
       return
@@ -234,7 +238,6 @@ class MemoryElement extends MachineObserver {
 
     for (let row = 0; row < ROWS; row++) {
       const at = this.#base + row * BYTES_PER_ROW
-      let text = ""
 
       write(this.#rows[row].querySelector(".at"), hex(at, { digits }))
 
@@ -250,10 +253,8 @@ class MemoryElement extends MachineObserver {
         }
 
         this.#previous[index] = value
-        text += character(value)
+        write(this.#characters[index], character(value))
       }
-
-      write(this.#rows[row].querySelector(".text"), text)
     }
 
     this.#shown = `${this.#base} ${size}`

@@ -28,7 +28,7 @@ A byte written into `RAM` goes to the bank; a byte written into `CPU` goes where
 
 ## What can be done with a byte
 
-The right button on a byte asks what may be done with it, and the panel answers for its own: today, setting a breakpoint on that address, which opens [the breakpoint dialog](breakpoints.en.md#setting-one) with the address already in it.
+The right button on a byte asks what may be done with it, and the panel answers for its own: today, setting a breakpoint on that address, which opens [the breakpoint form](breakpoints.en.md#setting-one) with the address already in it. The character standing for a byte answers the same, since it is the same byte read another way.
 
 In `RAM` the panel offers nothing and the browser keeps its own menu, because a breakpoint is set on an address the processor can reach and that view is showing the banks themselves.
 

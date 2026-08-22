@@ -1,5 +1,7 @@
 import { hex, html, write, writeFitted } from "../lang"
+import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Options } from "./options"
 import { renderFilter } from "./fields"
 
 const DEFAULT_LINES = 16
@@ -55,6 +57,7 @@ class SymbolsElement extends MachineObserver {
     }
 
     const { signal } = this
+    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
     this.addEventListener("input", this.onInput.bind(this), { signal })
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
     this.addEventListener("submit", this.onSubmit.bind(this), { signal })
@@ -62,6 +65,22 @@ class SymbolsElement extends MachineObserver {
     machine.addEventListener("changed", () => this.#mark(machine), { signal })
     this.#filter()
     this.#mark(machine)
+  }
+
+  onContextMenu(event) {
+    const index = this.#rows.indexOf(event.target.closest(".symbol"))
+
+    if (index < 0) {
+      return
+    }
+
+    const machine = this.machine,
+      { address } = this.#entries[index]
+
+    event.preventDefault()
+    Options.create(event, [
+      { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address }) }
+    ])
   }
 
   onInput() {

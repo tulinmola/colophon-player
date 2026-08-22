@@ -37,3 +37,7 @@ A label falling on the last line keeps it, and the instruction beneath waits for
 A name is as long as its author made it, and the longest in a real program are longer than any instruction the decoding can produce. Rather than let one widen the panel, a line too long for its column is cut in the middle, keeping its head and its tail — `CALL _rende…OutWaiting` — with the whole of it on the line's title, where hovering shows it. [The panel of symbols](symbols.en.md#narrowing-the-list) cuts its names the same way.
 
 Names are paid for in width, and only once. Turning the switch on widens the column that holds them; turning it off returns the panel to addresses alone and to the narrower column those need. Nothing else moves with it: what an instruction is and where it stands are read from the machine either way.
+
+## What can be done with an instruction
+
+The right button on a row opens [the breakpoint form](breakpoints.en.md#setting-one) with the instruction's address already in it. What kind of mark it is, and how far it reaches, are the form's to answer.
