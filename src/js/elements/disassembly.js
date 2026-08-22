@@ -1,14 +1,15 @@
 import { hex, html, write, writeFitted } from "../lang"
+import { renderToggle, show } from "./fields"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
 import { Options } from "./options"
 import { disassemble } from "../emulator"
-import { renderToggle } from "./fields"
 
 const DEFAULT_LINES = 16
 
 // "RES 0,(IX+&05),B" is the widest the decoding produces.
-const ADDRESS = 5,
+const ARMED = 1,
+  ADDRESS = 5,
   BYTES = 11,
   TEXT = 16,
   NAMED_TEXT = 22,
@@ -17,6 +18,7 @@ const ADDRESS = 5,
 function renderRow(_row, number) {
   return html`<div class="label" hidden></div>
     <div class="instruction${number == 0 ? " current" : ""}">
+      <input type="checkbox" class="armed" aria-label="Armed" disabled />
       <span class="at"></span>
       <span class="bytes"></span>
       <span class="text"></span>
@@ -27,18 +29,9 @@ function collectRows(root) {
   const labels = root.querySelectorAll(".label")
 
   return Array.from(root.querySelectorAll(".instruction"), function (instruction, number) {
-    const [at, bytes, text] = instruction.children
+    const [armed, at, bytes, text] = instruction.children
 
-    return {
-      label: labels[number],
-      instruction,
-      at,
-      bytes,
-      text,
-      address: null,
-      length: 0,
-      target: null
-    }
+    return { label: labels[number], instruction, armed, at, bytes, text, address: null }
   })
 }
 
@@ -87,11 +80,26 @@ class DisassemblyElement extends MachineObserver {
     this.#form = this.querySelector("form")
 
     const { signal } = this
-    this.addEventListener("change", () => this.#render(machine), { signal })
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
 
     machine.addEventListener("changed", () => this.#render(machine), { signal })
     this.#render(machine)
+  }
+
+  onChanged(event) {
+    const machine = this.machine,
+      row = this.#rows.find(found => found.armed == event.target)
+
+    if (!row) {
+      this.#render(machine)
+      return
+    }
+
+    const covering = machine.breakpoints.covering(row.address, "execute")
+
+    machine.breakpoints.enable(covering.address, covering.kind, event.target.checked)
+    machine.changed()
   }
 
   onContextMenu(event) {
@@ -122,8 +130,9 @@ class DisassemblyElement extends MachineObserver {
 
     this.#textRoom = text
     this.#labelRoom = ADDRESS + BYTES + text + GAP * 2
-    this.style.setProperty("--columns", `${ADDRESS}ch ${BYTES}ch ${text}ch`)
+    this.style.setProperty("--columns", `${ARMED}ch ${ADDRESS}ch ${BYTES}ch ${text}ch`)
     this.style.setProperty("--gap", `${GAP}ch`)
+    this.style.setProperty("--indent", `${ARMED + GAP}ch`)
   }
 
   #render(machine) {
@@ -163,7 +172,11 @@ class DisassemblyElement extends MachineObserver {
         bytes.push(hex(value, { prefix: "" }))
       }
 
+      const covering = machine.breakpoints.covering(address, "execute")
+
       row.address = address
+      row.armed.disabled = covering == null
+      show(row.armed, covering != null && covering.enabled)
       row.instruction.hidden = false
       write(row.at, hex(address, { digits: 4, prefix: "&" }))
       write(row.bytes, bytes.join(" "))
@@ -189,6 +202,7 @@ class DisassemblyElement extends MachineObserver {
 
   #blankRow(row) {
     row.address = null
+    row.armed.disabled = true
     write(row.at, "")
     write(row.bytes, "")
     writeFitted(row.text, "", this.#textRoom)

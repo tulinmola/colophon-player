@@ -37,7 +37,9 @@ function createRow(entry) {
   row.className = "breakpoint"
   row.dataset.address = entry.address
   row.dataset.kind = entry.kind
-  row.innerHTML = html`<input type="checkbox" aria-label="Armed" /><span class="at"></span
+  row.innerHTML = html`<input type="checkbox" class="armed" aria-label="Armed" /><span
+      class="at"
+    ></span
     ><span></span><span></span
     ><button type="button" data-action="edit" title="Edit breakpoint">
       <span aria-hidden="true">✎</span></button

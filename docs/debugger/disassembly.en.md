@@ -38,6 +38,12 @@ A name is as long as its author made it, and the longest in a real program are l
 
 Names are paid for in width, and only once. Turning the switch on widens the column that holds them; turning it off returns the panel to addresses alone and to the narrower column those need. Nothing else moves with it: what an instruction is and where it stands are read from the machine either way.
 
+## The marks down the side
+
+The column at the left of the listing carries [the breakpoints](breakpoints.en.md) standing on the instructions in view, in the same three states the panel of breakpoints uses: nothing where there is no mark, a filled circle where one is armed, an open one where a mark stands but is not being watched for. Clicking it arms or disarms, exactly as it does there; it is the same control.
+
+Only marks that stop the machine on reaching an instruction are shown. A watch on the same byte is a fact about data rather than about execution, and a filled circle beside a line has meant _the machine stops here_ for as long as there have been debuggers. Where a mark is a span, every instruction it covers wears it, and arming from any of them arms the one mark.
+
 ## What can be done with an instruction
 
 The right button on a row opens [the breakpoint form](breakpoints.en.md#setting-one) with the instruction's address already in it. What kind of mark it is, and how far it reaches, are the form's to answer.

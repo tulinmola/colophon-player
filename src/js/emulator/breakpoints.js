@@ -24,6 +24,16 @@ export class Breakpoints {
     return this.#entries.get(`${address} ${kind}`)
   }
 
+  covering(address, kind) {
+    for (const entry of this.#entries.values()) {
+      if (entry.kind == kind && address >= entry.address && address <= entry.until) {
+        return entry
+      }
+    }
+
+    return null
+  }
+
   add(address, kind, { until = address, label = "" } = {}) {
     this.#entries.set(`${address} ${kind}`, { address, until, kind, label, enabled: true })
     this.#sync()

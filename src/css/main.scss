@@ -370,6 +370,33 @@ header form {
   font-size: 0.8em;
 }
 
+.armed {
+  all: unset;
+  width: 1ch;
+  cursor: pointer;
+
+  &::before {
+    content: "○";
+  }
+
+  &:checked::before {
+    content: "●";
+    color: $trap;
+  }
+
+  &:disabled {
+    cursor: default;
+
+    &::before {
+      content: "";
+    }
+  }
+
+  &:focus-visible {
+    outline: 1px solid $dim;
+  }
+}
+
 .toggle {
   color: $dim;
   cursor: pointer;
@@ -423,6 +450,7 @@ header form {
 
 colophon-disassembly {
   .label {
+    margin-left: var(--indent);
     white-space: nowrap;
 
     &.offset {
@@ -463,25 +491,6 @@ colophon-breakpoints {
 
     .at::before {
       content: "&";
-    }
-
-    input {
-      all: unset;
-      width: 1ch;
-      cursor: pointer;
-
-      &::before {
-        content: "○";
-      }
-
-      &:checked::before {
-        content: "●";
-        color: $trap;
-      }
-
-      &:focus-visible {
-        outline: 1px solid $dim;
-      }
     }
 
     button {
