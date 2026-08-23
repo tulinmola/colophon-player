@@ -22,11 +22,11 @@ The debugger travels as two files, each pinned to a version that cannot change u
     <title>A machine under study</title>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/colophon-player@0.1.2/dist/colophon-player.css"
+      href="https://cdn.jsdelivr.net/npm/colophon-player@0.2.0/dist/colophon-player.css"
     />
     <script
       type="module"
-      src="https://cdn.jsdelivr.net/npm/colophon-player@0.1.2/dist/colophon-player.js"
+      src="https://cdn.jsdelivr.net/npm/colophon-player@0.2.0/dist/colophon-player.js"
     ></script>
   </head>
   <body>
