@@ -24,16 +24,23 @@ export class MachineObserver extends Element {
   }
 
   async init() {
-    const host = await closestWith(this, "machine")
+    const { signal } = this,
+      host = await closestWith(this, "machine")
+
+    if (signal.aborted) {
+      return
+    }
 
     if (host.machine) {
       this.#watch(host.machine)
     } else {
       host.addEventListener("machine:ready", () => this.#watch(host.machine), {
         once: true,
-        signal: this.signal
+        signal
       })
     }
+
+    host.addEventListener("machine:reboot", () => this.rebuild(), { signal })
   }
 
   watch() {}

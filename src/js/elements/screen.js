@@ -31,6 +31,19 @@ function parseHex(text) {
 }
 
 class ScreenElement extends MachineObserver {
+  static observedAttributes = [
+    "base",
+    "height",
+    "label",
+    "mode",
+    "palette",
+    "rasters",
+    "record",
+    "view",
+    "width",
+    "zoom"
+  ]
+
   #context
   #greys = null
   #heat = null

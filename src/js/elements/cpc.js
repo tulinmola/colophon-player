@@ -4,6 +4,8 @@ import { Element } from "./element"
 const DEFAULT_MODEL = "cpc6128"
 
 class CpcElement extends Element {
+  static observedAttributes = ["model", "roms", "snapshot", "symbols"]
+
   #machine = null
   #pendingReleases = new Set()
   #presentCount = 0
@@ -11,6 +13,20 @@ class CpcElement extends Element {
 
   get machine() {
     return this.#machine
+  }
+
+  // Reconnection resumes a machine across a move; these attributes name the
+  // machine itself, so a change discards it and boots the successor. The
+  // announcement lets every observer rebuild around whatever now stands.
+  attributeChangedCallback() {
+    const machine = this.#machine
+    this.#machine = null
+    machine?.stop()
+
+    super.attributeChangedCallback()
+
+    const rebooted = new Event("machine:reboot")
+    this.dispatchEvent(rebooted)
   }
 
   async init() {

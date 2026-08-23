@@ -15,6 +15,8 @@ function renderRow() {
 }
 
 class SymbolsElement extends MachineObserver {
+  static observedAttributes = ["lines"]
+
   #current = null
   #entries
   #count

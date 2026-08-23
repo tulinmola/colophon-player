@@ -53,6 +53,8 @@ function createRow(entry) {
 }
 
 class BreakpointsElement extends MachineObserver {
+  static observedAttributes = ["lines"]
+
   #count
   #list
   #rows = new Map()

@@ -21,6 +21,8 @@ A CPC is the machine there is today. The element is named for it rather than for
 | `symbols`  | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](../debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
 | `roms`     | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                         |
 
+Change one of these on a living page and the machine reboots: the one standing stops, a successor boots from the new values, and the element announces `machine:reboot` for every panel to rebuild by. A different game arrives into the same instruments as easily as an attribute is typed.
+
 The element takes focus, and gives itself a `tabindex` if the page has not given it one. It cannot do that when it is constructed, because an element does not carry its attributes until it reaches the page, and `document.createElement` would break on the way.
 
 ## The keyboard

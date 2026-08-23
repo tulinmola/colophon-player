@@ -11,6 +11,8 @@ const CROP_LEFT = 208,
 const FRAMEBUFFER_WIDTH = 1024
 
 class MonitorElement extends MachineObserver {
+  static observedAttributes = ["record", "zoom"]
+
   #context
   #image
   #pixels

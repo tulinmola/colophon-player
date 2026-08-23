@@ -40,6 +40,8 @@ It also means the panels follow the chips rather than the machine. The processor
 
 Every panel draws on the machine's own events rather than on a clock of its own, and writes only what has changed. A selection being dragged across a dump and a value half typed into a field both survive the machine running underneath them.
 
+A panel also follows its attributes: change one on a living page and the panel rebuilds itself around the new value, letting go of anything the old value meant — a selection over it, a focus within it. The page is the session, and it stays true when edited as easily as when it was declared. An attribute is a session fact that changes at a reader's pace; a value that moves with the machine is the machine's, and never an attribute's.
+
 A value the reader can change is a form control, and the platform carries the editing. A change reaches the machine when the control says it is committed and at no other moment, so a half-typed value is never written and a value the control refuses is never written either. A control holding focus is left alone by the redraw. Escape returns a panel to what the machine holds, committing nothing.
 
 None of this is done by the panel itself, which is the reason it can be relied on: it is what a form does.

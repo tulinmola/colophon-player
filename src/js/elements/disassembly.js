@@ -50,6 +50,8 @@ function heading(names, standing) {
 }
 
 class DisassemblyElement extends MachineObserver {
+  static observedAttributes = ["lines"]
+
   #form = null
   #labelRoom
   #lines
