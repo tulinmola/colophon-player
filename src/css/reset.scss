@@ -4,9 +4,13 @@
   box-sizing: border-box;
 }
 
-// Any author display outbids the browser's own [hidden] rule.
+// Any author display outbids the browser's own rules for what is not shown.
 [hidden] {
   display: none !important;
+}
+
+[popover]:not(:popover-open) {
+  display: none;
 }
 
 html,

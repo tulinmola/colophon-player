@@ -1,8 +1,7 @@
-import { hex, html, write } from "../lang"
-import { renderInput, show } from "./fields"
+import { hex, html, write, writeValue } from "../lang"
+import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
-import { Options } from "./options"
 
 const BYTES_PER_ROW = 16,
   ROWS = 16,
@@ -47,13 +46,19 @@ class MemoryElement extends MachineObserver {
     this.innerHTML = html`
       <h2>Memory</h2>
       <form class="fields">
-        <label
-          >Space<select name="space">
+        <label>
+          Space
+          <select name="space">
             <option value="cpu">CPU</option>
             <option value="ram">RAM</option>
-          </select></label
-        >
-        ${renderInput("At", "Address the dump starts at", ["at"], 5)}
+          </select>
+        </label>
+        <label>
+          <abbr title="Address the dump starts at">At</abbr>
+          <span class="input-group">
+            <input name="at" aria-label="At" maxlength="5" pattern="[0-9A-Fa-f]{1,5}" />
+          </span>
+        </label>
       </form>
       <div class="dump">${Array.from({ length: ROWS }, renderRow).join("")}</div>
     `
@@ -111,7 +116,7 @@ class MemoryElement extends MachineObserver {
 
     if (items.length > 0) {
       event.preventDefault()
-      Options.create(event, items)
+      Actions.create(event, items)
     }
   }
 
@@ -243,7 +248,7 @@ class MemoryElement extends MachineObserver {
     this.#found = marked
 
     this.#base = Math.min(Math.max(0, address), last) & ~(BYTES_PER_ROW - 1)
-    show(this.#form.elements.at, hex(this.#base, { digits }))
+    writeValue(this.#form.elements.at, hex(this.#base, { digits }))
     this.#render()
   }
 

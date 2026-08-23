@@ -28,14 +28,21 @@ order: 3
 | `palette` | pens `0` to `15` | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.                                                  |
 | `label`   | the base address | The panel's heading.                                                                                                                          |
 | `zoom`    | `1`              | Scales the picture on the page. It does not change a recording.                                                                               |
-| `record`  | —                | Offers the mark at the heading's right that records the picture.                                                                              |
 | `view`    | —                | Ways of showing the region, separated by spaces: `beam` divides the picture at the electron beam; `heat` marks what changed and how recently. |
 
 An address and a colour code are read as hexadecimal, with or without the `&` that announces it; a count is read as a decimal number. The picture is redrawn whenever the machine reports that its state has moved, which is once a frame while it runs and after every step and every edit while it is stopped.
 
+## The options
+
+The three dots at the heading's right hold the zoom, the views, the mode, the geometry and the recorder. Every setting among them is the attribute above under another name: what is set there is what the element ends up carrying, and a screen tuned until it reads can be copied off the page as the markup that would declare it.
+
+The zoom and the views the panel follows where it stands — the picture is resized, a layer is laid on or taken away — so the menu stays open while they are turned. The base, the width, the height, the rasters and the mode read memory differently, so the panel is built again around them and the menu closes as it goes.
+
+The palette is not offered there. Sixteen colour codes are a table rather than a setting, and they are declared on the page.
+
 ## Recording
 
-Given `record`, a round mark stands at the heading's right; it begins a recording, and the square that takes its place stops it and writes the video. The picture alone is kept, without the heading or the mark. Beam and heat views are part of that picture, so every layer seen on the page appears in the recording. A browser that cannot record a canvas leaves the mark disabled.
+`Start recording` stands under `Record` at the foot of the options; it begins a recording, and `Stop recording`, which takes its place, ends it and writes the video. While it runs the three dots are red, so a recording is never left going unnoticed. The picture alone is kept, without the heading or the options. Beam and heat views are part of that picture, so every layer seen on the page appears in the recording. A browser that cannot record a canvas leaves the item disabled.
 
 The recording has one square pixel for every two samples across and every line down. `zoom` changes only how large the panel stands on the page; it does not change the file.
 

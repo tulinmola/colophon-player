@@ -1,14 +1,17 @@
-import { hex, html, write, writeFitted } from "../lang"
+import { hex, html, write, writeFitted, writeValue } from "../lang"
+import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
-import { Options } from "./options"
-import { renderFilter } from "./fields"
 
 const DEFAULT_LINES = 16
 
 const ADDRESS = 5,
   NAME = 28,
   GAP = 1
+
+const FUNNEL = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+  <path d="M1 2h10L7 6.5V11L5 9.5V6.5Z" />
+</svg>`
 
 function renderRow() {
   return html`<div class="symbol"><span class="at"></span><span class="name"></span></div>`
@@ -21,6 +24,7 @@ class SymbolsElement extends MachineObserver {
   #entries
   #count
   #form
+  #options
   #rows
   #starts = new Map()
 
@@ -29,21 +33,38 @@ class SymbolsElement extends MachineObserver {
 
     this.style.setProperty("--columns", `${ADDRESS}ch ${NAME}ch`)
     this.style.setProperty("--gap", `${GAP}ch`)
-    this.style.setProperty("--lines", this.getAttribute("lines") ?? DEFAULT_LINES)
+    const lines = this.getAttribute("lines") ?? DEFAULT_LINES
+    this.style.setProperty("--lines", lines)
 
     const rows = Array.from({ length: this.#entries.length }, renderRow),
-      funnel = renderFilter("Filter", "Show only the names holding this", "filter")
+      funnel = html`<label class="filter" title="Show only the names holding this"
+        >${FUNNEL}<input name="filter" aria-label="Filter"
+      /></label>`
 
     this.innerHTML = html`
       <header>
         <h2>Symbols <span></span></h2>
         <form>${funnel}</form>
+        <colophon-options label="Symbols options">
+          <div class="fields">
+            <label>
+              Lines
+              <input
+                name="lines"
+                aria-label="Lines"
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[1-9][0-9]?"
+              />
+            </label>
+          </div>
+        </colophon-options>
       </header>
       <div class="list">${rows.join("")}</div>
     `
 
     this.#count = this.querySelector("h2 span")
-    this.#form = this.querySelector("form")
+    this.#form = this.querySelector("form:not(.options)")
     this.#rows = Array.from(this.querySelectorAll(".symbol"))
 
     for (let index = 0; index < this.#entries.length; index++) {
@@ -58,7 +79,13 @@ class SymbolsElement extends MachineObserver {
       }
     }
 
-    const { signal } = this
+    const { signal } = this,
+      options = this.querySelector("colophon-options")
+
+    this.#options = options
+    writeValue(options.form.elements.lines, String(lines))
+
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
     this.addEventListener("input", this.onInput.bind(this), { signal })
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
@@ -80,10 +107,18 @@ class SymbolsElement extends MachineObserver {
       { address } = this.#entries[index]
 
     event.preventDefault()
-    Options.create(event, [
+    Actions.create(event, [
       { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address }) },
       { label: "Show in memory", execute: () => machine.showMemory(address) }
     ])
+  }
+
+  onChanged(event) {
+    const control = event.target
+
+    if (control.name == "lines" && control.checkValidity()) {
+      this.setAttribute("lines", control.value)
+    }
   }
 
   onInput() {
@@ -91,10 +126,12 @@ class SymbolsElement extends MachineObserver {
   }
 
   onKeyDown(event) {
-    if (event.key == "Escape") {
-      this.#form.reset()
-      this.#filter()
+    if (event.key != "Escape" || this.#options.contains(event.target)) {
+      return
     }
+
+    this.#form.reset()
+    this.#filter()
   }
 
   // A form whose only text field is this one submits on Enter, and submitting

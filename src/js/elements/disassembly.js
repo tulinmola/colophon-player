@@ -1,8 +1,7 @@
-import { hex, html, write, writeFitted } from "../lang"
-import { renderToggle, show } from "./fields"
+import { hex, html, write, writeFitted, writeValue } from "../lang"
+import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
-import { Options } from "./options"
 import { disassemble } from "../emulator"
 
 const DEFAULT_LINES = 16
@@ -52,36 +51,54 @@ function heading(names, standing) {
 class DisassemblyElement extends MachineObserver {
   static observedAttributes = ["lines"]
 
-  #form = null
   #labelRoom
   #lines
+  #options
   #rows
   #textRoom
 
   watch(machine) {
     const lines = Number(this.getAttribute("lines") ?? DEFAULT_LINES),
       rows = Array.from({ length: lines }, renderRow),
-      toggle = renderToggle(
-        "Symbols",
-        "Read the listing back under the program's own names",
-        "symbols",
-        true
-      )
+      toggle = html`<label
+        class="toggle"
+        title="Read the listing back under the program's own names"
+      >
+        <input type="checkbox" name="symbols" checked /> Symbols
+      </label>`
 
     this.#lines = lines
 
     this.innerHTML = html`
       <header>
         <h2>Disassembly</h2>
-        ${machine.symbols.size > 0 ? html`<form>${toggle}</form>` : ""}
+        <colophon-options label="Disassembly options">
+          <div class="fields">
+            <label>
+              Lines
+              <input
+                name="lines"
+                aria-label="Lines"
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[1-9][0-9]?"
+              />
+            </label>
+          </div>
+          ${machine.symbols.size > 0 ? toggle : ""}
+        </colophon-options>
       </header>
       ${rows.join("")}
     `
 
     this.#rows = collectRows(this)
-    this.#form = this.querySelector("form")
 
-    const { signal } = this
+    const { signal } = this,
+      options = this.querySelector("colophon-options")
+
+    this.#options = options
+    writeValue(options.form.elements.lines, String(lines))
+
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
 
@@ -90,8 +107,17 @@ class DisassemblyElement extends MachineObserver {
   }
 
   onChanged(event) {
+    const control = event.target
+
+    if (control.name == "lines") {
+      if (control.checkValidity()) {
+        this.setAttribute("lines", control.value)
+      }
+      return
+    }
+
     const machine = this.machine,
-      row = this.#rows.find(found => found.armed == event.target)
+      row = this.#rows.find(found => found.armed == control)
 
     if (!row) {
       this.#render(machine)
@@ -100,7 +126,7 @@ class DisassemblyElement extends MachineObserver {
 
     const covering = machine.breakpoints.covering(row.address, "execute")
 
-    machine.breakpoints.enable(covering.address, covering.kind, event.target.checked)
+    machine.breakpoints.enable(covering.address, covering.kind, control.checked)
     machine.changed()
   }
 
@@ -115,7 +141,7 @@ class DisassemblyElement extends MachineObserver {
     const machine = this.machine
 
     event.preventDefault()
-    Options.create(event, [
+    Actions.create(event, [
       {
         label: "Add breakpoint…",
         execute: () => BreakpointForm.create(machine, { address: row.address })
@@ -141,7 +167,8 @@ class DisassemblyElement extends MachineObserver {
   #render(machine) {
     const peek = address => machine.peek(address),
       symbols = machine.symbols,
-      naming = this.#form != null && this.#form.elements.symbols.checked,
+      wanted = this.#options.form.elements.symbols,
+      naming = wanted != null && wanted.checked,
       nameOf = naming ? address => symbols.namesAt(address)[0] : null,
       standing = naming ? symbols.nearest(machine.z80.pc) : null
 
@@ -179,7 +206,7 @@ class DisassemblyElement extends MachineObserver {
 
       row.address = address
       row.armed.disabled = covering == null
-      show(row.armed, covering != null && covering.enabled)
+      writeValue(row.armed, covering != null && covering.enabled)
       row.instruction.hidden = false
       write(row.at, hex(address, { digits: 4, prefix: "&" }))
       write(row.bytes, bytes.join(" "))

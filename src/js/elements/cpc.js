@@ -18,12 +18,16 @@ class CpcElement extends Element {
   // Reconnection resumes a machine across a move; these attributes name the
   // machine itself, so a change discards it and boots the successor. The
   // announcement lets every observer rebuild around whatever now stands.
-  attributeChangedCallback() {
+  attributeChangedCallback(name) {
+    if (!this.standing) {
+      return
+    }
+
     const machine = this.#machine
     this.#machine = null
     machine?.stop()
 
-    super.attributeChangedCallback()
+    super.attributeChangedCallback(name)
 
     const rebooted = new Event("machine:reboot")
     this.dispatchEvent(rebooted)

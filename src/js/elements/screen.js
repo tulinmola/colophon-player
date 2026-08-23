@@ -1,7 +1,7 @@
-import { hex, html } from "../lang"
+import { hex, html, writeValue } from "../lang"
+import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
-import { Options } from "./options"
 import { Screen } from "../emulator"
 
 const DEFAULT_PALETTE = Array.from({ length: 16 }, (_colour, pen) => pen)
@@ -10,8 +10,6 @@ const SAMPLES_PER_BYTE = 8
 
 const HEAT_DEPTH = 16
 
-// A colour the Gate Array cannot make, so a mark is never mistaken for the
-// picture underneath; the alpha fades a mark out as the write it reports ages.
 function heatTints() {
   const tints = new Uint32Array(HEAT_DEPTH)
 
@@ -30,6 +28,19 @@ function parseHex(text) {
   return parseInt(withoutPrefix, 16)
 }
 
+function parseViews(text) {
+  return new Set((text ?? "").trim().split(/\s+/u))
+}
+
+const ZOOMS = [1, 1.5, 2, 3, 4]
+
+function renderActionZoom(zoom) {
+  return html`<label class="toggle">
+    <input type="radio" name="zoom" value="${zoom}" />
+    ×${zoom}
+  </label>`
+}
+
 class ScreenElement extends MachineObserver {
   static observedAttributes = [
     "base",
@@ -38,7 +49,6 @@ class ScreenElement extends MachineObserver {
     "mode",
     "palette",
     "rasters",
-    "record",
     "view",
     "width",
     "zoom"
@@ -48,6 +58,7 @@ class ScreenElement extends MachineObserver {
   #greys = null
   #heat = null
   #image
+  #options
   #picture
   #pixels
   #screen
@@ -64,18 +75,66 @@ class ScreenElement extends MachineObserver {
     const screen = new Screen({ base, width, height, rasters, mode, palette })
     this.#screen = screen
 
-    const views = new Set((this.getAttribute("view") ?? "").trim().split(/\s+/u))
-
-    if (views.has("beam")) {
-      this.#greys = machine.greys
-    }
-
-    const record = this.hasAttribute("record")
+    const zoom = Number(this.getAttribute("zoom") ?? 1),
+      zooms = new Set([...ZOOMS, zoom]),
+      views = parseViews(this.getAttribute("view"))
 
     this.innerHTML = html`
       <header>
         <h2></h2>
-        ${record ? html`<colophon-recording></colophon-recording>` : ""}
+        <colophon-options label="Screen options">
+          <fieldset>
+            <legend>Zoom</legend>
+            ${Array.from(zooms).map(renderActionZoom).join("")}
+          </fieldset>
+          <fieldset>
+            <legend>View</legend>
+            <label class="toggle" title="Divide the picture where the electron beam stands">
+              <input type="checkbox" name="beam" /> Beam
+            </label>
+            <label class="toggle" title="Mark what was written, and how recently">
+              <input type="checkbox" name="heat" /> Heat
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>Mode</legend>
+            <label class="toggle">
+              <input type="radio" name="mode" value="0" /> Mode 0 (2 of 16)
+            </label>
+            <label class="toggle">
+              <input type="radio" name="mode" value="1" /> Mode 1 (4 of 4)
+            </label>
+            <label class="toggle">
+              <input type="radio" name="mode" value="2" /> Mode 2 (8 of 2)
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>Geometry</legend>
+            <div class="fields">
+              <label>
+                <abbr title="The address the first byte is read from">Base</abbr>
+                <span class="input-group">
+                  <input name="base" aria-label="Base" maxlength="4" pattern="[0-9A-Fa-f]{1,4}" />
+                </span>
+              </label>
+              <label>
+                Width <input name="width" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+              </label>
+              <label>
+                Height
+                <input name="height" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+              </label>
+              <label>
+                Rasters
+                <input name="rasters" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+              </label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Record</legend>
+            <colophon-recording></colophon-recording>
+          </fieldset>
+        </colophon-options>
       </header>
       <div class="picture">
         <canvas></canvas>
@@ -86,11 +145,7 @@ class ScreenElement extends MachineObserver {
       address = hex(base, { digits: 4, prefix: "&" })
     this.querySelector("h2").textContent = label ?? `Screen ${address}`
 
-    const zoom = Number(this.getAttribute("zoom") ?? 1),
-      picture = this.querySelector(".picture")
-    picture.style.width = `${(screen.samplesPerLine / 2) * zoom}px`
-    picture.style.height = `${screen.lines * zoom}px`
-    this.#picture = picture
+    this.#picture = this.querySelector(".picture")
 
     const canvas = this.querySelector("canvas")
     canvas.width = screen.samplesPerLine
@@ -103,26 +158,69 @@ class ScreenElement extends MachineObserver {
     this.#image = image
     this.#pixels = new Uint32Array(image.data.buffer)
 
-    if (views.has("heat")) {
-      const layer = document.createElement("canvas")
-      layer.width = canvas.width
-      layer.height = canvas.height
-      picture.append(layer)
+    const { signal } = this,
+      options = this.querySelector("colophon-options")
 
-      const layerContext = layer.getContext("2d"),
-        layerImage = layerContext.createImageData(layer.width, layer.height)
+    this.#options = options
 
-      this.#heat = {
-        context: layerContext,
-        idle: true,
-        image: layerImage,
-        pixels: new Uint32Array(layerImage.data.buffer)
-      }
+    const chosen = options.form.elements
+    chosen.zoom.value = String(zoom)
+    chosen.mode.value = String(mode)
+    writeValue(chosen.beam, views.has("beam"))
+    writeValue(chosen.heat, views.has("heat"))
+    writeValue(chosen.base, hex(base, { digits: 4 }))
+    writeValue(chosen.width, String(width))
+    writeValue(chosen.height, String(height))
+    writeValue(chosen.rasters, String(rasters))
+
+    this.#fitPicture()
+    this.#fitViews()
+
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
+    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
+    machine.addEventListener("machine:changed", () => this.#draw(machine), { signal })
+    this.#draw(machine)
+  }
+
+  attributeChangedCallback(name) {
+    if (this.machine == null) {
+      super.attributeChangedCallback(name)
+      return
     }
 
-    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal: this.signal })
-    machine.addEventListener("machine:changed", () => this.#draw(machine), { signal: this.signal })
-    this.#draw(machine)
+    switch (name) {
+      case "view":
+        this.#fitViews()
+        this.#draw(this.machine)
+        break
+
+      case "zoom":
+        this.#fitPicture()
+        break
+
+      default:
+        super.attributeChangedCallback(name)
+        break
+    }
+  }
+
+  onChanged(event) {
+    const control = event.target
+
+    if (control.type == "checkbox") {
+      const chosen = this.#options.form.elements,
+        shown = ["beam", "heat"].filter(name => chosen[name].checked)
+
+      this.setAttribute("view", shown.join(" "))
+      return
+    }
+
+    if (!control.checkValidity()) {
+      return
+    }
+
+    const value = control.name == "base" ? `&${control.value}` : control.value
+    this.setAttribute(control.name, value)
   }
 
   onContextMenu(event) {
@@ -138,10 +236,53 @@ class ScreenElement extends MachineObserver {
       machine = this.machine
 
     event.preventDefault()
-    Options.create(event, [
+    Actions.create(event, [
       { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address: at }) },
       { label: "Show in memory", execute: () => machine.showMemory(at, "ram") }
     ])
+  }
+
+  #fitPicture() {
+    const zoom = Number(this.getAttribute("zoom") ?? 1),
+      screen = this.#screen,
+      picture = this.#picture
+
+    picture.style.width = `${(screen.samplesPerLine / 2) * zoom}px`
+    picture.style.height = `${screen.lines * zoom}px`
+  }
+
+  #fitViews() {
+    const views = parseViews(this.getAttribute("view")),
+      wanted = views.has("heat")
+
+    this.#greys = views.has("beam") ? this.machine.greys : null
+
+    if (wanted == (this.#heat != null)) {
+      return
+    }
+
+    if (!wanted) {
+      this.#heat.context.canvas.remove()
+      this.#heat = null
+      return
+    }
+
+    const picture = this.#context.canvas,
+      layer = document.createElement("canvas")
+
+    layer.width = picture.width
+    layer.height = picture.height
+    this.#picture.append(layer)
+
+    const context = layer.getContext("2d"),
+      image = context.createImageData(layer.width, layer.height)
+
+    this.#heat = {
+      context,
+      idle: true,
+      image,
+      pixels: new Uint32Array(image.data.buffer)
+    }
   }
 
   #draw(machine) {
@@ -188,9 +329,6 @@ class ScreenElement extends MachineObserver {
     }
   }
 
-  // A mark is the frame a byte was last stored to, straight off the bus, so
-  // a write of the value already there marks like any other. A stamp of zero
-  // is a byte never written, and stays cold.
   #drawHeat(machine) {
     const heat = this.#heat,
       written = this.#screen.written,

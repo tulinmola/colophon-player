@@ -37,7 +37,7 @@ Focus leaving the element releases everything it was holding down.
 
 ## What it brings with it
 
-Two things are the debugger's own rather than any page's, and the element puts them inside itself wherever it is placed: the options offered by the right button, and the form that takes down a breakpoint. Neither takes a place among the panels, and neither has to be asked for — a page that named no panel at all still has both, because what they carry belongs to the machine and not to the furniture that lists it.
+Two things are the debugger's own rather than any page's: the actions offered by the right button, and the form that takes down a breakpoint. Each is raised on the page when it is called for and taken away when it is done with, so neither takes a place among the panels and neither has to be asked for — a page that named no panel at all still has both, because what they carry belongs to the machine and not to the furniture that lists it.
 
 ## When the machine arrives
 

@@ -58,14 +58,24 @@ Red is the third voice, and it is the reader's: a breakpoint armed on an address
 
 ## The right button
 
-The right button on anything a panel shows asks what may be done with it, and each panel answers for its own items: it knows what they are, which nothing outside it does. A byte in the memory knows it is an address; a name in the symbols knows the address it stands for.
+The right button on anything a panel shows asks what may be done with it, and each panel answers for its own items with a list of actions: it knows what they are, which nothing outside it does. A byte in the memory knows it is an address; a name in the symbols knows the address it stands for.
 
 What a panel offers falls into two kinds. Some of it belongs to the machine — a breakpoint is set on the machine and stays set whether or not any panel lists it — and a panel offers those directly. The rest belongs to another panel, which alone knows how to do it, and those travel as events: a panel says what it wants done and does not care who does it, or whether anyone does. A page that has not been given the panel that would answer simply sees nothing offered, which is the honest result: there is no view there to move.
 
-What answers is not a panel either. [`<colophon-cpc>`](../cpc.en.md#what-it-brings-with-it) carries the options and the breakpoint form itself, so the road from a byte to a mark is open on every page, however few panels it was given.
+What answers is not a panel either. The list of actions and the breakpoint form are [the debugger's own](../cpc.en.md#what-it-brings-with-it) rather than any panel's, so the road from a byte to a mark is open on every page, however few panels it was given.
 
 Nothing is offered by the right button alone. Every one of them can be reached another way, so the menu is a shortcut and never the only road.
 
 ## Options in the heading
 
-A panel's options ride in its heading rather than in its body, where they would cost it height and move whatever stands beneath it. They are set smaller than the heading, so that they read as options and not as part of the title, and each carries its own title against the day there are enough of them to want icons in place of words.
+A panel's options ride in its heading rather than in its body, where they would cost it height and move whatever stands beneath it. What stands in that heading in the open and what is folded behind the three dots at its right is settled by one question: whether a reader must see it while working.
+
+The heading carries what must be seen. A control that acts on what a panel holds stays with what it holds — the pencil and the cross beside a mark, the `+` that makes one, which is the same control for a mark that does not exist yet; the funnel above the symbols, because a narrowed list must say it is narrowed, and the count beside the heading says it alongside. Everything else is behind the dots: what sets how a panel reads, and what a panel does with itself. A panel with nothing to offer carries no dots at all — a mark that opened on nothing would be worse than no mark, and half the panels here have nothing to set.
+
+What stands behind the dots is not a list of commands but the panel's own controls, written as the controls they are: a circle takes one of the choices, a square takes any of them, and a field takes a value the platform refuses if it is wrong.
+
+The recorder is the case that proves the rule. A recorder that is not recording is a possibility rather than a fact, so it waits behind the dots and takes no room in a heading it would sit inert in for the whole session. A recorder that is recording is a fact, so the dots themselves turn red and stay red until it stops. What must be seen is seen without opening anything, and what must be reached is one press away.
+
+Most of what stands there is an attribute, and where it is, setting it in the menu and writing it into the page are one act arriving by two roads: a panel tuned by hand still describes itself, and can be read back off the element exactly as it was declared. The rest is the panel's own and belongs nowhere else — how a listing is read, the act of beginning a recording. That is what separates these options from [the right button](#the-right-button), which is always a shortcut and never the only road.
+
+Some options a panel can follow where it stands, and some remake it. A zoom or a view moves the picture without disturbing anything around it, and the menu stays open under the reader's hand. A geometry builds the panel again around the new numbers — a new reading of memory, a new canvas — and the menu goes with it. A menu that closes is therefore not a lapse but the panel saying which of the two just happened.

@@ -16,16 +16,14 @@ function download(blob, name) {
 
 // The recorder finds its picture the way observers find their machine:
 // walking up for whatever holds canvases.
-function closestCanvases(element) {
+function closestPicture(element) {
   for (let node = element.parentElement; node; node = node.parentElement) {
-    const canvases = node.querySelectorAll("canvas")
-
-    if (canvases.length > 0) {
-      return Array.from(canvases)
+    if (node.querySelector("canvas")) {
+      return node
     }
   }
 
-  return []
+  return null
 }
 
 function filenameFor(label) {
@@ -43,11 +41,12 @@ class RecordingElement extends MachineObserver {
   #width
 
   watch(machine) {
-    this.innerHTML = html`<button type="button" disabled>●</button>`
+    this.innerHTML = html`<button type="button" disabled></button>`
 
-    const layers = closestCanvases(this),
+    const picture = closestPicture(this),
+      layers = Array.from(picture.querySelectorAll("canvas")),
       [first] = layers,
-      label = this.parentElement.querySelector("h2")?.textContent ?? "picture"
+      label = picture.querySelector("h2")?.textContent ?? "picture"
 
     this.#layers = layers
     this.#width = first.width / 2
@@ -71,6 +70,7 @@ class RecordingElement extends MachineObserver {
   }
 
   dispose() {
+    super.dispose()
     this.#recorder?.discard()
     this.#recorder = null
     this.removeAttribute("recording")
@@ -105,12 +105,9 @@ class RecordingElement extends MachineObserver {
   }
 
   #showRecording(recording) {
-    const action = recording ? `Stop recording ${this.#label}` : `Record ${this.#label}`
-
     this.toggleAttribute("recording", recording)
-    this.#button.textContent = recording ? "■" : "●"
-    this.#button.setAttribute("aria-label", action)
-    this.#button.title = action
+    this.#button.textContent = recording ? "Stop recording" : "Start recording"
+    this.#button.title = `${this.#button.textContent} ${this.#label}`
   }
 }
 

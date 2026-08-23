@@ -43,6 +43,10 @@ export class MachineObserver extends Element {
     host.addEventListener("machine:reboot", () => this.rebuild(), { signal })
   }
 
+  dispose() {
+    this.#machine = null
+  }
+
   watch() {}
 
   #watch(machine) {

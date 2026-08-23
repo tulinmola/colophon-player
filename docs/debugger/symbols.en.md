@@ -14,6 +14,8 @@ A program is written in names and runs as addresses. Whatever turned the one int
 | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
 | `lines`   | `16`    | How many names stand in view at once. The rest are scrolled to, and the panel keeps this height however few are left. |
 
+The three dots at the heading's right hold `lines`, and the panel is built again at the height asked for.
+
 The names are not the panel's. They are given to the machine by [`<colophon-cpc>`](../cpc.en.md), which fetches the file the `symbols` attribute names, and every panel that can use them draws on the same list — [the disassembly](disassembly.en.md#the-names) reads its listing back with them. A page that gives no symbol file may still place this panel, and it stands there counting nothing.
 
 ## The files it reads

@@ -1,7 +1,6 @@
-import { hex, html, write, writeFitted } from "../lang"
+import { hex, html, write, writeFitted, writeValue } from "../lang"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
-import { show } from "./fields"
 
 const DEFAULT_LINES = 8
 
@@ -65,7 +64,8 @@ class BreakpointsElement extends MachineObserver {
       `${ARMED}ch ${ADDRESSES}ch ${NAME}ch ${KIND}ch ${EDIT}ch ${REMOVE}ch`
     )
     this.style.setProperty("--gap", `${GAP}ch`)
-    this.style.setProperty("--lines", this.getAttribute("lines") ?? DEFAULT_LINES)
+    const lines = this.getAttribute("lines") ?? DEFAULT_LINES
+    this.style.setProperty("--lines", lines)
 
     this.innerHTML = html`
       <header>
@@ -73,6 +73,20 @@ class BreakpointsElement extends MachineObserver {
         <button type="button" data-action="add" title="Add breakpoint">
           <span aria-hidden="true">+</span>
         </button>
+        <colophon-options label="Breakpoints options">
+          <div class="fields">
+            <label>
+              Lines
+              <input
+                name="lines"
+                aria-label="Lines"
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[1-9][0-9]?"
+              />
+            </label>
+          </div>
+        </colophon-options>
       </header>
       <div class="list"></div>
     `
@@ -80,7 +94,11 @@ class BreakpointsElement extends MachineObserver {
     this.#count = this.querySelector("h2 span")
     this.#list = this.querySelector(".list")
 
-    const { signal } = this
+    const { signal } = this,
+      options = this.querySelector("colophon-options")
+
+    writeValue(options.form.elements.lines, String(lines))
+
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })
 
@@ -90,6 +108,13 @@ class BreakpointsElement extends MachineObserver {
 
   onChanged(event) {
     const target = event.target
+
+    if (target.name == "lines") {
+      if (target.checkValidity()) {
+        this.setAttribute("lines", target.value)
+      }
+      return
+    }
 
     if (target.type == "checkbox") {
       const { address, kind } = this.#entryOf(target)
@@ -159,7 +184,7 @@ class BreakpointsElement extends MachineObserver {
       write(found.at, span(entry))
       writeFitted(found.name, entry.label || describe(machine.symbols, entry.address), NAME)
       write(found.kind, entry.kind)
-      show(found.armed, entry.enabled)
+      writeValue(found.armed, entry.enabled)
 
       const hit =
         trap != null &&

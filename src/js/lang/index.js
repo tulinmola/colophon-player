@@ -10,7 +10,21 @@ function write(node, text) {
   }
 }
 
-function fit(text, room) {
+function writeValue(control, value) {
+  if (document.activeElement == control) {
+    return
+  }
+
+  if (control.type == "checkbox") {
+    control.defaultChecked = value
+    control.checked = value
+  } else {
+    control.defaultValue = value
+    control.value = value
+  }
+}
+
+function fitText(text, room) {
   if (text.length <= room) {
     return text
   }
@@ -22,7 +36,7 @@ function fit(text, room) {
 }
 
 function writeFitted(node, text, room) {
-  const fitted = fit(text, room),
+  const fitted = fitText(text, room),
     whole = fitted == text ? "" : text
 
   write(node, fitted)
@@ -32,4 +46,4 @@ function writeFitted(node, text, room) {
   }
 }
 
-export { hex, html, write, writeFitted }
+export { hex, html, write, writeFitted, writeValue }

@@ -14,6 +14,8 @@ Watching a machine run is one half of debugging; the other is arranging to be th
 | --------- | ------- | ---------------------------------------------------------------------------- |
 | `lines`   | `8`     | How many marks stand in view at once. The list keeps this height regardless. |
 
+The three dots at the heading's right hold `lines`, and the panel is built again at the height asked for.
+
 ## The three kinds
 
 `execute` stops the machine as the program counter arrives at the address, before the instruction there has run, so what the panels show is the moment just ahead of it.

@@ -10,8 +10,17 @@ const CROP_LEFT = 208,
 
 const FRAMEBUFFER_WIDTH = 1024
 
+const ZOOMS = [1, 1.5, 2, 3, 4]
+
+function renderActionZoom(zoom) {
+  return html`<label class="toggle">
+    <input type="radio" name="zoom" value="${zoom}" />
+    ×${zoom}
+  </label>`
+}
+
 class MonitorElement extends MachineObserver {
-  static observedAttributes = ["record", "zoom"]
+  static observedAttributes = ["zoom"]
 
   #context
   #image
@@ -19,12 +28,21 @@ class MonitorElement extends MachineObserver {
 
   watch(machine) {
     const zoom = Number(this.getAttribute("zoom") ?? 1),
-      record = this.hasAttribute("record")
+      zooms = new Set([...ZOOMS, zoom])
 
     this.innerHTML = html`
       <header>
         <h2>Monitor</h2>
-        ${record ? html`<colophon-recording></colophon-recording>` : ""}
+        <colophon-options label="Monitor options">
+          <fieldset>
+            <legend>Zoom</legend>
+            ${Array.from(zooms).map(renderActionZoom).join("")}
+          </fieldset>
+          <fieldset>
+            <legend>Record</legend>
+            <colophon-recording></colophon-recording>
+          </fieldset>
+        </colophon-options>
       </header>
       <canvas></canvas>
     `
@@ -32,8 +50,6 @@ class MonitorElement extends MachineObserver {
     const canvas = this.querySelector("canvas")
     canvas.width = CROP_WIDTH
     canvas.height = CROP_HEIGHT
-    canvas.style.width = `${(CROP_WIDTH / 2) * zoom}px`
-    canvas.style.height = `${CROP_HEIGHT * zoom}px`
 
     const context = canvas.getContext("2d"),
       image = context.createImageData(canvas.width, canvas.height)
@@ -42,8 +58,44 @@ class MonitorElement extends MachineObserver {
     this.#image = image
     this.#pixels = new Uint32Array(image.data.buffer)
 
-    machine.addEventListener("machine:frame", () => this.#draw(machine), { signal: this.signal })
+    const { signal } = this,
+      options = this.querySelector("colophon-options")
+
+    options.form.elements.zoom.value = String(zoom)
+    this.#fitCanvas()
+
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
+    machine.addEventListener("machine:frame", () => this.#draw(machine), { signal })
     this.#draw(machine)
+  }
+
+  attributeChangedCallback(name) {
+    if (this.machine == null) {
+      super.attributeChangedCallback(name)
+      return
+    }
+
+    switch (name) {
+      case "zoom":
+        this.#fitCanvas()
+        break
+
+      default:
+        super.attributeChangedCallback(name)
+        break
+    }
+  }
+
+  onChanged(event) {
+    this.setAttribute("zoom", event.target.value)
+  }
+
+  #fitCanvas() {
+    const zoom = Number(this.getAttribute("zoom") ?? 1),
+      canvas = this.#context.canvas
+
+    canvas.style.width = `${(CROP_WIDTH / 2) * zoom}px`
+    canvas.style.height = `${CROP_HEIGHT * zoom}px`
   }
 
   #draw(machine) {

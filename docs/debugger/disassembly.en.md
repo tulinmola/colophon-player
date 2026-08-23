@@ -14,13 +14,15 @@ order: 7
 | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lines`   | `16`    | How tall the panel stands. It is a count of lines and not of instructions — [a label takes one of them](#sixteen-lines-whatever-they-hold). |
 
+The three dots at the heading's right hold `lines`, and the panel is built again at the height asked for.
+
 It reads through the processor's own view of memory, so what it shows is what the processor would fetch. Where a ROM is paged in, the ROM's instructions are what appear.
 
 Nothing above the program counter is shown, and nothing can be. An instruction's length is only known by reading it from its first byte, so there is no way to walk backwards through a stream of them without already knowing where one of them starts. A disassembly that offered the bytes before the program counter would be guessing, and would be wrong at exactly the moment a reader most needed it to be right.
 
 ## The names
 
-Where the machine has been given [a symbol file](symbols.en.md), a `Symbols` switch stands in the panel's heading and the listing is read back under the program's own names. Without one the switch is not there at all, and the panel is what it has always been.
+Where the machine has been given [a symbol file](symbols.en.md), a `Symbols` switch stands among the panel's options and the listing is read back under the program's own names. Without one the switch is not there at all, and the panel is what it has always been.
 
 An operand is written as the name of the address it holds: `CALL _renderer_init` where the file has a name for it, `CALL &25C9` where it has none. Every sixteen-bit operand a Z80 instruction carries is an address, so a jump, a call and the address a register pair is loaded from are all read the same way. A byte never is one, and is left as a number.
 

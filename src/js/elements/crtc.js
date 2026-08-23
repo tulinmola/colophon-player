@@ -1,17 +1,35 @@
-import { hex, html } from "../lang"
-import { renderInput, renderOutput, show } from "./fields"
+import { hex, html, writeValue } from "../lang"
 import { MachineObserver } from "./machine_observer"
 
+function renderAbbreviation(label, meaning) {
+  return meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label
+}
+
+// aria-label is what keeps the sigil from being read out as part of the name.
+function renderByte(label, meaning, name) {
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <span class="input-group">
+      <input name="${name}" aria-label="${label}" maxlength="2" pattern="[0-9A-Fa-f]{1,2}" />
+    </span>
+  </label>`
+}
+
 function renderCounter(number, meaning) {
-  return renderInput(`C${number}`, meaning, [`c${number}`])
+  return renderByte(`C${number}`, meaning, `c${number}`)
 }
 
 function renderRegister(number, meaning) {
-  return renderInput(`R${number}`, meaning, [`r${number}`])
+  return renderByte(`R${number}`, meaning, `r${number}`)
 }
 
 function renderLightPen(number, meaning) {
-  return renderOutput(`R${number}`, meaning, `r${number}`)
+  const label = `R${number}`
+
+  return html`<label>
+    ${renderAbbreviation(label, meaning)}
+    <output name="r${number}" aria-label="${label}" aria-live="off"> </output>
+  </label>`
 }
 
 class CrtcElement extends MachineObserver {
@@ -100,12 +118,12 @@ class CrtcElement extends MachineObserver {
       field = this.#form.elements,
       registers = crtc.registers
 
-    show(field.c0, hex(crtc.c0))
-    show(field.c9, hex(crtc.c9))
-    show(field.c4, hex(crtc.c4))
+    writeValue(field.c0, hex(crtc.c0))
+    writeValue(field.c9, hex(crtc.c9))
+    writeValue(field.c4, hex(crtc.c4))
 
     for (let number = 0; number < registers.length; number++) {
-      show(field[`r${number}`], hex(registers[number]))
+      writeValue(field[`r${number}`], hex(registers[number]))
     }
   }
 }

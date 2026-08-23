@@ -9,22 +9,24 @@ export class Element extends HTMLElement {
     return this.#teardown.signal
   }
 
+  get standing() {
+    return this.#teardown != null && !this.#teardown.signal.aborted
+  }
+
   connectedCallback() {
     this.#teardown = new AbortController()
     this.init()
   }
 
-  // Upgrading replays attributes before the first connect, which is what the
-  // null teardown means.
   attributeChangedCallback() {
-    if (this.#teardown == null || !this.isConnected) {
-      return
-    }
-
     this.rebuild()
   }
 
   rebuild() {
+    if (!this.standing) {
+      return
+    }
+
     this.disconnectedCallback()
     this.connectedCallback()
   }
