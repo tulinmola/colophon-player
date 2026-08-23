@@ -1,5 +1,7 @@
 import { hex, html } from "../lang"
+import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Options } from "./options"
 import { Screen } from "../emulator"
 
 const DEFAULT_PALETTE = Array.from({ length: 16 }, (_colour, pen) => pen)
@@ -33,6 +35,7 @@ class ScreenElement extends MachineObserver {
   #greys = null
   #heat = null
   #image
+  #picture
   #pixels
   #screen
 
@@ -74,6 +77,7 @@ class ScreenElement extends MachineObserver {
       picture = this.querySelector(".picture")
     picture.style.width = `${(screen.samplesPerLine / 2) * zoom}px`
     picture.style.height = `${screen.lines * zoom}px`
+    this.#picture = picture
 
     const canvas = this.querySelector("canvas")
     canvas.width = screen.samplesPerLine
@@ -103,8 +107,28 @@ class ScreenElement extends MachineObserver {
       }
     }
 
+    this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal: this.signal })
     machine.addEventListener("machine:changed", () => this.#draw(machine), { signal: this.signal })
     this.#draw(machine)
+  }
+
+  onContextMenu(event) {
+    if (!event.target.closest(".picture")) {
+      return
+    }
+
+    const screen = this.#screen,
+      box = this.#picture.getBoundingClientRect(),
+      sample = Math.floor(((event.clientX - box.left) / box.width) * screen.samplesPerLine),
+      line = Math.floor(((event.clientY - box.top) / box.height) * screen.lines),
+      at = screen.addressAt(sample, line),
+      machine = this.machine
+
+    event.preventDefault()
+    Options.create(event, [
+      { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address: at }) },
+      { label: "Show in memory", execute: () => machine.showMemory(at, "ram") }
+    ])
   }
 
   #draw(machine) {

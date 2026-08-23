@@ -74,7 +74,11 @@ class MemoryElement extends MachineObserver {
     this.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
 
     machine.addEventListener("machine:changed", () => this.#render(), { signal })
-    machine.addEventListener("memory:center", event => this.#center(event.detail.at), { signal })
+    machine.addEventListener(
+      "memory:center",
+      event => this.#center(event.detail.at, event.detail.space),
+      { signal }
+    )
     this.#moveTo(0)
   }
 
@@ -225,10 +229,11 @@ class MemoryElement extends MachineObserver {
     }
   }
 
-  #center(address) {
-    this.#form.elements.space.value = "cpu"
+  #center(address, space) {
+    this.#form.elements.space.value = space
     this.#moveTo(address - WINDOW / 2, address)
     this.scrollIntoView({ block: "nearest" })
+    this.#edit(address - this.#base)
   }
 
   #moveTo(address, marked = null) {

@@ -20,7 +20,7 @@ The two differ wherever a ROM is paged in — the processor reads the firmware, 
 
 `At` is the address the dump starts at; it is rounded down to the beginning of a row. The wheel moves a row at a time. Escape puts the address back to where the dump actually stands.
 
-The rest of the debugger can send the dump somewhere. [An instruction](disassembly.en.md#what-can-be-done-with-an-instruction) or [a name](symbols.en.md#what-can-be-done-with-a-name) offers to show its address here, and the dump moves to put it in the middle of the window rather than at the top, so that what surrounds it is visible too. Near either end of the space there is nowhere left to move, and the address sits wherever the edge allows. The panel changes to `CPU` when it is sent to, because that is the space those addresses are counted in, and scrolls itself into view if it was not.
+The rest of the debugger can send the dump somewhere. [An instruction](disassembly.en.md#what-can-be-done-with-an-instruction) or [a name](symbols.en.md#what-can-be-done-with-a-name) offers to show its address here, and the dump moves to put it in the middle of the window rather than at the top, so that what surrounds it is visible too. Near either end of the space there is nowhere left to move, and the address sits wherever the edge allows. Whatever sends the dump somewhere says which space its address is counted in, and the panel changes to that space rather than guessing: an instruction or a name is the processor's, a pixel is the video hardware's. The panel scrolls itself into view if it was not, and the byte it was sent to is opened for editing with its value selected, so that reading it and changing it are the same arrival.
 
 ## Editing
 

@@ -138,6 +138,15 @@ export class Screen {
     }
   }
 
+  addressAt(sample, line) {
+    const row = Math.floor(line / this.#rasters),
+      raster = line % this.#rasters,
+      byte = Math.floor(sample / SAMPLES_PER_BYTE),
+      slice = this.#base | (raster << 11)
+
+    return slice | ((row * this.#bytesPerLine + byte) & 0x7ff)
+  }
+
   render(ram, writes) {
     const write = this.#write,
       palette = this.#palette,
