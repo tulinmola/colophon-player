@@ -4,8 +4,6 @@ import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
 import { Screen } from "../emulator"
 
-const DEFAULT_PALETTE = Array.from({ length: 16 }, (_colour, pen) => pen)
-
 const SAMPLES_PER_BYTE = 8
 
 const HEAT_DEPTH = 16
@@ -70,7 +68,7 @@ class ScreenElement extends MachineObserver {
       rasters = Number(this.getAttribute("rasters") ?? 8),
       mode = Number(this.getAttribute("mode") ?? 1),
       inks = this.getAttribute("palette"),
-      palette = inks ? inks.trim().split(/\s+/u).map(parseHex) : DEFAULT_PALETTE
+      palette = inks ? inks.trim().split(/\s+/u).map(parseHex) : machine.gateArray.inks
 
     const screen = new Screen({ base, width, height, rasters, mode, palette })
     this.#screen = screen

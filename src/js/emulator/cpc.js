@@ -1,5 +1,6 @@
 import { Breakpoints } from "./breakpoints"
 import { Crtc } from "./crtc"
+import { GateArray } from "./gate_array"
 import { Machine } from "./machine"
 import { Z80 } from "./z80"
 import { createModule } from "./module"
@@ -58,6 +59,7 @@ export class Cpc extends Machine {
   #breakpoints
   #crtc
   #framebuffer
+  #gateArray
   #greys
   #module
   #palette
@@ -105,6 +107,7 @@ export class Cpc extends Machine {
 
     const z80Pointer = module._player_z80(),
       crtcPointer = module._player_crtc(),
+      gateArrayPointer = module._player_gate_array(),
       framebufferPointer = module._player_framebuffer(),
       framebufferLength = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT,
       ramPointer = module._player_ram(),
@@ -116,6 +119,7 @@ export class Cpc extends Machine {
     this.#greys = readGreys(module)
     this.#z80 = new Z80(module, z80Pointer)
     this.#crtc = new Crtc(module, crtcPointer)
+    this.#gateArray = new GateArray(module, gateArrayPointer)
 
     // The module's memory never grows (player.c holds all of it in fixed
     // storage), so a view taken once stays valid.
@@ -145,6 +149,10 @@ export class Cpc extends Machine {
 
   get crtc() {
     return this.#crtc
+  }
+
+  get gateArray() {
+    return this.#gateArray
   }
 
   get palette() {

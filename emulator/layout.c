@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "crtc.h"
+#include "gate_array.h"
 #include "z80.h"
 
 int main(void) {
@@ -71,6 +72,11 @@ int main(void) {
   printf("export const CRTC_AT_C4 = %zu\n", offsetof(crtc_t, c4));
   printf("export const CRTC_AT_C9 = %zu\n", offsetof(crtc_t, c9));
   printf("export const CRTC_AT_VMA_ = %zu\n", offsetof(crtc_t, vma_));
+
+  printf("export const GATE_ARRAY_SIZE = %zu\n", sizeof(gate_array_t));
+  printf("export const GATE_ARRAY_AT_INKS = %zu\n", offsetof(gate_array_t, inks));
+  printf("export const GATE_ARRAY_INKS = %zu\n", sizeof(((gate_array_t *)0)->inks));
+  printf("export const GATE_ARRAY_AT_MODE = %zu\n", offsetof(gate_array_t, mode));
 
   return 0;
 }

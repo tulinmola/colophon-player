@@ -203,6 +203,7 @@ void player_poke(uint16_t address, uint8_t value) { cpc_poke(&cpc, address, valu
 
 z80_t *player_z80(void) { return &cpc.cpu; }
 crtc_t *player_crtc(void) { return &cpc.crtc; }
+gate_array_t *player_gate_array(void) { return &cpc.gate_array; }
 
 void player_finish_instruction(void) { finish_instruction(); }
 

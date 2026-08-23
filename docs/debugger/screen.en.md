@@ -18,19 +18,21 @@ order: 3
 ></colophon-screen>
 ```
 
-| Attribute | Default          | Read                                                                                                                                          |
-| --------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `base`    | `&C000`          | The address the first byte is read from.                                                                                                      |
-| `width`   | `40`             | Characters across. A character is two bytes, whatever the mode.                                                                               |
-| `height`  | `25`             | Character rows down.                                                                                                                          |
-| `rasters` | `8`              | Lines in a character row.                                                                                                                     |
-| `mode`    | `1`              | How a byte becomes pixels: `0` for two of sixteen colours, `1` for four of four, `2` for eight of two.                                        |
-| `palette` | pens `0` to `15` | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.                                                  |
-| `label`   | the base address | The panel's heading.                                                                                                                          |
-| `zoom`    | `1`              | Scales the picture on the page. It does not change a recording.                                                                               |
-| `view`    | —                | Ways of showing the region, separated by spaces: `beam` divides the picture at the electron beam; `heat` marks what changed and how recently. |
+| Attribute | Default            | Read                                                                                                                                          |
+| --------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base`    | `&C000`            | The address the first byte is read from.                                                                                                      |
+| `width`   | `40`               | Characters across. A character is two bytes, whatever the mode.                                                                               |
+| `height`  | `25`               | Character rows down.                                                                                                                          |
+| `rasters` | `8`                | Lines in a character row.                                                                                                                     |
+| `mode`    | `1`                | How a byte becomes pixels: `0` for two of sixteen colours, `1` for four of four, `2` for eight of two.                                        |
+| `palette` | the machine's inks | Sixteen colour codes separated by spaces, one for each pen, in the hardware's own numbering.                                                  |
+| `label`   | the base address   | The panel's heading.                                                                                                                          |
+| `zoom`    | `1`                | Scales the picture on the page. It does not change a recording.                                                                               |
+| `view`    | —                  | Ways of showing the region, separated by spaces: `beam` divides the picture at the electron beam; `heat` marks what changed and how recently. |
 
 An address and a colour code are read as hexadecimal, with or without the `&` that announces it; a count is read as a decimal number. The picture is redrawn whenever the machine reports that its state has moved, which is once a frame while it runs and after every step and every edit while it is stopped.
+
+Without a palette the pens are read through the Gate Array's own inks at each drawing: the machine's translation, true while it plays and fading as it fades. A declared palette is how a screen reads through a fade instead, or keeps its colours while the inks standing at a stop are another section's.
 
 ## The options
 

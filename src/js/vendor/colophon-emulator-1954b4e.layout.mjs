@@ -51,3 +51,7 @@ export const CRTC_AT_C0 = 19
 export const CRTC_AT_C4 = 21
 export const CRTC_AT_C9 = 20
 export const CRTC_AT_VMA_ = 32
+export const GATE_ARRAY_SIZE = 38
+export const GATE_ARRAY_AT_INKS = 1
+export const GATE_ARRAY_INKS = 17
+export const GATE_ARRAY_AT_MODE = 18
