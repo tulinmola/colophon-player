@@ -242,6 +242,7 @@ form {
 }
 
 colophon-z80,
+colophon-controls,
 colophon-memory,
 colophon-crtc,
 colophon-disassembly,
@@ -624,25 +625,56 @@ colophon-symbols {
 }
 
 colophon-controls {
-  display: flex;
-  gap: 0.35rem;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  gap: 0.5rem;
+
+  h2 {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  menu {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // Two translucent hairlines laid over each other read as a heavier line than
+  // the card's own, so neighbours in the list share one.
+  li + li button {
+    border-left: 0;
+  }
+
+  > button {
+    display: grid;
+    place-items: center;
+  }
+
+  // The pause sign is two bars and the play sign one triangle; the cell holds
+  // the wider of them, so the row stands still under the hand that pressed it.
+  > button span {
+    width: 2ch;
+  }
 
   button {
-    flex: 1;
-    padding: 0.4rem 0.5rem;
+    padding: 0.35rem 0.75rem;
     background: transparent;
     border: 1px solid $line;
-    color: inherit;
+    color: $dim;
     font: inherit;
     cursor: pointer;
 
     &:hover {
-      border-color: $dim;
+      color: $foreground;
     }
-  }
 
-  &[running] button:first-child {
-    color: $dim;
+    &:focus-visible {
+      outline: 1px solid $dim;
+      outline-offset: -1px;
+    }
   }
 }
 
