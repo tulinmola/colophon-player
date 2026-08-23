@@ -14,12 +14,12 @@ A CPC is the machine there is today. The element is named for it rather than for
 </colophon-cpc>
 ```
 
-| Attribute  | Default   | Read                                                                                                                                                                                                                                      |
-| ---------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`    | `cpc6128` | `cpc464`, `cpc664` or `cpc6128`. It settles which firmware is read and how much memory the machine is built with; [the three machines](../emulator/machine.en.md#the-machines) are set out where they are built.                          |
-| `snapshot` | —         | A snapshot to start from, fetched relative to the page. Without one the machine boots from reset and arrives at its prompt.                                                                                                               |
-| `symbols`  | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](../debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
-| `roms`     | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                         |
+| Attribute  | Default   | Read                                                                                                                                                                                                                                   |
+| ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`    | `cpc6128` | `cpc464`, `cpc664` or `cpc6128`. It settles which firmware is read and how much memory the machine is built with; [the three machines](../emulator/machine.en.md#the-machines) are set out where they are built.                       |
+| `snapshot` | —         | A snapshot to start from, fetched relative to the page. Without one the machine boots from reset and arrives at its prompt.                                                                                                            |
+| `symbols`  | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
+| `roms`     | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                      |
 
 Change one of these on a living page and the machine reboots: the one standing stops, a successor boots from the new values, and the element announces `machine:reboot` for every panel to rebuild by. A different game arrives into the same instruments as easily as an attribute is typed.
 
