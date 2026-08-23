@@ -21,6 +21,8 @@
     "build": "vite build",
     "dist": "vite build --mode dist",
     "prepack": "npm run dist",
+    "preversion": "node tools/sync_docs_version.js --check",
+    "version": "node tools/sync_docs_version.js && git add docs",
     "preview": "vite preview",
     "prettier:check": "npx prettier . --check",
     "prettier:write": "npx prettier . --write",

@@ -54,6 +54,8 @@ git push --follow-tags   # push the bump commit and its tag together
 
 `npm version` writes the new version into `package.json`, commits it and tags the commit `vX.Y.Z`, all in one motion — pick the one bump that fits and push. The pushed tag wakes the workflow, which builds `dist/colophon-player.{js,css}`, publishes them to npm with provenance binding the version to its commit, and attaches versioned copies to the GitHub release with their integrity hashes. The workflow authenticates by trusted publishing, so the repository keeps no tokens, and build output never enters it.
 
+The install snippet in `docs/` names an exact version, and that pin travels with the bump: `npm version` rewrites it into the same commit, and refuses to begin if it can no longer find one to rewrite.
+
 ## License
 
 MIT, like the rest of Colophon.
