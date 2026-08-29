@@ -1,7 +1,7 @@
 ---
 title: The memory
 description: The bytes themselves, read either as the processor sees them or as the banks hold them.
-order: 8
+order: 9
 ---
 
 `<colophon-memory>` shows the bytes: sixteen rows of sixteen, each with its address and the text it would make if it were text.

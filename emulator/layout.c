@@ -77,6 +77,13 @@ int main(void) {
   printf("export const GATE_ARRAY_AT_INKS = %zu\n", offsetof(gate_array_t, inks));
   printf("export const GATE_ARRAY_INKS = %zu\n", sizeof(((gate_array_t *)0)->inks));
   printf("export const GATE_ARRAY_AT_MODE = %zu\n", offsetof(gate_array_t, mode));
+  printf("export const GATE_ARRAY_AT_MODE_PENDING = %zu\n", offsetof(gate_array_t, mode_pending));
+  printf("export const GATE_ARRAY_AT_PEN = %zu\n", offsetof(gate_array_t, pen));
+  printf("export const GATE_ARRAY_AT_LOWER_ROM = %zu\n", offsetof(gate_array_t, lower_rom_enabled));
+  printf("export const GATE_ARRAY_AT_UPPER_ROM = %zu\n", offsetof(gate_array_t, upper_rom_enabled));
+  printf("export const GATE_ARRAY_AT_R52 = %zu\n", offsetof(gate_array_t, r52));
+  printf("export const GATE_ARRAY_AT_INTERRUPT_REQUEST = %zu\n",
+         offsetof(gate_array_t, interrupt_request));
 
   return 0;
 }
