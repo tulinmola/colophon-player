@@ -201,6 +201,10 @@ void player_release_all(void) { keyboard_release_all(&cpc.keyboard); }
 uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
 void player_poke(uint16_t address, uint8_t value) { cpc_poke(&cpc, address, value); }
 
+/* The pages the processor reads are derived from the ROM enables and the
+   bank register, so a host that writes those recomputes them. */
+void player_remap(void) { cpc_remap(&cpc); }
+
 z80_t *player_z80(void) { return &cpc.cpu; }
 crtc_t *player_crtc(void) { return &cpc.crtc; }
 gate_array_t *player_gate_array(void) { return &cpc.gate_array; }

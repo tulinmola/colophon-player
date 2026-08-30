@@ -16,10 +16,6 @@ function bit(on) {
   return on ? "1" : "."
 }
 
-function renderAbbreviation(label, meaning) {
-  return meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label
-}
-
 // aria-label is what keeps the sigil and any sibling control from being read
 // out as part of the name.
 function renderRegister(label, meaning, names, digits = 2) {
@@ -36,48 +32,39 @@ function renderRegister(label, meaning, names, digits = 2) {
     />`
   })
 
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<span class="input-group"
-      >${controls.join("&nbsp;")}</span
-    ></label
-  >`
+  return html`<label>
+    ${meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label}
+    <span class="input-group">${controls.join("&nbsp;")}</span>
+  </label>`
 }
 
 function renderLine(label, meaning, name) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<output
-      name="${name}"
-      aria-label="${label}"
-      aria-live="off"
-    ></output
-  ></label>`
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <output name="${name}" aria-label="${label}" aria-live="off"> </output>
+  </label>`
 }
 
 function renderMode(label, meaning, name) {
   return html`<label
-    >${renderAbbreviation(label, meaning)}<span class="input-group"
+    ><abbr title="${meaning}">${label}</abbr
+    ><span class="input-group"
       ><input name="${name}" aria-label="${label}" maxlength="1" pattern="[0-2]" /></span
   ></label>`
 }
 
 function renderState(label, meaning, name) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<input
-      type="checkbox"
-      class="state"
-      name="${name}"
-      aria-label="${label}"
-  /></label>`
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <input type="checkbox" class="state" name="${name}" aria-label="${label}" />
+  </label>`
 }
 
 function renderFlag([field, letter, meaning]) {
-  return html`<label
-    ><input
-      type="checkbox"
-      name="${field}"
-      aria-label="${letter}"
-    />${renderAbbreviation(letter, meaning)}</label
-  >`
+  return html`<label>
+    <input type="checkbox" name="${field}" aria-label="${letter}" />
+    <abbr title="${meaning}">${letter}</abbr>
+  </label>`
 }
 
 class Z80Element extends MachineObserver {
@@ -100,7 +87,7 @@ class Z80Element extends MachineObserver {
           ].join("")}
         </div>
         <div class="fields">
-          <span class="name">${renderAbbreviation("F", "Flags")}</span>
+          <span class="name"><abbr title="Flags">F</abbr></span>
           <span class="flags">${FLAGS.map(renderFlag).join("")}</span>
         </div>
         <div class="fields pairs">

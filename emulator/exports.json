@@ -21,6 +21,7 @@
   "_player_z80",
   "_player_crtc",
   "_player_gate_array",
+  "_player_remap",
   "_player_finish_instruction",
   "_player_step_instruction",
   "_player_rgb"

@@ -115,6 +115,11 @@ header:has(colophon-recording[recording]) colophon-options button {
     }
   }
 
+  &.inks {
+    grid-template-columns: repeat(4, auto auto);
+    row-gap: 0.3rem;
+  }
+
   label {
     display: contents;
   }
@@ -210,6 +215,32 @@ header:has(colophon-recording[recording]) colophon-options button {
     }
   }
 
+  .ink {
+    display: flex;
+    align-items: center;
+    gap: 0.5ch;
+    white-space: nowrap;
+  }
+
+  .swatch {
+    width: 1.25em;
+    height: 1.25em;
+    padding: 0;
+    background: none;
+    border: 1px solid $line;
+    appearance: none;
+    cursor: pointer;
+
+    &:hover {
+      border-color: $foreground;
+    }
+
+    &:focus-visible {
+      outline: 1px solid $dim;
+      outline-offset: 1px;
+    }
+  }
+
   .flags {
     display: flex;
     gap: 0.5ch;
@@ -245,6 +276,7 @@ colophon-z80,
 colophon-controls,
 colophon-memory,
 colophon-crtc,
+colophon-gate-array,
 colophon-disassembly,
 colophon-symbols,
 colophon-breakpoints,
@@ -282,7 +314,8 @@ colophon-screen canvas {
 
 colophon-actions,
 colophon-options,
-colophon-breakpoint-form {
+colophon-breakpoint-form,
+colophon-ink-form {
   display: contents;
 }
 
@@ -411,6 +444,51 @@ dialog {
 
     &:focus {
       outline-color: $dim;
+    }
+  }
+
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(8, auto);
+    gap: 0.35rem;
+
+    .colour {
+      display: grid;
+      justify-items: center;
+      gap: 0.2rem;
+      padding: 0.2rem;
+      background: none;
+      border: 1px solid transparent;
+      color: $dim;
+      font: inherit;
+      appearance: none;
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        border-color: $line;
+        color: $foreground;
+        outline: none;
+      }
+
+      &.current {
+        border-color: $foreground;
+        color: $foreground;
+      }
+    }
+
+    .swatch {
+      width: 1.75em;
+      height: 1.75em;
+      border: 1px solid $line;
+    }
+
+    .code {
+      font-variant-numeric: tabular-nums;
+
+      &::before {
+        content: "&";
+      }
     }
   }
 

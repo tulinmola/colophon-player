@@ -21,6 +21,7 @@ The debugger is not one element but a collection of them, each watching one part
 - [The controls](controls.en.md) — run, stop, step, and the rule they all obey.
 - [The Z80](z80.en.md) — the processor's registers, flags and interrupt state.
 - [The CRTC](crtc.en.md) — the 6845 counting out the frame.
+- [The Gate Array](gate-array.en.md) — the inks, the mode, the ROMs and the interrupt counter.
 - [The disassembly](disassembly.en.md) — the bytes at the program counter read back as instructions.
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
 - [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
