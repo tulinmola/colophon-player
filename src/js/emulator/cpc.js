@@ -56,12 +56,12 @@ function readGreys(module) {
 }
 
 // The same codes as CSS, for a page that shows an ink rather than draws it.
-function readColours(module) {
-  const colours = []
+function readCssColours(module) {
+  const colours = new Array(COLOUR_CODES)
 
   for (let code = 0; code < COLOUR_CODES; code++) {
     const rgb = module._player_rgb(code)
-    colours.push(`#${rgb.toString(16).padStart(6, "0")}`)
+    colours[code] = `#${rgb.toString(16).padStart(6, "0")}`
   }
 
   return colours
@@ -69,7 +69,7 @@ function readColours(module) {
 
 export class Cpc extends Machine {
   #breakpoints
-  #colours
+  #cssColours
   #crtc
   #framebuffer
   #gateArray
@@ -129,7 +129,7 @@ export class Cpc extends Machine {
     this.#module = module
     this.#breakpoints = new Breakpoints(module)
     this.#palette = readPalette(module)
-    this.#colours = readColours(module)
+    this.#cssColours = readCssColours(module)
     this.#greys = readGreys(module)
     this.#z80 = new Z80(module, z80Pointer)
     this.#crtc = new Crtc(module, crtcPointer)
@@ -177,8 +177,8 @@ export class Cpc extends Machine {
     return this.#greys
   }
 
-  get colours() {
-    return this.#colours
+  get cssColours() {
+    return this.#cssColours
   }
 
   get framebuffer() {

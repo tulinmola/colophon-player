@@ -195,11 +195,11 @@ class DisassemblyElement extends MachineObserver {
       }
 
       const { text, length } = disassemble(peek, address, nameOf),
-        bytes = []
+        bytes = new Array(length)
 
       for (let taken = 0; taken < length; taken++) {
         const value = peek((address + taken) & 0xffff)
-        bytes.push(hex(value, { prefix: "" }))
+        bytes[taken] = hex(value, { prefix: "" })
       }
 
       const covering = machine.breakpoints.covering(address, "execute")

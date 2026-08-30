@@ -1,10 +1,6 @@
 import { hex, html, writeValue } from "../lang"
 import { MachineObserver } from "./machine_observer"
 
-function renderAbbreviation(label, meaning) {
-  return meaning ? html`<abbr title="${meaning}">${label}</abbr>` : label
-}
-
 // aria-label is what keeps the sigil from being read out as part of the name.
 function renderByte(label, meaning, name) {
   return html`<label>
@@ -27,7 +23,7 @@ function renderLightPen(number, meaning) {
   const label = `R${number}`
 
   return html`<label>
-    ${renderAbbreviation(label, meaning)}
+    <abbr title="${meaning}">${label}</abbr>
     <output name="r${number}" aria-label="${label}" aria-live="off"> </output>
   </label>`
 }

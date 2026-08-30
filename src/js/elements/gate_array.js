@@ -1,52 +1,55 @@
 import { hex, html, writeValue } from "../lang"
+import { InkForm } from "./ink_form"
 import { MachineObserver } from "./machine_observer"
 
 const PENS = 16
 
-function renderAbbreviation(label, meaning) {
-  return html`<abbr title="${meaning}">${label}</abbr>`
-}
+function renderInk(_ink, pen) {
+  const border = pen == PENS,
+    label = border ? "BDR" : `P${pen}`,
+    meaning = border ? "Ink for the border" : `Ink for pen ${pen}`,
+    choosing = border ? "Choose the ink for the border" : `Choose the ink for pen ${pen}`
 
-function renderInk(pen) {
-  const label = pen == PENS ? "B" : `P${pen}`,
-    meaning = pen == PENS ? "Ink for the border" : `Ink for pen ${pen}`
-
-  return html`<label>
-    ${renderAbbreviation(label, meaning)}
-    <span class="ink"
-      ><span class="swatch"></span
-      ><span class="input-group"
-        ><input
-          name="ink${pen}"
-          aria-label="${label}"
-          maxlength="2"
-          pattern="[0-1]?[0-9A-Fa-f]" /></span
-    ></span>
-  </label>`
+  // A label takes the first labelable element under it for its control, which
+  // here would be the swatch rather than the field.
+  return html`<span class="name"><abbr title="${meaning}">${label}</abbr></span>
+    <span class="ink">
+      <button
+        type="button"
+        class="swatch"
+        data-pen="${pen}"
+        aria-haspopup="dialog"
+        aria-label="${choosing}"
+      ></button>
+      <span class="input-group">
+        <input name="ink${pen}" aria-label="${label}" maxlength="2" pattern="[0-1]?[0-9A-Fa-f]" />
+      </span>
+    </span>`
 }
 
 function renderByte(label, meaning, name, pattern) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<span class="input-group"
-      ><input name="${name}" aria-label="${label}" maxlength="2" pattern="${pattern}" /></span
-  ></label>`
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <span class="input-group">
+      <input name="${name}" aria-label="${label}" maxlength="2" pattern="${pattern}" />
+    </span>
+  </label>`
 }
 
 function renderMode(label, meaning, name) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<span class="input-group"
-      ><input name="${name}" aria-label="${label}" maxlength="1" pattern="[0-3]" /></span
-  ></label>`
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <span class="input-group">
+      <input name="${name}" aria-label="${label}" maxlength="1" pattern="[0-3]" />
+    </span>
+  </label>`
 }
 
 function renderState(label, meaning, name) {
-  return html`<label
-    >${renderAbbreviation(label, meaning)}<input
-      type="checkbox"
-      class="state"
-      name="${name}"
-      aria-label="${label}"
-  /></label>`
+  return html`<label>
+    <abbr title="${meaning}">${label}</abbr>
+    <input type="checkbox" class="state" name="${name}" aria-label="${label}" />
+  </label>`
 }
 
 class GateArrayElement extends MachineObserver {
@@ -55,10 +58,10 @@ class GateArrayElement extends MachineObserver {
   #swatches
 
   watch(machine) {
-    const inks = Array.from({ length: PENS + 1 }, (_ink, pen) => renderInk(pen))
+    const inks = Array.from({ length: PENS + 1 }, renderInk)
 
     this.innerHTML = html`
-      <h2>Gate Array</h2>
+      <h2>Gate Array 40010</h2>
       <form>
         <div class="fields inks">${inks.join("")}</div>
         <div class="fields pairs">
@@ -81,7 +84,7 @@ class GateArrayElement extends MachineObserver {
           ${[
             renderMode("MODE", "The video mode in force", "mode"),
             renderMode(
-              "MODE'",
+              "ASKED",
               "The mode as last written, in force after the next line sync",
               "modePending"
             ),
@@ -104,6 +107,7 @@ class GateArrayElement extends MachineObserver {
     const { signal } = this
     this.addEventListener("focusin", this.onFocusIn.bind(this), { signal })
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
+    this.addEventListener("click", this.onClick.bind(this), { signal })
     this.addEventListener("change", this.onChanged.bind(this), { signal })
 
     machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
@@ -119,6 +123,14 @@ class GateArrayElement extends MachineObserver {
   onKeyDown(event) {
     if (event.key == "Escape") {
       this.#form.reset()
+    }
+  }
+
+  onClick(event) {
+    const { pen } = event.target.dataset
+
+    if (pen != null) {
+      InkForm.create(this.machine, Number(pen))
     }
   }
 
@@ -150,7 +162,7 @@ class GateArrayElement extends MachineObserver {
 
   #render(machine) {
     const gateArray = machine.gateArray,
-      colours = machine.colours,
+      cssColours = machine.cssColours,
       field = this.#form.elements,
       inks = gateArray.inks
 
@@ -161,7 +173,7 @@ class GateArrayElement extends MachineObserver {
 
       if (this.#shown[pen] != code) {
         this.#shown[pen] = code
-        this.#swatches[pen].style.background = colours[code]
+        this.#swatches[pen].style.background = cssColours[code]
       }
     }
 
