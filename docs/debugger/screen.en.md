@@ -74,6 +74,6 @@ Ages are frames of the machine's own time, so stepping inside a frame keeps ever
 
 ## What can be done with a pixel
 
-The right button on the picture answers with the byte that painted the pixel under it, which is the whole of this panel's arithmetic run backwards: the address it would have read to draw there. It offers [a breakpoint](breakpoints.en.md) at that byte, and to show it in [the memory](memory.en.md#moving).
+The right button on the picture answers with the byte that painted the pixel under it, which is the whole of this panel's arithmetic run backwards: the address it would have read to draw there. It offers [a breakpoint](breakpoints.en.md) at that byte, to show it in [the memory](memory.en.md#moving), and — where [the record](record.en.md#where-a-byte-came-from) still holds the store — to stand the machine on the instruction that painted it.
 
 The address is the video hardware's own, so the dump is sent to `RAM` and not to `CPU` — the panel reads the banks the way the hardware does, and that is the space its answer is counted in. A breakpoint is set in the processor's space instead, and the two are the same number whenever the bank the screen is reading is the one the processor sees at that address, which is the ordinary arrangement and the only one a 464 has. Where a program has paged something else in, they part company, and until a mark can be set on a bank rather than on an address there is nothing better to offer.

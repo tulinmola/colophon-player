@@ -59,6 +59,22 @@ export class Machine extends EventTarget {
     this.#announceTrap()
   }
 
+  stepBack() {
+    this.#backTo("instruction")
+  }
+
+  stepBackScanline() {
+    this.#backTo("scanline")
+  }
+
+  stepBackRow() {
+    this.#backTo("row")
+  }
+
+  stepBackFrame() {
+    this.#backTo("frame")
+  }
+
   // Twice a frame's length, so a program that has made this one longer than
   // the standard still reaches the end of it.
   stepFrame() {
@@ -68,6 +84,25 @@ export class Machine extends EventTarget {
     this.trap = this.readTrap()
     this.present()
     this.#announceTrap()
+  }
+
+  rewind(tick) {
+    this.stop()
+    this.seek(tick)
+    this.trap = null
+    this.present()
+  }
+
+  returnToNow() {
+    this.rewind(this.historyUntil)
+  }
+
+  rewindToWriter(address) {
+    const stored = this.findWrite(address, this.ticks)
+
+    if (stored) {
+      this.rewind(stored.tick)
+    }
   }
 
   present() {
@@ -116,6 +151,13 @@ export class Machine extends EventTarget {
     if (ran) {
       this.present()
     }
+  }
+
+  #backTo(grain) {
+    this.stop()
+    this.stepBackTo(grain)
+    this.trap = null
+    this.present()
   }
 
   #announceTrap() {

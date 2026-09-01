@@ -21,8 +21,8 @@ const INK_BITS = 0x1f,
 const BORDER_PEN = 16
 
 export class GateArray extends Chip {
-  constructor(module, pointer) {
-    super(module, pointer, GATE_ARRAY_SIZE)
+  constructor(module, pointer, capture) {
+    super(module, pointer, GATE_ARRAY_SIZE, capture)
   }
 
   // Hardware colour codes, one a pen; the seventeenth is the border's.

@@ -1,7 +1,7 @@
 ---
 title: The symbols
 description: The names a program was written with, set against the addresses it runs at.
-order: 10
+order: 11
 ---
 
 A program is written in names and runs as addresses. Whatever turned the one into the other wrote down what it had done, and this panel is that note read back: `<colophon-symbols>` lists every named address the machine was given, in the order they stand in memory, and marks the one the machine is inside.

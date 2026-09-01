@@ -31,9 +31,9 @@ The debugger travels as two files, each pinned to a version that cannot change u
   </head>
   <body>
     <colophon-cpc model="cpc6128" snapshot="game.sna">
+      <colophon-controls></colophon-controls>
       <colophon-monitor zoom="1.5"></colophon-monitor>
       <div class="panels">
-        <colophon-controls></colophon-controls>
         <colophon-z80></colophon-z80>
         <colophon-disassembly></colophon-disassembly>
       </div>
@@ -42,7 +42,7 @@ The debugger travels as two files, each pinned to a version that cannot change u
 </html>
 ```
 
-The stylesheet dresses the page and not only the elements: it resets the document and sets the body's colour and type, which is why the page above holds nothing else. `panels` is the one class it offers the page, and it stacks what it holds into a column beside the monitor.
+The stylesheet dresses the page and not only the elements: it resets the document and sets the body's colour and type, which is why the page above holds nothing else. `panels` is the one class it offers the page, and it stacks what it holds into a column beside the monitor. [The controls](debugger/controls.en.md) take a line to themselves when they are placed directly inside `<colophon-cpc>`, rather than standing in one of those columns.
 
 The rest is files standing where the page looks for them.
 

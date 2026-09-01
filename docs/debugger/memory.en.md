@@ -1,7 +1,7 @@
 ---
 title: The memory
 description: The bytes themselves, read either as the processor sees them or as the banks hold them.
-order: 9
+order: 10
 ---
 
 `<colophon-memory>` shows the bytes: sixteen rows of sixteen, each with its address and the text it would make if it were text.
@@ -30,9 +30,9 @@ A byte written into `RAM` goes to the bank; a byte written into `CPU` goes where
 
 ## What can be done with a byte
 
-The right button on a byte asks what may be done with it, and the panel answers for its own: today, setting a breakpoint on that address, which opens [the breakpoint form](breakpoints.en.md#setting-one) with the address already in it. The character standing for a byte answers the same, since it is the same byte read another way.
+The right button on a byte asks what may be done with it, and the panel answers for its own. In `CPU` that is setting a breakpoint on the address, which opens [the breakpoint form](breakpoints.en.md#setting-one) with the address already in it. In `RAM` it is instead standing the machine on the instruction that last stored that byte, which [the record](record.en.md#where-a-byte-came-from) traces by physical address and so can only offer here. The character standing for a byte answers the same, since it is the same byte read another way.
 
-In `RAM` the panel offers nothing and the browser keeps its own menu, because a breakpoint is set on an address the processor can reach and that view is showing the banks themselves.
+A breakpoint is set on an address the processor can reach, which is why `RAM` is not offered one; the trace is kept against the banks themselves, which is why `CPU` is not offered that. Where a byte has neither the browser keeps its own menu.
 
 ## The marks
 

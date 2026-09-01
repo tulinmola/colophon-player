@@ -16,6 +16,8 @@ const DEFAULT_ROMS_URL = "/roms"
 
 const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write" }
 
+const GRAINS = { instruction: 0, scanline: 1, row: 2, frame: 3 }
+
 const FRAMEBUFFER_WIDTH = 1024,
   FRAMEBUFFER_HEIGHT = 312,
   COLOUR_CODES = 32
@@ -131,9 +133,11 @@ export class Cpc extends Machine {
     this.#palette = readPalette(module)
     this.#cssColours = readCssColours(module)
     this.#greys = readGreys(module)
-    this.#z80 = new Z80(module, z80Pointer)
-    this.#crtc = new Crtc(module, crtcPointer)
-    this.#gateArray = new GateArray(module, gateArrayPointer)
+    const capture = () => module._player_capture()
+
+    this.#z80 = new Z80(module, z80Pointer, capture)
+    this.#crtc = new Crtc(module, crtcPointer, capture)
+    this.#gateArray = new GateArray(module, gateArrayPointer, capture)
 
     // The module's memory never grows (player.c holds all of it in fixed
     // storage), so a view taken once stays valid.
@@ -197,6 +201,18 @@ export class Cpc extends Machine {
     return this.#module._player_frame()
   }
 
+  get ticks() {
+    return this.#module._player_ticks()
+  }
+
+  get historyFrom() {
+    return this.#module._player_history_from()
+  }
+
+  get historyUntil() {
+    return this.#module._player_history_until()
+  }
+
   runFrames(frames) {
     this.#module._player_run_frames(frames)
   }
@@ -221,6 +237,32 @@ export class Cpc extends Machine {
 
   stepInstruction() {
     this.#module._player_step_instruction()
+  }
+
+  stepBackTo(grain) {
+    this.#module._player_step_back_to(GRAINS[grain])
+  }
+
+  seek(tick) {
+    this.#module._player_seek(tick)
+  }
+
+  capture() {
+    this.#module._player_capture()
+  }
+
+  findWrite(address, before) {
+    const module = this.#module
+
+    if (!module._player_trace_find(address, before)) {
+      return null
+    }
+
+    return {
+      tick: module._player_trace_tick(),
+      pc: module._player_trace_pc(),
+      value: module._player_trace_value()
+    }
   }
 
   stepScanline() {
@@ -264,6 +306,11 @@ export class Cpc extends Machine {
 
   peek(address) {
     return this.#module._player_peek(address)
+  }
+
+  writeRam(physical, value) {
+    this.#ram[physical] = value
+    this.#module._player_capture()
   }
 
   poke(address, value) {

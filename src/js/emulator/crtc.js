@@ -24,8 +24,8 @@ const C4_BITS = 0x7f,
   C9_BITS = 0x1f
 
 export class Crtc extends Chip {
-  constructor(module, pointer) {
-    super(module, pointer, CRTC_SIZE)
+  constructor(module, pointer, capture) {
+    super(module, pointer, CRTC_SIZE, capture)
   }
 
   get registers() {

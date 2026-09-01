@@ -48,8 +48,8 @@ import {
 import { Chip } from "./chip"
 
 export class Z80 extends Chip {
-  constructor(module, pointer) {
-    super(module, pointer, Z80_SIZE)
+  constructor(module, pointer, capture) {
+    super(module, pointer, Z80_SIZE, capture)
   }
 
   #putFlag(mask, on) {
