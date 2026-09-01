@@ -1,7 +1,7 @@
 ---
 title: The Gate Array
 description: The inks, the mode, the ROMs and the interrupt counter — none of which the machine itself can read back.
-order: 7
+order: 8
 ---
 
 `<colophon-gate-array>` shows what the Gate Array is holding. The chip takes commands and answers none of them: a program that wants to know its own palette must remember having written it. So unlike every other panel here, this one shows values nothing on the machine can ask for.

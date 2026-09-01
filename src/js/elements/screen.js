@@ -231,13 +231,21 @@ class ScreenElement extends MachineObserver {
       sample = Math.floor(((event.clientX - box.left) / box.width) * screen.samplesPerLine),
       line = Math.floor(((event.clientY - box.top) / box.height) * screen.lines),
       at = screen.addressAt(sample, line),
-      machine = this.machine
+      machine = this.machine,
+      items = [
+        {
+          label: "Add breakpoint…",
+          execute: () => BreakpointForm.create(machine, { address: at })
+        },
+        { label: "Show in memory", execute: () => machine.showMemory(at, "ram") }
+      ]
+
+    if (machine.findWrite(at, machine.ticks)) {
+      items.push({ label: "Rewind to the write", execute: () => machine.rewindToWriter(at) })
+    }
 
     event.preventDefault()
-    Actions.create(event, [
-      { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address: at }) },
-      { label: "Show in memory", execute: () => machine.showMemory(at, "ram") }
-    ])
+    Actions.create(event, items)
   }
 
   #fitPicture() {

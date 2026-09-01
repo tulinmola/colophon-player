@@ -104,14 +104,17 @@ class MemoryElement extends MachineObserver {
     }
 
     const inProcessorSpace = this.#form.elements.space.value == "cpu",
+      machine = this.machine,
       at = this.#base + index,
       items = []
 
     if (inProcessorSpace) {
       items.push({
         label: "Add breakpoint…",
-        execute: () => BreakpointForm.create(this.machine, { address: at })
+        execute: () => BreakpointForm.create(machine, { address: at })
       })
+    } else if (machine.findWrite(at, machine.ticks)) {
+      items.push({ label: "Rewind to the write", execute: () => machine.rewindToWriter(at) })
     }
 
     if (items.length > 0) {
@@ -187,9 +190,7 @@ class MemoryElement extends MachineObserver {
           size: ram.length,
           digits: 5,
           read: at => ram[at],
-          write: (at, value) => {
-            ram[at] = value
-          }
+          write: (at, value) => machine.writeRam(at, value)
         }
   }
 

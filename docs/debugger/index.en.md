@@ -8,8 +8,8 @@ The debugger is not one element but a collection of them, each watching one part
 
 ```html
 <colophon-cpc model="cpc6128" snapshot="game.sna">
-  <colophon-monitor zoom="1.5"></colophon-monitor>
   <colophon-controls></colophon-controls>
+  <colophon-monitor zoom="1.5"></colophon-monitor>
   <colophon-z80></colophon-z80>
 </colophon-cpc>
 ```
@@ -18,7 +18,7 @@ The debugger is not one element but a collection of them, each watching one part
 
 - [The monitor](monitor.en.md) — the picture as a tube would present it.
 - [The screen](screen.en.md) — any region of memory read as though it were a screen.
-- [The controls](controls.en.md) — run, stop, step, and the rule they all obey.
+- [The controls](controls.en.md) — run, stop, and moving the machine either way by a grain, under the rule they all obey.
 - [The Z80](z80.en.md) — the processor's registers, flags and interrupt state.
 - [The CRTC](crtc.en.md) — the 6845 counting out the frame.
 - [The Gate Array](gate-array.en.md) — the inks, the mode, the ROMs and the interrupt counter.
@@ -26,6 +26,8 @@ The debugger is not one element but a collection of them, each watching one part
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
 - [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
 - [The breakpoints](breakpoints.en.md) — the marks a reader sets on the memory, and the machine that stops itself on reaching one.
+
+One page here answers to no element: [the record](record.en.md) is the machine's own recent past, which the controls move through and which the screen and the memory reach into to say where a byte came from.
 
 ## Nothing is added to the machine
 

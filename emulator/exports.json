@@ -24,5 +24,15 @@
   "_player_remap",
   "_player_finish_instruction",
   "_player_step_instruction",
+  "_player_ticks",
+  "_player_history_from",
+  "_player_history_until",
+  "_player_capture",
+  "_player_seek",
+  "_player_step_back_to",
+  "_player_trace_find",
+  "_player_trace_tick",
+  "_player_trace_pc",
+  "_player_trace_value",
   "_player_rgb"
 ]

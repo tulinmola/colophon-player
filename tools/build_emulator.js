@@ -78,6 +78,10 @@ execFileSync(
     "-Wextra",
     "-Werror",
     "-O3",
+    // The record reads the processor's state four million times a second, and
+    // the processor is another translation unit: 1.9% with this, 14.7%
+    // without, measured over 600 frames.
+    "-flto",
     "-s",
     "MODULARIZE=1",
     "-s",
@@ -86,6 +90,10 @@ execFileSync(
     "EXPORT_NAME=ColophonEmulator",
     "-s",
     "FILESYSTEM=0",
+    // Growth is not the alternative: the page takes views onto this memory
+    // once, and growth would detach them.
+    "-s",
+    "INITIAL_MEMORY=32MB",
     "-s",
     "ENVIRONMENT=web",
     "-s",
