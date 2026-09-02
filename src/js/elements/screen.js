@@ -39,6 +39,12 @@ function renderActionZoom(zoom) {
   </label>`
 }
 
+function renderRasters() {
+  return html`<label>
+    Rasters <input name="rasters" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+  </label>`
+}
+
 class ScreenElement extends MachineObserver {
   static observedAttributes = [
     "base",
@@ -47,6 +53,7 @@ class ScreenElement extends MachineObserver {
     "mode",
     "palette",
     "rasters",
+    "reading",
     "view",
     "width",
     "zoom"
@@ -62,15 +69,18 @@ class ScreenElement extends MachineObserver {
   #screen
 
   watch(machine) {
-    const base = parseHex(this.getAttribute("base") ?? "&C000"),
-      width = Number(this.getAttribute("width") ?? 40),
-      height = Number(this.getAttribute("height") ?? 25),
+    const reading = this.getAttribute("reading") ?? "video",
+      base = parseHex(this.getAttribute("base") ?? "&C000"),
+      width = Number(this.getAttribute("width") ?? 80),
+      height = Number(this.getAttribute("height") ?? 200),
       rasters = Number(this.getAttribute("rasters") ?? 8),
       mode = Number(this.getAttribute("mode") ?? 1),
       inks = this.getAttribute("palette"),
       palette = inks ? inks.trim().split(/\s+/u).map(parseHex) : machine.gateArray.inks
 
-    const screen = new Screen({ base, width, height, rasters, mode, palette })
+    const { ram, video } = machine,
+      screen = new Screen({ reading, base, width, height, rasters, mode, palette, ram, video })
+
     this.#screen = screen
 
     const zoom = Number(this.getAttribute("zoom") ?? 1),
@@ -110,22 +120,28 @@ class ScreenElement extends MachineObserver {
             <legend>Geometry</legend>
             <div class="fields">
               <label>
+                Reading
+                <select name="reading">
+                  <option value="video">Video</option>
+                  <option value="linear">Linear</option>
+                  <option value="columns">Columns</option>
+                </select>
+              </label>
+              <label>
                 <abbr title="The address the first byte is read from">Base</abbr>
                 <span class="input-group">
-                  <input name="base" aria-label="Base" maxlength="4" pattern="[0-9A-Fa-f]{1,4}" />
+                  <input name="base" aria-label="Base" maxlength="5" pattern="[0-9A-Fa-f]{1,5}" />
                 </span>
               </label>
               <label>
-                Width <input name="width" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+                Width
+                <input name="width" inputmode="numeric" maxlength="3" pattern="[1-9][0-9]{0,2}" />
               </label>
               <label>
                 Height
-                <input name="height" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+                <input name="height" inputmode="numeric" maxlength="3" pattern="[1-9][0-9]{0,2}" />
               </label>
-              <label>
-                Rasters
-                <input name="rasters" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
-              </label>
+              ${reading == "video" ? renderRasters() : ""}
             </div>
           </fieldset>
           <fieldset>
@@ -164,12 +180,15 @@ class ScreenElement extends MachineObserver {
     const chosen = options.form.elements
     chosen.zoom.value = String(zoom)
     chosen.mode.value = String(mode)
+    chosen.reading.value = reading
     writeValue(chosen.beam, views.has("beam"))
     writeValue(chosen.heat, views.has("heat"))
     writeValue(chosen.base, hex(base, { digits: 4 }))
     writeValue(chosen.width, String(width))
     writeValue(chosen.height, String(height))
-    writeValue(chosen.rasters, String(rasters))
+    if (chosen.rasters) {
+      writeValue(chosen.rasters, String(rasters))
+    }
 
     this.#fitPicture()
     this.#fitViews()
@@ -297,26 +316,17 @@ class ScreenElement extends MachineObserver {
       palette = machine.palette,
       pixels = this.#pixels
 
-    screen.render(machine.ram, machine.writes)
+    screen.render(machine.writes)
 
     if (this.#greys == null || machine.running) {
       for (let index = 0; index < samples.length; index++) {
         pixels[index] = palette[samples[index]]
       }
     } else {
-      const crtc = machine.crtc,
-        registers = crtc.registers
-      screen.sweep({
-        latch: crtc.vma_,
-        column: crtc.c0,
-        raster: crtc.c9,
-        row: crtc.c4,
-        width: registers[1],
-        vsync: registers[7]
-      })
+      screen.sweep()
 
-      const swept = screen.swept,
-        greys = this.#greys
+      const greys = this.#greys,
+        swept = screen.swept
 
       let sample = 0
       for (let index = 0; index < swept.length; index++) {

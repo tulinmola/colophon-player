@@ -1,4 +1,5 @@
 import { Breakpoints } from "./breakpoints"
+import { CpcVideo } from "./cpc_video"
 import { Crtc } from "./crtc"
 import { GateArray } from "./gate_array"
 import { Machine } from "./machine"
@@ -79,6 +80,7 @@ export class Cpc extends Machine {
   #module
   #palette
   #ram
+  #video
   #writes
   #z80
 
@@ -138,6 +140,7 @@ export class Cpc extends Machine {
     this.#z80 = new Z80(module, z80Pointer, capture)
     this.#crtc = new Crtc(module, crtcPointer, capture)
     this.#gateArray = new GateArray(module, gateArrayPointer, capture)
+    this.#video = new CpcVideo(this.#crtc)
 
     // The module's memory never grows (player.c holds all of it in fixed
     // storage), so a view taken once stays valid.
@@ -171,6 +174,10 @@ export class Cpc extends Machine {
 
   get gateArray() {
     return this.#gateArray
+  }
+
+  get video() {
+    return this.#video
   }
 
   get palette() {

@@ -50,125 +50,121 @@ const SAMPLES_PER_BYTE = 8,
   WORDS_PER_BYTE = 2,
   MODE_WRITERS = [writeMode0, writeMode1, writeMode2]
 
-// The wiring is cpc_video_address in the emulator's cpc.c: MA9..MA0 land on
-// A10..A1, RA on A13..A11 and MA13..MA12 on A15..A14, so a raster's bytes
-// wrap within their 2K slice and a screen never leaves its 16K page.
+function linear({ base, width, height, wrap }) {
+  const addresses = new Uint32Array(width * height)
+
+  let index = 0
+  for (let line = 0; line < height; line++) {
+    const lineStart = base + line * width
+
+    for (let column = 0; column < width; column++) {
+      addresses[index++] = (lineStart + column) % wrap
+    }
+  }
+
+  return addresses
+}
+
+function columns({ base, width, height, wrap }) {
+  const addresses = new Uint32Array(width * height)
+
+  for (let column = 0; column < width; column++) {
+    const columnStart = base + column * height
+
+    for (let line = 0; line < height; line++) {
+      addresses[line * width + column] = (columnStart + line) % wrap
+    }
+  }
+
+  return addresses
+}
+
+function addressesFor({ reading, base, width, height, rasters, wrap, video }) {
+  switch (reading) {
+    case "linear":
+      return linear({ base, width, height, wrap })
+
+    case "columns":
+      return columns({ base, width, height, wrap })
+
+    default:
+      return video.addresses({ base, width, height, rasters })
+  }
+}
+
 export class Screen {
-  #base
-  #bytesPerLine
-  #height
+  #addresses
   #palette
-  #rasters
+  #ram
   #samples
   #samplesPerLine
   #swept
+  #video
+  #width
   #words
   #write
   #written
 
-  constructor({ base, width, height, rasters, mode, palette }) {
-    this.#base = base
-    this.#bytesPerLine = width * 2
-    this.#height = height
+  constructor({ reading, base, width, height, rasters, mode, palette, ram, video }) {
+    const wrap = ram.length,
+      addresses = addressesFor({ reading, base, width, height, rasters, wrap, video })
+
+    this.#addresses = addresses
     this.#palette = palette
-    this.#rasters = rasters
-    this.#samplesPerLine = this.#bytesPerLine * SAMPLES_PER_BYTE
-    this.#samples = new Uint8Array(this.#samplesPerLine * height * rasters)
-    this.#swept = new Uint8Array(this.#bytesPerLine * height * rasters)
+    this.#ram = ram
+    this.#samples = new Uint8Array(addresses.length * SAMPLES_PER_BYTE)
+    this.#samplesPerLine = width * SAMPLES_PER_BYTE
+    this.#swept = new Uint8Array(addresses.length)
+    this.#video = video
+    this.#width = width
     this.#words = new Uint32Array(this.#samples.buffer)
-    this.#written = new Uint32Array(this.#bytesPerLine * height * rasters)
     this.#write = MODE_WRITERS[mode]
+    this.#written = new Uint32Array(addresses.length)
   }
 
   get lines() {
-    return this.#height * this.#rasters
-  }
-
-  get samplesPerLine() {
-    return this.#samplesPerLine
+    return this.#addresses.length / this.#width
   }
 
   get samples() {
     return this.#samples
   }
 
-  get written() {
-    return this.#written
+  get samplesPerLine() {
+    return this.#samplesPerLine
   }
 
   get swept() {
     return this.#swept
   }
 
-  // The row start is the 6845's own VMA' latch, stable all row long, where
-  // the running counter is mid-stride between ticks.
-  sweep({ latch, column, raster, row, width, vsync }) {
-    const swept = this.#swept
-
-    if (row >= vsync) {
-      swept.fill(0)
-      return
-    }
-
-    if (width < 1 || ((latch >> 12) & 3) != this.#base >> 14) {
-      swept.fill(1)
-      return
-    }
-
-    const sectionBase = (latch - row * width) & 0x3ff,
-      bytesPerLine = this.#bytesPerLine
-
-    let index = 0
-    for (let r = 0; r < this.#height; r++) {
-      const rowStart = r * bytesPerLine
-
-      for (let s = 0; s < this.#rasters; s++) {
-        for (let byte = 0; byte < bytesPerLine; byte++) {
-          const word = ((rowStart + byte) & 0x7ff) >> 1,
-            distance = (word - sectionBase) & 0x3ff,
-            section = Math.floor(distance / width)
-
-          swept[index++] =
-            section < row ||
-            (section == row && (s < raster || (s == raster && distance - section * width < column)))
-              ? 1
-              : 0
-        }
-      }
-    }
+  get written() {
+    return this.#written
   }
 
   addressAt(sample, line) {
-    const row = Math.floor(line / this.#rasters),
-      raster = line % this.#rasters,
-      byte = Math.floor(sample / SAMPLES_PER_BYTE),
-      slice = this.#base | (raster << 11)
-
-    return slice | ((row * this.#bytesPerLine + byte) & 0x7ff)
+    return this.#addresses[line * this.#width + Math.floor(sample / SAMPLES_PER_BYTE)]
   }
 
-  render(ram, writes) {
-    const write = this.#write,
+  sweep() {
+    this.#video.sweep(this.#addresses, this.#swept)
+  }
+
+  render(writes) {
+    const addresses = this.#addresses,
       palette = this.#palette,
+      ram = this.#ram,
       words = this.#words,
+      write = this.#write,
       written = this.#written
 
-    let offset = 0,
-      index = 0
-    for (let row = 0; row < this.#height; row++) {
-      const rowStart = row * this.#bytesPerLine
+    let offset = 0
+    for (let index = 0; index < addresses.length; index++) {
+      const address = addresses[index]
 
-      for (let raster = 0; raster < this.#rasters; raster++) {
-        const slice = this.#base | (raster << 11)
-
-        for (let byte = 0; byte < this.#bytesPerLine; byte++) {
-          const address = slice | ((rowStart + byte) & 0x7ff)
-
-          written[index++] = writes[address]
-          write(ram[address], palette, words, offset)
-          offset += WORDS_PER_BYTE
-        }
-      }
+      written[index] = writes[address]
+      write(ram[address], palette, words, offset)
+      offset += WORDS_PER_BYTE
     }
   }
 }
