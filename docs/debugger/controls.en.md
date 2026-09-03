@@ -28,6 +28,16 @@ The direction is an arrow and the grain is a word, and the grain in force is the
 
 The panel reads `Tick`, the machine's own count of T-states since it was built or last loaded from a snapshot; `Frame`, the count the [screen's heat](screen.en.md#the-heat-view) ages against; and `Behind`, how far back of the present the machine is standing, in milliseconds of its own time, or `now` when it is standing there.
 
+## The mark the program carries
+
+Every other mark in this debugger is the reader's, laid on an address from outside. This one is the author's, written into the program where it was compiled: `ED FF`, two bytes a Z80 runs as a pair of idle microseconds and a debugger reads as an instruction to stop. [WinAPE](http://www.winape.net/help/debug.html) named it `BRK` and the emulators after it kept the bytes and the word both; [the disassembly](disassembly.en.md#the-instruction-with-no-datasheet) reads it back under that name.
+
+`Break instructions`, behind the three dots at the heading's right, decides whether this machine honours one. It begins unchecked, because bytes are not intentions: a snapshot may carry the pair in a table it never executes, and a machine stopping on every one of those would be reporting a coincidence.
+
+Honoured, the machine stops with the program counter standing on the `BRK` and before it has run — the moment [an execute mark](breakpoints.en.md#the-three-kinds) gives, so both stops read the same way and the listing opens on what stopped it. Run walks off the mark without being told to, exactly as it does there.
+
+The mark costs what it weighs. Eight T-states is two microseconds, twice a `NOP`, and a program written against the beam feels every one of them: a `BRK` left standing in a raster routine moves everything after it two microseconds down the line. It is a mark to write while a routine is being made and to take out before it is timed.
+
 ## Both directions land in the same places
 
 Both arrows leave the machine where a grain began, so from such a moment the two undo each other to the T-state: press ◀ then ▶ and the machine stands exactly where it stood. From anywhere else they do not, and cannot — ◀ goes to the start of the grain the machine is inside, and ▶ goes to the start of the next one.

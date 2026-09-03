@@ -7,6 +7,7 @@
   "_player_frame",
   "_player_clear_breakpoints",
   "_player_set_breakpoint",
+  "_player_set_break_instructions",
   "_player_trap_kind",
   "_player_trap_address",
   "_player_boot",
