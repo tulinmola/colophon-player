@@ -44,6 +44,10 @@ The machine stops itself, and every panel reads the stopped machine as after any
 
 Stopping and resuming keep their ordinary meanings. A resumed machine steps off an execute mark before watching for it again, so Run after a trap continues the program rather than standing still on the same address forever.
 
+## The mark this panel does not hold
+
+A program may carry a mark of its own: `BRK`, the two bytes an author writes into the source at the place the machine should stop. Nothing about that one belongs to the reader, so nothing about it is here — it cannot be set from this panel, armed or disarmed from it, or listed in it, and taking it away is an edit to the program rather than to this list. Whether the machine honours one at all is [the controls'](controls.en.md#the-mark-the-program-carries) to say.
+
 ## What it costs
 
-Nothing, until one is armed. The checks live in the player's own run loop, not in any chip, and with no marks armed the loop skips them entirely: a machine nobody is trapping runs at the hardware's own speed, and the emulator underneath carries no apparatus at all.
+Nothing, until one is armed. The checks live in the player's own run loop, not in any chip, and with nothing armed and no [break instruction](controls.en.md#the-mark-the-program-carries) honoured the loop skips them entirely: a machine nobody is trapping runs at the hardware's own speed, and the emulator underneath carries no apparatus at all.

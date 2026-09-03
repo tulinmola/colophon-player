@@ -88,12 +88,21 @@ static bool rewound;   /* standing somewhere the record has run past */
 #define PLAYER_TRAP_EXECUTE 1
 #define PLAYER_TRAP_READ 2
 #define PLAYER_TRAP_WRITE 4
+/* Not a kind the table below holds: this mark is carried by the program. */
+#define PLAYER_TRAP_BREAK 8
+
+/* WinAPE's BRK (http://www.winape.net/help/debug.html). A Z80 runs the pair
+   as a NONI: 8 T-states, R twice advanced, nothing else touched
+   (https://mdfs.net/Docs/Comp/Z80/UnDocOps). */
+#define PLAYER_BREAK_PREFIX 0xED
+#define PLAYER_BREAK_OPCODE 0xFF
 
 static uint8_t breakpoints[0x10000];
 /* Every kind set anywhere: each check below costs nothing until some
    breakpoint asks for it. Maintained here so it cannot disagree with the
    table it summarises. */
 static uint8_t trapping;
+static bool break_instructions;
 static uint8_t trap_kind;
 static uint16_t trap_address;
 
@@ -251,6 +260,11 @@ static void finish_instruction(void) {
   }
 }
 
+static bool standing_on_break_instruction(void) {
+  return cpc_peek(&cpc, cpc.cpu.pc) == PLAYER_BREAK_PREFIX &&
+         cpc_peek(&cpc, (uint16_t)(cpc.cpu.pc + 1)) == PLAYER_BREAK_OPCODE;
+}
+
 static uint32_t state_to_run_from(player_tick_t tick) {
   uint32_t index = 0;
 
@@ -343,6 +357,8 @@ void player_set_breakpoint(uint16_t from, uint16_t until, uint8_t kinds) {
   trapping |= kinds;
 }
 
+void player_set_break_instructions(bool honoured) { break_instructions = honoured; }
+
 uint32_t player_trap_kind(void) { return trap_kind; }
 uint32_t player_trap_address(void) { return trap_address; }
 
@@ -400,13 +416,22 @@ uint32_t player_run_until_retrace(uint32_t limit) {
       continue;
     }
 
-    if ((trapping & PLAYER_TRAP_EXECUTE) != 0 && z80_instruction_complete(&cpc.cpu) &&
-        (breakpoints[cpc.cpu.pc] & PLAYER_TRAP_EXECUTE) != 0) {
-      /* Where PC has arrived, not where it left: the marked instruction has
-         not run, and a resume walks off the mark without being told to. */
-      trap_kind = PLAYER_TRAP_EXECUTE;
-      trap_address = cpc.cpu.pc;
-      return count;
+    if (((trapping & PLAYER_TRAP_EXECUTE) != 0 || break_instructions) &&
+        z80_instruction_complete(&cpc.cpu)) {
+      /* Where PC has arrived, not where it left: the instruction standing
+         there has not run, and a resume walks off the mark without being told
+         to. */
+      if ((breakpoints[cpc.cpu.pc] & PLAYER_TRAP_EXECUTE) != 0) {
+        trap_kind = PLAYER_TRAP_EXECUTE;
+        trap_address = cpc.cpu.pc;
+        return count;
+      }
+
+      if (break_instructions && standing_on_break_instruction()) {
+        trap_kind = PLAYER_TRAP_BREAK;
+        trap_address = cpc.cpu.pc;
+        return count;
+      }
     }
 
     if (frame != start) {

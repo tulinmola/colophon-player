@@ -15,7 +15,7 @@ const MODELS = {
 
 const DEFAULT_ROMS_URL = "/roms"
 
-const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write" }
+const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write", 8: "break" }
 
 const GRAINS = { instruction: 0, scanline: 1, row: 2, frame: 3 }
 
@@ -71,6 +71,7 @@ function readCssColours(module) {
 }
 
 export class Cpc extends Machine {
+  #breakInstructions = false
   #breakpoints
   #cssColours
   #crtc
@@ -166,6 +167,15 @@ export class Cpc extends Machine {
 
   get breakpoints() {
     return this.#breakpoints
+  }
+
+  get breakInstructions() {
+    return this.#breakInstructions
+  }
+
+  set breakInstructions(honoured) {
+    this.#breakInstructions = honoured
+    this.#module._player_set_break_instructions(honoured)
   }
 
   get crtc() {

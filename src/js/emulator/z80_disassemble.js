@@ -236,6 +236,11 @@ export function disassemble(peek, address, nameOf = null) {
   }
 
   function extended(opcode) {
+    // http://www.winape.net/help/debug.html — WinAPE's name for the pair.
+    if (opcode == 0xff) {
+      return "BRK"
+    }
+
     const x = opcode >> 6,
       y = (opcode >> 3) & 7,
       z = opcode & 7,

@@ -20,6 +20,10 @@ It reads through the processor's own view of memory, so what it shows is what th
 
 Nothing above the program counter is shown, and nothing can be. An instruction's length is only known by reading it from its first byte, so there is no way to walk backwards through a stream of them without already knowing where one of them starts. A disassembly that offered the bytes before the program counter would be guessing, and would be wrong at exactly the moment a reader most needed it to be right.
 
+## The instruction with no datasheet
+
+One pair of bytes is read back under a name no datasheet gives it. `ED FF` is undefined on a Z80, which runs it as two idle microseconds and nothing else; [WinAPE](http://www.winape.net/help/debug.html) made it the mark a program carries to stop a debugger, and called it `BRK`. The listing writes it that way whether or not [the controls](controls.en.md#the-mark-the-program-carries) are set to stop on one, because the bytes say what they say either way.
+
 ## The names
 
 Where the machine has been given [a symbol file](symbols.en.md), a `Symbols` switch stands among the panel's options and the listing is read back under the program's own names. Without one the switch is not there at all, and the panel is what it has always been.

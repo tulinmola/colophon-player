@@ -27,7 +27,14 @@ class ControlsElement extends MachineObserver {
     const { signal } = this
 
     this.innerHTML = html`
-      <h2>Controls</h2>
+      <header>
+        <h2>Controls</h2>
+        <colophon-options label="Controls options">
+          <label class="toggle" title="Stop where the program itself carries a BRK">
+            <input type="checkbox" name="brk" /> Break instructions
+          </label>
+        </colophon-options>
+      </header>
       <div class="transport">
         <button type="button" class="key square run">
           <span aria-hidden="true">▶</span>
@@ -56,17 +63,22 @@ class ControlsElement extends MachineObserver {
       </div>
     `
 
+    const transport = this.querySelector(".transport"),
+      options = this.querySelector("colophon-options")
+
     this.#run = this.querySelector(".run")
     this.#back = this.querySelector('[data-step="back"]')
     this.#on = this.querySelector('[data-step="on"]')
-    this.#at = this.querySelector("input")
+    this.#at = this.querySelector('input[name="at"]')
     this.#now = this.querySelector('[data-action="returnToNow"]')
     this.#tick = this.querySelector('output[name="tick"]')
     this.#frame = this.querySelector('output[name="frame"]')
     this.#behind = this.querySelector('output[name="behind"]')
 
+    writeValue(options.form.elements.brk, machine.breakInstructions)
+
     this.addEventListener("change", this.onChanged.bind(this), { signal })
-    this.addEventListener("click", this.onClick.bind(this), { signal })
+    transport.addEventListener("click", this.onClick.bind(this), { signal })
 
     const showRunning = () => this.#showRunning(machine)
     machine.addEventListener("machine:start", showRunning, { signal })
@@ -79,9 +91,15 @@ class ControlsElement extends MachineObserver {
   }
 
   onChanged(event) {
-    const at = Number(event.target.value)
+    const control = event.target
 
-    this.machine.rewind(at)
+    if (control.name == "brk") {
+      this.machine.breakInstructions = control.checked
+    } else if (control.name == "at") {
+      const at = Number(control.value)
+
+      this.machine.rewind(at)
+    }
   }
 
   onClick(event) {
