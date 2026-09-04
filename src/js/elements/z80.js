@@ -1,4 +1,4 @@
-import { hex, html, writeValue } from "../lang"
+import { bit, hex, html, writeValue } from "../lang"
 import { MachineObserver } from "./machine_observer"
 
 const FLAGS = [
@@ -11,10 +11,6 @@ const FLAGS = [
   ["flagN", "N", "Add/subtract"],
   ["flagC", "C", "Carry"]
 ]
-
-function bit(on) {
-  return on ? "1" : "."
-}
 
 // aria-label is what keeps the sigil and any sibling control from being read
 // out as part of the name.

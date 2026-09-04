@@ -95,6 +95,43 @@ header:has(colophon-recording[recording]) colophon-options button {
 
 // A label has no box of its own, so its text becomes a grid item beside the
 // value and inherits the dim colour from it.
+// A state a reader may turn over, in the register a raised line is read in
+// rather than as a box to tick.
+input.state {
+  width: 1ch;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  color: $foreground;
+
+  &::before {
+    content: ".";
+  }
+
+  &:checked::before {
+    content: "1";
+  }
+
+  &:focus-visible {
+    outline: 1px solid $dim;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+// A panel's body, as many lines high as it was asked for.
+.list {
+  height: calc(var(--lines) * 1lh);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  margin-top: 0.5rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .fields {
   display: grid;
   grid-template-columns: auto auto;
@@ -123,12 +160,33 @@ header:has(colophon-recording[recording]) colophon-options button {
     }
   }
 
+  &.status {
+    grid-template-columns: 3ch auto auto;
+
+    div {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    div output::before {
+      content: none;
+    }
+  }
+
+  &.sequence {
+    grid-template-columns: 3ch auto;
+
+    output::before {
+      content: none;
+    }
+  }
+
   &.inks {
     grid-template-columns: repeat(4, auto auto);
     row-gap: 0.3rem;
   }
 
-  label {
+  > label {
     display: contents;
   }
 
@@ -177,12 +235,24 @@ header:has(colophon-recording[recording]) colophon-options button {
       width: 1ch;
     }
 
+    &[maxlength="3"] {
+      width: 3ch;
+    }
+
     &[maxlength="4"] {
       width: 4ch;
     }
 
     &[maxlength="5"] {
       width: 5ch;
+    }
+
+    &[maxlength="6"] {
+      width: 6ch;
+    }
+
+    &[maxlength="7"] {
+      width: 7ch;
     }
 
     &:focus {
@@ -201,26 +271,6 @@ header:has(colophon-recording[recording]) colophon-options button {
     color: $foreground;
     font: inherit;
     padding: 0 0.2rem;
-  }
-
-  input.state {
-    width: 1ch;
-    background: none;
-    cursor: pointer;
-    appearance: none;
-    color: $foreground;
-
-    &::before {
-      content: ".";
-    }
-
-    &:checked::before {
-      content: "1";
-    }
-
-    &:focus-visible {
-      outline: 1px solid $dim;
-    }
   }
 
   .ink {
@@ -288,6 +338,10 @@ colophon-gate-array,
 colophon-disassembly,
 colophon-symbols,
 colophon-breakpoints,
+colophon-upd765,
+colophon-drive,
+colophon-disc,
+colophon-track,
 colophon-monitor,
 colophon-screen {
   display: block;
@@ -640,15 +694,6 @@ colophon-breakpoint-form {
 }
 
 colophon-breakpoints {
-  .list {
-    height: calc(var(--lines) * 1lh);
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    margin-top: 0.5rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
   .breakpoint {
     display: grid;
     grid-template-columns: var(--columns);
@@ -681,15 +726,6 @@ colophon-breakpoints {
 }
 
 colophon-symbols {
-  .list {
-    height: calc(var(--lines) * 1lh);
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    margin-top: 0.5rem;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
   .symbol {
     display: grid;
     grid-template-columns: var(--columns);
@@ -707,6 +743,135 @@ colophon-symbols {
     &::before {
       content: "&";
     }
+  }
+}
+
+colophon-upd765 {
+  // The chip's name carries a micro sign, and uppercasing one turns it into a
+  // Greek capital mu: a different letter, and a different chip.
+  h2 {
+    text-transform: none;
+  }
+
+  .fields + .fields {
+    margin-top: 0.3rem;
+  }
+}
+
+colophon-drive .fields + .fields {
+  margin-top: 0.3rem;
+}
+
+colophon-disc {
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: var(--columns);
+    align-items: baseline;
+    gap: 0 0.75rem;
+    color: $dim;
+    white-space: nowrap;
+
+    &[loaded] output[name="name"] {
+      color: $foreground;
+    }
+  }
+
+  output[name="marks"] {
+    margin-right: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  button {
+    all: unset;
+    text-align: center;
+    cursor: pointer;
+
+    &:hover {
+      color: $foreground;
+    }
+
+    &:focus-visible {
+      outline: 1px solid $dim;
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
+
+  p {
+    margin: 0.5rem 0 0;
+    max-width: 40ch;
+    color: $dim;
+    text-wrap: pretty;
+  }
+
+  p[role="status"] {
+    color: $invalid;
+
+    &:empty {
+      display: none;
+    }
+  }
+}
+
+colophon-track {
+  output {
+    display: block;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  header output {
+    color: $foreground;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: $well;
+    font-weight: inherit;
+    text-align: right;
+    user-select: none;
+
+    abbr {
+      text-decoration: none;
+    }
+  }
+
+  // A cell is a line and no more: the browser's own padding would make every
+  // row taller than the box that counts them.
+  th,
+  td {
+    padding: 0 0 0 1ch;
+    text-align: right;
+    color: $dim;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: 0;
+  }
+
+  th:last-child,
+  td:last-child {
+    text-align: left;
+  }
+
+  td:last-child,
+  tr[aria-current] td {
+    color: $foreground;
   }
 }
 

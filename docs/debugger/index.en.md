@@ -26,6 +26,10 @@ The debugger is not one element but a collection of them, each watching one part
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
 - [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
 - [The breakpoints](breakpoints.en.md) — the marks a reader sets on the memory, and the machine that stops itself on reaching one.
+- [The discs](disc.en.md) — the two drawers, what goes into them, and what comes back out.
+- [The drive](drive.en.md) — the motor, the head, and the lines a controller reads.
+- [The µPD765A](upd765.en.md) — the controller: the handshake, the command in flight, and what it ended with.
+- [The track](track.en.md) — the medium under the head, sector by sector.
 
 One page here answers to no element: [the record](record.en.md) is the machine's own recent past, which the controls move through and which the screen and the memory reach into to say where a byte came from.
 
@@ -38,6 +42,8 @@ The breakpoints are the one exception, and they prove the rule's shape: a trap t
 That is why the apparatus stands out here rather than in there, and why these elements are observers and not features of the emulator. [A machine fact belongs in the machine and observation policy belongs in the host](../../emulator/observation.en.md#the-rule) is the rule the machine was built to, and this page is one thing that rule makes possible. A page of panels is one thing that can be built on a machine like that. A command line drawing a map of every write the boot made is another, and neither needs to know the other exists.
 
 It also means the panels follow the chips rather than the machine. The processor, the 6845 and the memory are watched by elements that know only their own chip, so the day a second machine is built around the same parts, those elements come along unchanged.
+
+The disc is where that shows most plainly, because a disc is three things and not one: the medium, the drive that turns it, and the controller that reads it. [None of the three names a machine anywhere in its code](../../emulator/core.en.md), so each gets a panel of its own and all three would go into a second machine as they are. Only [the drawers](disc.en.md) are the machine's, because putting a disc into a drive is a thing the board does.
 
 ## What every panel does the same way
 

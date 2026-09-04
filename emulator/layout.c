@@ -9,7 +9,10 @@
 #include <stdio.h>
 
 #include "crtc.h"
+#include "drive.h"
+#include "floppy.h"
 #include "gate_array.h"
+#include "upd765.h"
 #include "z80.h"
 
 int main(void) {
@@ -84,6 +87,127 @@ int main(void) {
   printf("export const GATE_ARRAY_AT_R52 = %zu\n", offsetof(gate_array_t, r52));
   printf("export const GATE_ARRAY_AT_INTERRUPT_REQUEST = %zu\n",
          offsetof(gate_array_t, interrupt_request));
+
+  printf("export const UPD765_SIZE = %zu\n", sizeof(upd765_t));
+  printf("export const UPD765_AT_PHASE = %zu\n", offsetof(upd765_t, phase));
+  printf("export const UPD765_AT_COMMAND = %zu\n", offsetof(upd765_t, command));
+  printf("export const UPD765_AT_COMMAND_RECEIVED = %zu\n", offsetof(upd765_t, command_received));
+  printf("export const UPD765_AT_RESULT = %zu\n", offsetof(upd765_t, result));
+  printf("export const UPD765_AT_RESULT_LENGTH = %zu\n", offsetof(upd765_t, result_length));
+  printf("export const UPD765_AT_TERMINAL_COUNT = %zu\n", offsetof(upd765_t, terminal_count));
+  printf("export const UPD765_AT_ST0 = %zu\n", offsetof(upd765_t, st0));
+  printf("export const UPD765_AT_ST1 = %zu\n", offsetof(upd765_t, st1));
+  printf("export const UPD765_AT_ST2 = %zu\n", offsetof(upd765_t, st2));
+  printf("export const UPD765_AT_C = %zu\n", offsetof(upd765_t, c));
+  printf("export const UPD765_AT_H = %zu\n", offsetof(upd765_t, h));
+  printf("export const UPD765_AT_R = %zu\n", offsetof(upd765_t, r));
+  printf("export const UPD765_AT_N = %zu\n", offsetof(upd765_t, n));
+  printf("export const UPD765_AT_STEP_TIME = %zu\n", offsetof(upd765_t, step_time));
+  printf("export const UPD765_AT_HEAD_UNLOAD_TIME = %zu\n", offsetof(upd765_t, head_unload_time));
+  printf("export const UPD765_AT_HEAD_LOAD_TIME = %zu\n", offsetof(upd765_t, head_load_time));
+  printf("export const UPD765_AT_NON_DMA = %zu\n", offsetof(upd765_t, non_dma));
+  printf("export const UPD765_AT_HEAD_LOADED = %zu\n", offsetof(upd765_t, head_loaded));
+  printf("export const UPD765_AT_STAGE = %zu\n", offsetof(upd765_t, stage));
+  printf("export const UPD765_AT_TRANSFERRED = %zu\n", offsetof(upd765_t, transferred));
+  printf("export const UPD765_AT_TRANSFER_LENGTH = %zu\n", offsetof(upd765_t, transfer_length));
+  printf("export const UPD765_COMMAND_BYTES = %d\n", UPD765_COMMAND_BYTES);
+  printf("export const UPD765_RESULT_BYTES = %d\n", UPD765_RESULT_BYTES);
+
+  printf("export const UPD765_PHASE_IDLE = %d\n", UPD765_PHASE_IDLE);
+  printf("export const UPD765_PHASE_COMMAND = %d\n", UPD765_PHASE_COMMAND);
+  printf("export const UPD765_PHASE_EXECUTION = %d\n", UPD765_PHASE_EXECUTION);
+  printf("export const UPD765_PHASE_RESULT = %d\n", UPD765_PHASE_RESULT);
+
+  printf("export const UPD765_STAGE_NONE = %d\n", UPD765_STAGE_NONE);
+  printf("export const UPD765_STAGE_LOADING_HEAD = %d\n", UPD765_STAGE_LOADING_HEAD);
+  printf("export const UPD765_STAGE_FINDING_IDENTITY = %d\n", UPD765_STAGE_FINDING_IDENTITY);
+  printf("export const UPD765_STAGE_READING_IDENTITY = %d\n", UPD765_STAGE_READING_IDENTITY);
+  printf("export const UPD765_STAGE_TO_DATA = %d\n", UPD765_STAGE_TO_DATA);
+  printf("export const UPD765_STAGE_DATA = %d\n", UPD765_STAGE_DATA);
+  printf("export const UPD765_STAGE_SKIPPING = %d\n", UPD765_STAGE_SKIPPING);
+  printf("export const UPD765_STAGE_CHECK = %d\n", UPD765_STAGE_CHECK);
+  printf("export const UPD765_STAGE_WAITING_INDEX = %d\n", UPD765_STAGE_WAITING_INDEX);
+  printf("export const UPD765_STAGE_FORMAT_TO_IDENTITY = %d\n", UPD765_STAGE_FORMAT_TO_IDENTITY);
+  printf("export const UPD765_STAGE_FORMAT_IDENTITY = %d\n", UPD765_STAGE_FORMAT_IDENTITY);
+  printf("export const UPD765_STAGE_FORMAT_FIELD = %d\n", UPD765_STAGE_FORMAT_FIELD);
+  printf("export const UPD765_STAGE_FORMAT_ENDING = %d\n", UPD765_STAGE_FORMAT_ENDING);
+
+  printf("export const UPD765_MSR_RQM = %d\n", UPD765_MSR_RQM);
+  printf("export const UPD765_MSR_DIO = %d\n", UPD765_MSR_DIO);
+  printf("export const UPD765_MSR_EXM = %d\n", UPD765_MSR_EXM);
+  printf("export const UPD765_MSR_CB = %d\n", UPD765_MSR_CB);
+
+  printf("export const UPD765_ST0_NORMAL = %d\n", UPD765_ST0_NORMAL);
+  printf("export const UPD765_ST0_ABNORMAL = %d\n", UPD765_ST0_ABNORMAL);
+  printf("export const UPD765_ST0_INVALID = %d\n", UPD765_ST0_INVALID);
+  printf("export const UPD765_ST0_READY_CHANGED = %d\n", UPD765_ST0_READY_CHANGED);
+  printf("export const UPD765_ST0_SE = %d\n", UPD765_ST0_SE);
+  printf("export const UPD765_ST0_EC = %d\n", UPD765_ST0_EC);
+  printf("export const UPD765_ST0_NR = %d\n", UPD765_ST0_NR);
+  printf("export const UPD765_ST0_HD = %d\n", UPD765_ST0_HD);
+  printf("export const UPD765_ST0_US = %d\n", UPD765_ST0_US);
+
+  printf("export const UPD765_ST1_EN = %d\n", UPD765_ST1_EN);
+  printf("export const UPD765_ST1_DE = %d\n", UPD765_ST1_DE);
+  printf("export const UPD765_ST1_OR = %d\n", UPD765_ST1_OR);
+  printf("export const UPD765_ST1_ND = %d\n", UPD765_ST1_ND);
+  printf("export const UPD765_ST1_NW = %d\n", UPD765_ST1_NW);
+  printf("export const UPD765_ST1_MA = %d\n", UPD765_ST1_MA);
+
+  printf("export const UPD765_ST2_CM = %d\n", UPD765_ST2_CM);
+  printf("export const UPD765_ST2_DD = %d\n", UPD765_ST2_DD);
+  printf("export const UPD765_ST2_WC = %d\n", UPD765_ST2_WC);
+  printf("export const UPD765_ST2_SH = %d\n", UPD765_ST2_SH);
+  printf("export const UPD765_ST2_SN = %d\n", UPD765_ST2_SN);
+  printf("export const UPD765_ST2_BC = %d\n", UPD765_ST2_BC);
+  printf("export const UPD765_ST2_MD = %d\n", UPD765_ST2_MD);
+
+  printf("export const DRIVE_SIZE = %zu\n", sizeof(drive_t));
+  printf("export const DRIVE_AT_FLOPPY = %zu\n", offsetof(drive_t, floppy));
+  printf("export const DRIVE_AT_MOTOR = %zu\n", offsetof(drive_t, motor));
+  printf("export const DRIVE_AT_SIDE = %zu\n", offsetof(drive_t, side));
+  printf("export const DRIVE_AT_CYLINDER = %zu\n", offsetof(drive_t, cylinder));
+  printf("export const DRIVE_AT_POSITION = %zu\n", offsetof(drive_t, position));
+  printf("export const DRIVE_AT_REVOLUTIONS = %zu\n", offsetof(drive_t, revolutions));
+  printf("export const DRIVE_AT_SPIN_UP = %zu\n", offsetof(drive_t, spin_up));
+
+  printf("export const FLOPPY_SIZE = %zu\n", sizeof(floppy_t));
+  printf("export const FLOPPY_AT_CYLINDERS = %zu\n", offsetof(floppy_t, cylinders));
+  printf("export const FLOPPY_AT_SIDES = %zu\n", offsetof(floppy_t, sides));
+  printf("export const FLOPPY_AT_WRITE_PROTECTED = %zu\n", offsetof(floppy_t, write_protected));
+  printf("export const FLOPPY_AT_MODIFIED = %zu\n", offsetof(floppy_t, modified));
+  printf("export const FLOPPY_AT_TRACKS = %zu\n", offsetof(floppy_t, tracks));
+  printf("export const FLOPPY_MAX_CYLINDERS = %d\n", FLOPPY_MAX_CYLINDERS);
+  printf("export const FLOPPY_MAX_SIDES = %d\n", FLOPPY_MAX_SIDES);
+  printf("export const FLOPPY_BYTES_PER_REVOLUTION = %d\n", FLOPPY_BYTES_PER_REVOLUTION);
+
+  printf("export const FLOPPY_TRACK_SIZE = %zu\n", sizeof(floppy_track_t));
+  printf("export const FLOPPY_TRACK_AT_FORMATTED = %zu\n", offsetof(floppy_track_t, formatted));
+  printf("export const FLOPPY_TRACK_AT_UNREADABLE = %zu\n", offsetof(floppy_track_t, unreadable));
+  printf("export const FLOPPY_TRACK_AT_SECTOR_COUNT = %zu\n",
+         offsetof(floppy_track_t, sector_count));
+  printf("export const FLOPPY_TRACK_AT_GAP = %zu\n", offsetof(floppy_track_t, gap));
+  printf("export const FLOPPY_TRACK_AT_FILLER = %zu\n", offsetof(floppy_track_t, filler));
+  printf("export const FLOPPY_TRACK_AT_LENGTH = %zu\n", offsetof(floppy_track_t, length));
+  printf("export const FLOPPY_TRACK_AT_SECTORS = %zu\n", offsetof(floppy_track_t, sectors));
+
+  printf("export const FLOPPY_SECTOR_SIZE = %zu\n", sizeof(floppy_sector_t));
+  printf("export const FLOPPY_SECTOR_AT_C = %zu\n", offsetof(floppy_sector_t, c));
+  printf("export const FLOPPY_SECTOR_AT_H = %zu\n", offsetof(floppy_sector_t, h));
+  printf("export const FLOPPY_SECTOR_AT_R = %zu\n", offsetof(floppy_sector_t, r));
+  printf("export const FLOPPY_SECTOR_AT_N = %zu\n", offsetof(floppy_sector_t, n));
+  printf("export const FLOPPY_SECTOR_AT_DELETED = %zu\n", offsetof(floppy_sector_t, deleted));
+  printf("export const FLOPPY_SECTOR_AT_IDENTITY_CRC_ERROR = %zu\n",
+         offsetof(floppy_sector_t, identity_crc_error));
+  printf("export const FLOPPY_SECTOR_AT_DATA_CRC_ERROR = %zu\n",
+         offsetof(floppy_sector_t, data_crc_error));
+  printf("export const FLOPPY_SECTOR_AT_NO_DATA_FIELD = %zu\n",
+         offsetof(floppy_sector_t, no_data_field));
+  printf("export const FLOPPY_SECTOR_AT_ANNOUNCED = %zu\n", offsetof(floppy_sector_t, announced));
+  printf("export const FLOPPY_SECTOR_AT_RECORDED = %zu\n", offsetof(floppy_sector_t, recorded));
+  printf("export const FLOPPY_SECTOR_AT_EXTENT = %zu\n", offsetof(floppy_sector_t, extent));
+  printf("export const FLOPPY_SECTOR_AT_COPIES = %zu\n", offsetof(floppy_sector_t, copies));
+  printf("export const FLOPPY_SECTOR_AT_POSITION = %zu\n", offsetof(floppy_sector_t, position));
 
   return 0;
 }

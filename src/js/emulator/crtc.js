@@ -7,7 +7,7 @@ import {
   CRTC_REGISTERS,
   CRTC_SIZE
 } from "./layout"
-import { Chip } from "./chip"
+import { Struct } from "./struct"
 
 // The bits a write reaches, as src/crtc.c masks them to the documented type-0
 // widths (Compendium ch. 4.3). R16 and R17 are the light pen's to write, so
@@ -23,7 +23,7 @@ const WRITABLE_BITS = [
 const C4_BITS = 0x7f,
   C9_BITS = 0x1f
 
-export class Crtc extends Chip {
+export class Crtc extends Struct {
   constructor(module, pointer, capture) {
     super(module, pointer, CRTC_SIZE, capture)
   }

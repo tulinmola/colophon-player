@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "cpc.h"
+#include "dsk.h"
 #include "gate_array.h"
 #include "snapshot.h"
 
@@ -21,6 +22,16 @@
 #define PLAYER_RAM_SIZE 0x20000
 #define PLAYER_ROM_SIZE 0x8000
 #define PLAYER_SNAPSHOT_SIZE (SNAPSHOT_HEADER_SIZE + PLAYER_RAM_SIZE)
+
+#define PLAYER_AMSDOS_SIZE 0x4000
+
+/* As wide as the core's own drives[], since cpc_insert_disc is indexed by the
+   same number these buffers are. */
+#define PLAYER_DRIVES 2
+
+/* A CPC's own discs are a fifth of this. The rest is for the extended images
+   of protected ones, which store every reading of an unstable sector. */
+#define PLAYER_DISC_SIZE 0x100000
 
 /* A frame is 312 lines of 64µs, and four T-states fill a microsecond of a
    4MHz clock. */
@@ -57,7 +68,16 @@ static cpc_t cpc;
 static uint8_t ram[PLAYER_RAM_SIZE];
 static uint8_t framebuffer[CPC_FRAMEBUFFER_WIDTH * CPC_FRAMEBUFFER_HEIGHT];
 static uint8_t rom[PLAYER_ROM_SIZE];
+static uint8_t amsdos[PLAYER_AMSDOS_SIZE];
 static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
+
+/* A floppy borrows its image where it lies, so a buffer here is the disc while
+   it is in the drive: it must not move, and nothing may write over it until
+   that disc comes out. */
+static uint8_t disc_images[PLAYER_DRIVES][PLAYER_DISC_SIZE];
+static floppy_t discs[PLAYER_DRIVES];
+static uint8_t written_disc[PLAYER_DISC_SIZE];
+static const char *disc_problem;
 
 /* The frame each physical byte was last stored to, taken from the pins the
    tick already returns — the tap the emulator's observation.en.md costs at
@@ -330,7 +350,12 @@ static void stand_at(player_tick_t target) {
 }
 
 uint8_t *player_rom(void) { return rom; }
+uint8_t *player_amsdos(void) { return amsdos; }
 uint8_t *player_snapshot(void) { return snapshot; }
+
+uint8_t *player_disc(uint8_t drive) { return disc_images[drive]; }
+uint32_t player_disc_capacity(void) { return PLAYER_DISC_SIZE; }
+uint8_t *player_written_disc(void) { return written_disc; }
 
 /* Addresses into it are physical, the video hardware's own view; peek and
    poke walk the CPU's banking instead. */
@@ -363,10 +388,19 @@ uint32_t player_trap_kind(void) { return trap_kind; }
 uint32_t player_trap_address(void) { return trap_address; }
 
 /* The operating system fills the lower half of the image, BASIC the upper
- * as ROM 0. */
-void player_boot(uint32_t ram_size) {
+ * as ROM 0, and the disc interface brings its own ROM as upper ROM 7.
+ *
+ * cpc_init empties the drives, so a disc that was in one goes back in after
+ * this and not before. */
+void player_boot(uint32_t ram_size, bool disc_interface) {
   cpc_init(&cpc, ram, ram_size, rom);
   cpc_set_upper_rom(&cpc, 0, rom + 0x4000);
+
+  if (disc_interface) {
+    cpc_fit_disc_interface(&cpc, true);
+    cpc_set_upper_rom(&cpc, 7, amsdos);
+  }
+
   cpc_connect_monitor(&cpc, framebuffer);
   forget_writes();
   forget_history();
@@ -381,6 +415,68 @@ bool player_load_snapshot(uint32_t length) {
   forget_writes();
   forget_history();
   return true;
+}
+
+/* The disc comes out before the image is read, because dsk_read empties the
+ * floppy it refuses: leaving it mounted would leave the drive holding a medium
+ * with nothing on it rather than an empty drive.
+ *
+ * A length with no room for it is refused first of all, having touched
+ * nothing, so the disc already in the drive stays there. */
+bool player_insert_disc(uint8_t drive, uint32_t length) {
+  disc_problem = NULL;
+
+  if (length > PLAYER_DISC_SIZE) {
+    disc_problem = "the image is larger than the room a disc is given here";
+    return false;
+  }
+
+  cpc_insert_disc(&cpc, drive, NULL);
+
+  if (!dsk_read(&discs[drive], disc_images[drive], length, &disc_problem)) {
+    capture();
+    return false;
+  }
+
+  cpc_insert_disc(&cpc, drive, &discs[drive]);
+  capture();
+  return true;
+}
+
+/* The medium is left where it is: a moment the record can still be stood at
+ * had this disc in the drive, and the pointer it holds must still find it. */
+void player_eject_disc(uint8_t drive) {
+  cpc_insert_disc(&cpc, drive, NULL);
+  capture();
+}
+
+const char *player_disc_problem(void) { return disc_problem; }
+
+/* Zero where there is no image to write, or where the room here falls short
+ * of the one dsk_write measured, in which case it wrote nothing. */
+uint32_t player_save_disc(uint8_t drive) {
+  const floppy_t *disc = cpc.drives[drive].floppy;
+
+  disc_problem = NULL;
+
+  if (disc == NULL) {
+    disc_problem = "there is no disc in that drive to write";
+    return 0;
+  }
+
+  size_t needed = dsk_write(disc, written_disc, sizeof written_disc);
+
+  if (needed == 0) {
+    disc_problem = "the disc holds a track the image format cannot describe";
+    return 0;
+  }
+
+  if (needed > sizeof written_disc) {
+    disc_problem = "the disc needs more room than an image here is given";
+    return 0;
+  }
+
+  return (uint32_t)needed;
 }
 
 void player_run_frames(uint32_t frames) {
@@ -483,6 +579,22 @@ void player_remap(void) { cpc_remap(&cpc); }
 z80_t *player_z80(void) { return &cpc.cpu; }
 crtc_t *player_crtc(void) { return &cpc.crtc; }
 gate_array_t *player_gate_array(void) { return &cpc.gate_array; }
+upd765_t *player_fdc(void) { return &cpc.fdc; }
+drive_t *player_drive(uint8_t drive) { return &cpc.drives[drive]; }
+floppy_t *player_floppy(uint8_t drive) { return &discs[drive]; }
+
+/* The main status register as the processor polls it: the chip works it out
+   from what it is doing rather than keeping it, and reading it moves
+   nothing. */
+uint32_t player_fdc_status(void) { return upd765_read(&cpc.fdc, UPD765_STATUS); }
+
+bool player_drive_ready(uint8_t drive) { return drive_ready(&cpc.drives[drive]); }
+bool player_drive_track_zero(uint8_t drive) { return drive_track_zero(&cpc.drives[drive]); }
+bool player_drive_two_sided(uint8_t drive) { return drive_two_sided(&cpc.drives[drive]); }
+
+bool player_drive_write_protected(uint8_t drive) {
+  return drive_write_protected(&cpc.drives[drive]);
+}
 
 void player_finish_instruction(void) { finish_instruction(); }
 

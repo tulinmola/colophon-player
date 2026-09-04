@@ -1,0 +1,210 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="../arnold.css">
+	<meta name="keywords" content="cpc,cpc+,keyboard,joystick">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta http-equiv="Content-Language" content="en-gb">
+   <meta name="uawww-category" content="docs-hardware">
+   <meta name="description" lang="en" content="Technical information about reading the keyboard and joysticks on the Amstrad CPC, Amstrad CPC+ and KC Compact computers">
+   <title>Reading the keyboard and Joysticks</title>
+<base href="http://www.cpctech.org.uk" target="_parent" /></head>
+<body>
+<H1>Scanning the Keyboard and Joysticks</H1>
+<p>The keyboard and joysticks are scanned using the AY-3-8912 PSG and the 8255 PPI.
+
+<p>It is necessary  that  you  understand  how  to  use  these before you
+continue to read this document.
+
+<p>The keys on the keyboard, and the joystick directions and buttons, 
+are arranged in an 10 by 8 matrix. Each element of the matrix is a switch and represents
+the state of a key or a joystick button. 
+
+<p>The matrix is read a column at a time, each column is read as a byte, and this
+holds the state of 8 switches.
+
+<p>When the matrix is read, a  switch will be &quot;0&quot; or &quot;1&quot;.
+<ul>
+<li>If the switch is &quot;0&quot; then the key/joystick button corresponding
+to that bit is pressed,
+<li>If the switch is &quot;1&quot; then the key/joystick button is not pressed,
+</ul>
+
+<p>Joystick 0 occupies it's own space in the matrix and is accessed at
+line 9. Joystick 1 shares line 6 with the keyboard. As a result, it is possible to simulate the state  of  joystick  1 by
+pressing the appropiate keys on the keyboard.
+
+<h2>The matrix</h2>
+<p>The position of each  key/joystick button  in  the  matrix  is  shown in the
+table below.
+
+<p><table border="1">
+<thead>
+<tr>
+<th rowspan="2">Bit</th>
+<th colspan="10">Line</th>
+</tr>
+<tr>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>8</th>
+<th>9</th>
+</tr>
+</thead>
+<tbody>
+
+<tr><td>7</td><td>f.</td><td>f0</td><td>Ctrl</td><td>&gt; ,</td><td>&lt; .</td><td>Space</td><td>V</td><td>X</td><td>Z</td><td>Del</td></tr>
+<tr><td>6</td><td>Enter</td><td>f2</td><td>` \</td><td>? /</td><td>M</td><td>N</td><td>B</td><td>C</td><td>Caps Lock</td><td>Unused</td></tr>
+<tr><td>5</td><td>f3</td><td>f1</td><td>Shift</td><td>* :</td><td>K</td><td>J</td><td>F / Joy 1 Fire 1</td><td>D</td><td>A</td><td>Joy 0 Fire 1</td></tr>
+<tr><td>4</td><td>f6</td><td>f5</td><td>f4 </td><td>+ ;</td><td>L</td><td>H</td><td>G / Joy 1 Fire 2</td><td>S</td><td>Tab</td><td>Joy 0 Fire 2</td></tr>
+<tr><td>3</td><td>f9</td><td>f8</td><td>} ]</td><td>P</td><td>I</td><td>Y</td><td>T / Joy 1 Right</td><td>W</td><td>Q</td><td>Joy 0 Right</td></tr>
+<tr><td>2</td><td>Cursor Down</td><td>f7</td><td>Return</td><td>| @</td><td>O</td><td>U</td><td>R / Joy 1 Left</td><td>E</td><td>Esc</td><td>Joy 0 Left</td></tr>
+<tr><td>1</td><td>Cursor Right</td><td>Copy</td><td>{ [</td><td>= -</td><td>) 9</td><td>' 7</td><td>% 5 / Joy 1 Down</td><td># 3</td><td>" 2</td><td>Joy 0 Down</td></tr>
+<tr><td>0</td><td>Cursor Up</td><td>Cursor Left</td><td>Clr</td><td>£ ^</td><td>_ 0</td><td>( 8</td><td>&amp; 6 / Joy 1 Up</td><td>$ 4</td><td>! 1</td><td>Joy 0 Up</td></tr>
+</tbody>
+</table>
+
+<p>Note:
+<ul>
+<li>Bit 6 on lines 9  and  6, may be used to report a third fire button on a joystick.
+This bit is also used as the middle button on an AMX compatible mouse.
+<li>For CPC464 and CPC664 users: Those keys prefixed  with  an  &quot;f&quot;  are  located  on the numeric keypad. 
+<li>&quot;f.&quot; is the &quot;.&quot; key on the numeric keypad.
+<li>For CPC464 and CPC664 users:
+<ul>
+<li>ENTER is the small ENTER key, 
+<li>RETURN is the large ENTER key
+</ul>
+<li>If matrix line 11-14 are selected, the byte is always &amp;ff.
+After testing on a real CPC, it is found that these never change, they
+always return &amp;FF.
+<li>Watch out for KEYBOARD CLASH!
+</ul>
+<h2>Algorithm for reading the keyboard and joysticks</h2>
+
+<p>The matrix is connected to PSG I/O port A, and PPI Port C. (PSG Port A is accessed through PSG register 14).
+<p>Bits 3..0 of PPI Port C are used to define the matrix line to read. The data of the selected matrix 
+line will be present at the inputs to PSG Port A.  
+
+<p>The PSG is accessed through PPI Port A and PPI Port C. PPI port A is a databus.
+PPI Port C bit 7 and 6 are used to define the PSG access function:
+
+<p>PSG access function selection:
+
+<p><table border="1">
+<thead>
+<tr>
+<th colspan="2">PPI Port C Bit</th>
+<th rowspan="2">PSG Function</th>
+<th rowspan="2">Notes</th>
+</tr>
+<tr>
+<th>7</th>
+<th>6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>Inactive</td><td></td>
+</tr>
+<tr>
+<td>0</td>
+<td>1</td>
+<td>Read from selected PSG register.</td><td>The data from the PSG register will be present at PPI port A.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0</td>
+<td>Write to selected PSG register. </td><td>The data at PPI port A defines the data to write to the PSG register.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>Select PSG register.</td><td>The data at PPI port A defines the PSG register index.</td>
+</tr>
+</tbody>
+</table>
+
+<p>To read the keyboard and joystick is a long task.
+
+<p>The following sequence is required to read one or more matrix lines:
+<ol>
+<li>Write 14 to PPI Port A, (This is the index of the I/O Port A register of the PSG)
+<li>Select PSG operation: write register index, by setting bit 7=&quot;1&quot; and bit 6=&quot;1&quot;
+of PPI port C.
+<p>(At this stage the PSG will have selected the register specified by the data at PPI Port A).
+<p>
+<li>Select PSG operation: inactive, by setting bit 7=&quot;0&quot; and bit 6=&quot;0&quot; of PPI Port C.
+<p>(This stage is required by the CPC+. If it is missing the scanning operation will fail)
+<p>
+<li>Set Port A of the PPI to input (use PPI Control register), 
+<p>(At this stage it is possible to read from PSG register 14)
+<p>
+<li>Write matrix line into bit 3-0 of PPI Port C.
+<p>(At this stage the matrix line data will be presented to PSG register 14).
+<p>
+<li>Select PSG operation: read register data, by setting bit 7=&quot;0 and bit 6=&quot;1&quot; of PPI Port C.
+<p>(At this stage the matrix line data will be presented to PPI port A)
+<p>
+<li>Read matrix data from PPI port A.
+<li>If more lines are to be read go to step 5,
+<li>Set Port A of the PPI to output (use PPI Control register),
+<p>(At this stage it is possible to write data to the PSG. This algorithm assumes that port A is in this state
+when it starts)
+<p>
+<li>Select PSG operation: inactive, by setting bit 7=&quot;0&quot; and bit 6=&quot;0&quot; of PPI Port C.
+<p>(This stage is required by the CPC+. If it is missing the scanning operation will fail)
+<p>
+</ol>
+<p>Commented dissassembly of the system function to scan the keyboard and joysticks:
+[ <a href="../source/keyboard.html">highlighted</a> | <a href="../source/keyboard.asm">original</a> ]
+h2>Keyboard clash</h2>
+<p>There is a problem with the matrix which is called &quot;Keyboard clash&quot;.
+<p>If you press more than one key at the same time, another
+key (a &quot;ghost&quot; key), which has <b>not</b> been pressed, will often be reported. 
+(The rules explaining when this problem occurs are shown below).
+<p>This problem is more obvious in two player games, because more buttons will
+be pressed together at the same time.
+<p>The solution is to choose a combination of keys/buttons which will not cause 
+this problem when they are pressed together.
+
+<p>The problem will only occur in the following circumstances:
+<p>Using a coordinate system to identify a unique matrix line and bit within that line,
+(line<sub>x</sub>, bit<sub>y</sub>), where x is a number between 0 and 10 and
+y is a number between 0 and 7, the following is observed:
+
+<ol>
+<li>if (line<sub>x1</sub>,bit<sub>y1</sub>) is pressed AND (line<sub>x2</sub>,bit<sub>y1</sub>) is 
+pressed AND (line<sub>x2</sub>,bit<sub>y2</sub>) is pressed THEN (line<sub>x1</sub>,bit<sub>y2</sub>) 
+will be reported as pressed.
+<li>OR:  if (line<sub>x1</sub>,bit<sub>y1</sub>) is pressed AND (line<sub>x1</sub>,bit<sub>y2</sub>) is 
+pressed AND (line<sub>x2</sub>,bit<sub>y1</sub>) is pressed THEN (line<sub>x2</sub>,bit<sub>y2</sub>) 
+will be reported as pressed.
+<li>OR:  if (line<sub>x1</sub>,bit<sub>y1</sub>) is pressed AND (line<sub>x1</sub>,bit<sub>y2</sub>) is 
+pressed AND (line<sub>x2</sub>,bit<sub>y2</sub>) is pressed THEN (line<sub>x2</sub>,bit<sub>y1</sub>) 
+will be reported as pressed.
+<li>OR:  if (line<sub>x1</sub>,bit<sub>y2</sub>) is pressed AND (line<sub>x2</sub>,bit<sub>y1</sub>) is 
+pressed AND (line<sub>x2</sub>,bit<sub>y2</sub>) is pressed THEN (line<sub>x1</sub>,bit<sub>y1</sub>) 
+will be reported as pressed.
+</ul>
+<p>e.g.
+<ul>
+<li>if C,W and N are pressed then Y is reported as pressed.
+<li>if K,J and Y are pressed then I is reported as pressed.
+</ul>
+<p>If many keys are pressed then many &quot;ghost&quot; keys will be reported as pressed following
+the rules above.
+<p>This problem occurs with any combination of keys/joystick buttons pressed in this way.
+<p>Interestingly, keyboards on other computers also have keyboard clash, even some PC keyboards.
+In more modern computers, the keyboard is controlled by a special keyboard processor and this
+can detect &quot;ghost&quot; keys and prevent them from being reported.
+</body>
+</html>

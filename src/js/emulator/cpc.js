@@ -1,19 +1,34 @@
 import { Breakpoints } from "./breakpoints"
 import { CpcVideo } from "./cpc_video"
 import { Crtc } from "./crtc"
+import { Drive } from "./drive"
+import { Floppy } from "./floppy"
 import { GateArray } from "./gate_array"
 import { Machine } from "./machine"
+import { Upd765 } from "./upd765"
 import { Z80 } from "./z80"
 import { createModule } from "./module"
 import { readSymbols } from "../symbols"
 
 const MODELS = {
-  cpc464: { romFile: "cpc464.rom", ramSize: 0x10000 },
-  cpc664: { romFile: "cpc664.rom", ramSize: 0x10000 },
-  cpc6128: { romFile: "cpc6128.rom", ramSize: 0x20000 }
+  cpc464: { romFile: "cpc464.rom", ramSize: 0x10000, discInterface: false },
+  cpc664: { romFile: "cpc664.rom", ramSize: 0x10000, discInterface: true },
+  cpc6128: { romFile: "cpc6128.rom", ramSize: 0x20000, discInterface: true }
 }
 
 const DEFAULT_ROMS_URL = "/roms"
+
+const AMSDOS_ROM_FILE = "amsdos.rom"
+
+const DRIVES = 2
+
+const TEXT = new TextDecoder()
+
+function discNameFrom(url) {
+  const { pathname } = new URL(url, document.baseURI)
+
+  return pathname.slice(pathname.lastIndexOf("/") + 1)
+}
 
 const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write", 8: "break" }
 
@@ -58,6 +73,18 @@ function readGreys(module) {
   return greys
 }
 
+function readDiscProblem(module) {
+  const heap = module.HEAPU8,
+    at = module._player_disc_problem()
+
+  let end = at
+  while (heap[end] != 0) {
+    end++
+  }
+
+  return TEXT.decode(heap.subarray(at, end))
+}
+
 // The same codes as CSS, for a page that shows an ink rather than draws it.
 function readCssColours(module) {
   const colours = new Array(COLOUR_CODES)
@@ -78,6 +105,11 @@ export class Cpc extends Machine {
   #framebuffer
   #gateArray
   #greys
+  #discInterface
+  #discNames = []
+  #discProblem = null
+  #drives
+  #fdc
   #module
   #palette
   #ram
@@ -85,17 +117,45 @@ export class Cpc extends Machine {
   #writes
   #z80
 
-  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, signal } = {}) {
+  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, discUrls, signal } = {}) {
     const machine = MODELS[model],
       roms = romsUrl ?? DEFAULT_ROMS_URL,
+      discs = discUrls ?? [],
       module = await createModule(),
       response = await fetch(`${roms}/${machine.romFile}`, { signal }),
       rom = new Uint8Array(await response.arrayBuffer())
 
     module.HEAPU8.set(rom, module._player_rom())
-    module._player_boot(machine.ramSize)
 
-    const cpc = new Cpc(module, machine.ramSize)
+    const discInterface = machine.discInterface || discs.some(url => url)
+
+    if (discInterface) {
+      const fitted = await fetch(`${roms}/${AMSDOS_ROM_FILE}`, { signal }),
+        amsdos = new Uint8Array(await fitted.arrayBuffer())
+
+      module.HEAPU8.set(amsdos, module._player_amsdos())
+    }
+
+    module._player_boot(machine.ramSize, discInterface)
+
+    const cpc = new Cpc(module, machine.ramSize, discInterface)
+
+    for (let drive = 0; drive < discs.length; drive++) {
+      const url = discs[drive]
+
+      if (!url) {
+        continue
+      }
+
+      const image = await fetch(url, { signal }),
+        bytes = new Uint8Array(await image.arrayBuffer()),
+        name = discNameFrom(url)
+
+      if (!cpc.insertDisc(drive, bytes, name)) {
+        throw new Error(`${url} is not a disc this machine can read: ${cpc.discProblem}`)
+      }
+    }
+
     if (snapshotUrl) {
       const saved = await fetch(snapshotUrl, { signal }),
         bytes = new Uint8Array(await saved.arrayBuffer())
@@ -120,12 +180,13 @@ export class Cpc extends Machine {
     return cpc
   }
 
-  constructor(module, ramSize) {
+  constructor(module, ramSize, discInterface) {
     super()
 
     const z80Pointer = module._player_z80(),
       crtcPointer = module._player_crtc(),
       gateArrayPointer = module._player_gate_array(),
+      fdcPointer = module._player_fdc(),
       framebufferPointer = module._player_framebuffer(),
       framebufferLength = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT,
       ramPointer = module._player_ram(),
@@ -133,6 +194,7 @@ export class Cpc extends Machine {
 
     this.#module = module
     this.#breakpoints = new Breakpoints(module)
+    this.#discInterface = discInterface
     this.#palette = readPalette(module)
     this.#cssColours = readCssColours(module)
     this.#greys = readGreys(module)
@@ -141,7 +203,17 @@ export class Cpc extends Machine {
     this.#z80 = new Z80(module, z80Pointer, capture)
     this.#crtc = new Crtc(module, crtcPointer, capture)
     this.#gateArray = new GateArray(module, gateArrayPointer, capture)
+    this.#fdc = new Upd765(module, fdcPointer, capture)
     this.#video = new CpcVideo(this.#crtc)
+
+    this.#drives = []
+    for (let unit = 0; unit < DRIVES; unit++) {
+      const drivePointer = module._player_drive(unit),
+        floppyPointer = module._player_floppy(unit),
+        floppy = new Floppy(module, floppyPointer, capture)
+
+      this.#drives.push(new Drive(module, drivePointer, unit, floppy, capture))
+    }
 
     // The module's memory never grows (player.c holds all of it in fixed
     // storage), so a view taken once stays valid.
@@ -184,6 +256,31 @@ export class Cpc extends Machine {
 
   get gateArray() {
     return this.#gateArray
+  }
+
+  get fdc() {
+    return this.#fdc
+  }
+
+  get drives() {
+    return this.#drives
+  }
+
+  get discInterface() {
+    return this.#discInterface
+  }
+
+  // The last refusal, whichever drive it was for.
+  get discProblem() {
+    return this.#discProblem
+  }
+
+  discName(drive) {
+    return this.#discNames[drive] ?? ""
+  }
+
+  get discCapacity() {
+    return this.#module._player_disc_capacity()
   }
 
   get video() {
@@ -341,5 +438,50 @@ export class Cpc extends Machine {
   loadSnapshot(bytes) {
     this.#module.HEAPU8.set(bytes, this.#module._player_snapshot())
     return this.#module._player_load_snapshot(bytes.length)
+  }
+
+  // An image with no room for it is never written: the buffer it would land in
+  // is the disc a drive may still be reading.
+  insertDisc(drive, bytes, name) {
+    const module = this.#module
+
+    if (bytes.length <= this.discCapacity) {
+      module.HEAPU8.set(bytes, module._player_disc(drive))
+    }
+
+    if (module._player_insert_disc(drive, bytes.length)) {
+      this.#discNames[drive] = name
+      this.#discProblem = null
+      return true
+    }
+
+    this.#discProblem = readDiscProblem(module)
+
+    if (!this.drives[drive].floppy) {
+      this.#discNames[drive] = ""
+    }
+
+    return false
+  }
+
+  ejectDisc(drive) {
+    this.#module._player_eject_disc(drive)
+    this.#discProblem = null
+  }
+
+  // Null where there is no image to write, with discProblem saying why.
+  saveDisc(drive) {
+    const module = this.#module,
+      length = module._player_save_disc(drive)
+
+    if (length == 0) {
+      this.#discProblem = readDiscProblem(module)
+      return null
+    }
+
+    this.#discProblem = null
+    const at = module._player_written_disc()
+
+    return module.HEAPU8.slice(at, at + length)
   }
 }

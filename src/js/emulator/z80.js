@@ -45,9 +45,9 @@ import {
   Z80_FLAG_Z,
   Z80_SIZE
 } from "./layout"
-import { Chip } from "./chip"
+import { Struct } from "./struct"
 
-export class Z80 extends Chip {
+export class Z80 extends Struct {
   constructor(module, pointer, capture) {
     super(module, pointer, Z80_SIZE, capture)
   }

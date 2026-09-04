@@ -1,18 +1,6 @@
+import { download, html } from "../lang"
 import { CanvasRecorder } from "../recording"
 import { MachineObserver } from "./machine_observer"
-import { html } from "../lang"
-
-function download(blob, name) {
-  const url = URL.createObjectURL(blob),
-    link = document.createElement("a")
-
-  link.href = url
-  link.download = name
-  document.body.append(link)
-  link.click()
-  link.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
-}
 
 // The recorder finds its picture the way observers find their machine:
 // walking up for whatever holds canvases.

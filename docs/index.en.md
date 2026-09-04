@@ -50,10 +50,11 @@ The rest is files standing where the page looks for them.
 index.html          the page above
 game.sna            fetched beside the page
 roms/cpc6128.rom    fetched from the root of the site
+roms/amsdos.rom     and this one, on any machine with a disc interface
 ```
 
-The snapshot is named by the `snapshot` attribute and fetched relative to the page. The firmware is looked for in `/roms` at the root of the site, whatever the page's own address; a `roms` attribute on `<colophon-cpc>` sends it elsewhere, and a relative one there is resolved against the page like any other link. Which of the three files under `roms/` is read follows from `model`.
+The snapshot is named by the `snapshot` attribute and fetched relative to the page, and a disc image named by `disc` is fetched the same way. The firmware is looked for in `/roms` at the root of the site, whatever the page's own address; a `roms` attribute on `<colophon-cpc>` sends it elsewhere, and a relative one there is resolved against the page like any other link. Which machine's firmware is read follows from `model`. `amsdos.rom` is read alongside it wherever the disc interface is fitted, which the 664 and the 6128 have built in and a 464 gets only when it is given a disc.
 
-Nothing is asked of the server but to hand files over, and any static server will do — one is needed all the same, because a browser fetches neither modules nor snapshots from a file opened off the disc.
+Nothing is asked of the server but to hand files over, and any static server will do — one is needed all the same, because a browser will fetch neither a module nor a snapshot nor a disc image from a page opened straight off the filesystem.
 
 While the version begins with a zero, any release may break what the last one promised. Pin the exact version.

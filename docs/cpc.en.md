@@ -18,6 +18,8 @@ A CPC is the machine there is today. The element is named for it rather than for
 | ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `model`    | `cpc6128` | `cpc464`, `cpc664` or `cpc6128`. It settles which firmware is read and how much memory the machine is built with; [the three machines](../emulator/machine.en.md#the-machines) are set out where they are built.                       |
 | `snapshot` | —         | A snapshot to start from, fetched relative to the page. Without one the machine boots from reset and arrives at its prompt.                                                                                                            |
+| `disc`     | —         | A disc image for drive A, fetched relative to the page. Giving one to a machine with no disc interface built in is what plugs one into it, with the AMSDOS ROM it brings.                                                              |
+| `disc-b`   | —         | The same for drive B, which is the connector for a two-headed drive where A is the machine's own one-headed one.                                                                                                                       |
 | `symbols`  | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
 | `roms`     | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                      |
 
@@ -47,8 +49,12 @@ The module that carries the machine is fetched after the elements have reached t
 
 It boots its own firmware to the Ready prompt, takes what is typed at it, and runs at the speed the hardware ran — [the Gate Array holds the processor off the memory three cycles in four](../emulator/machine.en.md#timing), which is the tax that makes a CPC behave like a CPC.
 
-What it cannot do yet is set out chip by chip [where the machine is built](../emulator/machine.en.md). The three that a reader of these panels meets first: there is no disc controller, so a snapshot is the only way into a game; the sound chip keeps its registers and makes no sound, though the keyboard is read through it regardless, which is why typing works; and [what a version 1 snapshot cannot carry](../emulator/machine.en.md#snapshots) decides how exactly a machine can be picked up again.
+It reads discs, through [the same AMSDOS ROM and the same controller the hardware had](../emulator/machine.en.md#discs), so `CAT` catalogues a disc and `RUN"` loads off one. A disc named in the attributes above is in the drive before the machine has run a tick; [the drawers](debugger/disc.en.md) are where one goes in or comes out later, and a disc goes in while the machine runs, as a disc does.
+
+A machine loading a snapshot with a disc in the drive keeps both. The disc goes in first and the snapshot is laid over the machine after, because building a machine empties its drives and a snapshot carries nothing about them.
+
+What it cannot do yet is set out chip by chip [where the machine is built](../emulator/machine.en.md). The two that a reader of these panels meets first: the sound chip keeps its registers and makes no sound, though the keyboard is read through it regardless, which is why typing works; and [what a version 1 snapshot cannot carry](../emulator/machine.en.md#snapshots) decides how exactly a machine can be picked up again.
 
 ## The firmware
 
-The images are Amstrad's, [distributable with emulators by the permission Amstrad gave in 1999](../emulator/machine.en.md#the-firmware). `npm run roms:fetch` brings them down and they are never committed; where they must then stand is what `roms` says.
+The images are Amstrad's, [distributable with emulators by the permission Amstrad gave in 1999](../emulator/machine.en.md#the-firmware). `npm run roms:fetch` brings them down and they are never committed; where they must then stand is what `roms` says. `amsdos.rom` comes down with the other three and is read only by a machine that has the disc interface fitted.

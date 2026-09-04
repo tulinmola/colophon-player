@@ -4,6 +4,10 @@ function hex(value, { digits = 2, prefix = "" } = {}) {
 
 const html = String.raw
 
+function bit(on) {
+  return on ? "1" : "."
+}
+
 function write(node, text) {
   if (node.textContent != text) {
     node.textContent = text
@@ -46,4 +50,16 @@ function writeFitted(node, text, room) {
   }
 }
 
-export { hex, html, write, writeFitted, writeValue }
+function download(blob, name) {
+  const url = URL.createObjectURL(blob),
+    link = document.createElement("a")
+
+  link.href = url
+  link.download = name
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
+export { bit, download, hex, html, write, writeFitted, writeValue }

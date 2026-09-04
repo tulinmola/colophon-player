@@ -10,7 +10,7 @@ import {
   GATE_ARRAY_INKS,
   GATE_ARRAY_SIZE
 } from "./layout"
-import { Chip } from "./chip"
+import { Struct } from "./struct"
 
 // The bits a write reaches, as src/gate_array.c masks them: a colour code is
 // five bits, a mode two, and R52 counts to 52 in six.
@@ -20,7 +20,7 @@ const INK_BITS = 0x1f,
 
 const BORDER_PEN = 16
 
-export class GateArray extends Chip {
+export class GateArray extends Struct {
   constructor(module, pointer, capture) {
     super(module, pointer, GATE_ARRAY_SIZE, capture)
   }

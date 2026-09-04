@@ -4,7 +4,7 @@ import { Element } from "./element"
 const DEFAULT_MODEL = "cpc6128"
 
 class CpcElement extends Element {
-  static observedAttributes = ["model", "roms", "snapshot", "symbols"]
+  static observedAttributes = ["disc", "disc-b", "model", "roms", "snapshot", "symbols"]
 
   #machine = null
   #pendingReleases = new Set()
@@ -54,10 +54,12 @@ class CpcElement extends Element {
     const model = this.getAttribute("model") ?? DEFAULT_MODEL,
       romsUrl = this.getAttribute("roms"),
       snapshotUrl = this.getAttribute("snapshot"),
-      symbolsUrl = this.getAttribute("symbols")
+      symbolsUrl = this.getAttribute("symbols"),
+      discUrls = [this.getAttribute("disc"), this.getAttribute("disc-b")]
 
     try {
-      const machine = await Cpc.create(model, { signal, romsUrl, snapshotUrl, symbolsUrl })
+      const options = { signal, romsUrl, snapshotUrl, symbolsUrl, discUrls },
+        machine = await Cpc.create(model, options)
       this.#fit(machine)
     } catch (error) {
       if (error.name != "AbortError") {

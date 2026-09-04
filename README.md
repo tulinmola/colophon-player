@@ -13,10 +13,10 @@ It will not stop at watching. Colophon's machine is stepped one clock at a time 
 There is no player yet, only the page that will hold one. The shape it is built toward is a single tag:
 
 ```html
-<colophon-player machine="cpc464" snapshot="foo.sna"></colophon-player>
+<colophon-player machine="cpc464" disc="foo.dsk"></colophon-player>
 ```
 
-A machine to build, a snapshot to start it from, and a canvas showing what its monitor shows.
+A machine to build, a disc or a snapshot to start it from, and a canvas showing what its monitor shows.
 
 ## Building
 

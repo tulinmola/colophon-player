@@ -1,9 +1,9 @@
-export class Chip {
+export class Struct {
   #capture
   #state
 
-  // The module's memory never grows, so the window onto the struct is taken
-  // once and holds for the life of the machine.
+  // The module's memory never grows, so the window is taken once and holds for
+  // the life of the machine.
   constructor(module, pointer, size, capture) {
     this.#capture = capture
     this.#state = new DataView(module.HEAPU8.buffer, pointer, size)
@@ -17,6 +17,10 @@ export class Chip {
     return this.#state.getUint16(offset, true)
   }
 
+  longAt(offset) {
+    return this.#state.getUint32(offset, true)
+  }
+
   boolAt(offset) {
     return this.#state.getUint8(offset) != 0
   }
@@ -28,6 +32,11 @@ export class Chip {
 
   putWordAt(offset, value) {
     this.#state.setUint16(offset, value, true)
+    this.#capture()
+  }
+
+  putLongAt(offset, value) {
+    this.#state.setUint32(offset, value, true)
     this.#capture()
   }
 
