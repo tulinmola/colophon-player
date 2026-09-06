@@ -30,6 +30,7 @@ npm start                # serve the page
 npm run build            # write the site to dist/
 npm run dist             # write the distributable colophon-player.{js,css}
 npm run check            # formatting, linting and the tests
+npm run test:e2e         # the page driven in a browser, needing the firmware
 ```
 
 `npm run emulator:build` reads the emulator from `../colophon-emulator`, or from wherever `EMULATOR_DIR` points, and writes a module named after the commit it was built from — so a page can always say which machine it is running, and a build from an unclean tree cannot answer to a commit's name. The module is committed, and rebuilt only when the emulator moves.

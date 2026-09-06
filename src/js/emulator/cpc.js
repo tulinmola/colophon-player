@@ -4,6 +4,7 @@ import { Crtc } from "./crtc"
 import { Drive } from "./drive"
 import { Floppy } from "./floppy"
 import { GateArray } from "./gate_array"
+import { Keyboard } from "./keyboard"
 import { Machine } from "./machine"
 import { Upd765 } from "./upd765"
 import { Z80 } from "./z80"
@@ -105,6 +106,7 @@ export class Cpc extends Machine {
   #framebuffer
   #gateArray
   #greys
+  #keyboard
   #discInterface
   #discNames = []
   #discProblem = null
@@ -112,6 +114,9 @@ export class Cpc extends Machine {
   #fdc
   #module
   #palette
+  #pendingReleases = new Set()
+  #presentCount = 0
+  #pressedAt = new Map()
   #ram
   #video
   #writes
@@ -186,6 +191,7 @@ export class Cpc extends Machine {
     const z80Pointer = module._player_z80(),
       crtcPointer = module._player_crtc(),
       gateArrayPointer = module._player_gate_array(),
+      keyboardPointer = module._player_keyboard(),
       fdcPointer = module._player_fdc(),
       framebufferPointer = module._player_framebuffer(),
       framebufferLength = FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT,
@@ -203,6 +209,7 @@ export class Cpc extends Machine {
     this.#z80 = new Z80(module, z80Pointer, capture)
     this.#crtc = new Crtc(module, crtcPointer, capture)
     this.#gateArray = new GateArray(module, gateArrayPointer, capture)
+    this.#keyboard = new Keyboard(module, keyboardPointer, capture)
     this.#fdc = new Upd765(module, fdcPointer, capture)
     this.#video = new CpcVideo(this.#crtc)
 
@@ -256,6 +263,10 @@ export class Cpc extends Machine {
 
   get gateArray() {
     return this.#gateArray
+  }
+
+  get keyboard() {
+    return this.#keyboard
   }
 
   get fdc() {
@@ -407,15 +418,32 @@ export class Cpc extends Machine {
   }
 
   pressKey(key) {
+    this.#pendingReleases.delete(key)
+    this.#pressedAt.set(key, this.#presentCount)
     this.#module._player_press(key)
   }
 
+  // The firmware reads the matrix once a frame, so a key pressed and let go
+  // between two reads was never pressed at all.
   releaseKey(key) {
-    this.#module._player_release(key)
+    if (this.#presentCount > this.#pressedAt.get(key)) {
+      this.#pressedAt.delete(key)
+      this.#module._player_release(key)
+    } else {
+      this.#pendingReleases.add(key)
+    }
   }
 
-  releaseAllKeys() {
-    this.#module._player_release_all()
+  present() {
+    this.#presentCount++
+
+    for (const key of this.#pendingReleases) {
+      this.#pressedAt.delete(key)
+      this.#module._player_release(key)
+    }
+    this.#pendingReleases.clear()
+
+    super.present()
   }
 
   peek(address) {

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { Cpc } from "./cpc"
 import { Floppy } from "./floppy"
+import { JOYSTICK_MATRIX } from "./cpc_joysticks"
 import { createModule } from "./module"
 
 const RAM_SIZE = 0x20000
@@ -278,5 +279,80 @@ describe("the drive and the controller at rest", function () {
 
     expect(fdc.interruptCode).toBe("normal")
     expect(fdc.terminalCount).toBe(false)
+  })
+})
+
+describe("the joysticks in the matrix", function () {
+  let cpc = null
+
+  beforeEach(async function () {
+    cpc = await bootMachine()
+  })
+
+  it("starts with every switch open", function () {
+    expect(Array.from(cpc.keyboard.lines)).toEqual(new Array(10).fill(0xff))
+  })
+
+  it("puts joystick 0 on line 9, in the order KM GET JOYSTICK reads it", function () {
+    const [joystick] = JOYSTICK_MATRIX
+
+    cpc.pressKey(joystick.up)
+    cpc.pressKey(joystick.right)
+    cpc.pressKey(joystick.fire2)
+    cpc.pressKey(joystick.spare)
+
+    // Bits 0, 3, 4 and 6 pulled down, DEL on bit 7 left alone.
+    expect(cpc.keyboard.lines[9]).toBe(0xff & ~0b01011001)
+    expect(cpc.keyboard.pressed(joystick.up)).toBe(true)
+    expect(cpc.keyboard.pressed(joystick.down)).toBe(false)
+  })
+
+  it("puts joystick 1 over the keys 6, 5, R, T, G, F and B", function () {
+    const [, joystick] = JOYSTICK_MATRIX
+
+    cpc.pressKey(joystick.fire1)
+
+    expect(cpc.keyboard.lines[6]).toBe(0xff & ~0b00100000)
+    expect(cpc.keyboard.pressed(53)).toBe(true)
+  })
+})
+
+describe("a key let go before the machine ran", function () {
+  let cpc = null
+
+  beforeEach(async function () {
+    cpc = await bootMachine()
+  })
+
+  it("stays down until a frame has been presented", function () {
+    const [joystick] = JOYSTICK_MATRIX
+
+    cpc.pressKey(joystick.fire2)
+    cpc.releaseKey(joystick.fire2)
+    expect(cpc.keyboard.pressed(joystick.fire2)).toBe(true)
+
+    cpc.present()
+    expect(cpc.keyboard.pressed(joystick.fire2)).toBe(false)
+  })
+
+  it("is released at once when a frame has passed since the press", function () {
+    const [joystick] = JOYSTICK_MATRIX
+
+    cpc.pressKey(joystick.left)
+    cpc.present()
+    cpc.releaseKey(joystick.left)
+
+    expect(cpc.keyboard.pressed(joystick.left)).toBe(false)
+  })
+
+  it("is held again by a press that lands before the release is due", function () {
+    const [joystick] = JOYSTICK_MATRIX
+
+    cpc.pressKey(joystick.down)
+    cpc.releaseKey(joystick.down)
+    cpc.pressKey(joystick.down)
+    cpc.present()
+
+    expect(cpc.keyboard.pressed(joystick.down)).toBe(true)
   })
 })

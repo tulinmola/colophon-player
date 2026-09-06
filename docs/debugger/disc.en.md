@@ -1,7 +1,7 @@
 ---
 title: The discs
 description: The two drawers the machine has, what goes into them, and what comes back out again.
-order: 13
+order: 14
 ---
 
 A disc is the one part of this machine a reader puts there. Everything else the page builds — the processor, the memory, the picture — is the machine being itself; a disc is somebody else's object pushed into a slot, and it leaves the way it came in, changed by whatever ran off it.

@@ -44,7 +44,7 @@ A page describes what the player does today, so a change to what the player does
 
 - `npm start` runs the site, `npm run build` writes `dist/`.
 - `npm run emulator:build` compiles the machine and the hosts into `src/js/vendor/`, stamped with the emulator's commit. Update the imports it names, and delete the superseded build rather than leave it to be picked up by mistake.
-- `npm run check` is Prettier, ESLint and the tests together; run it before handing work back.
+- `npm run check` is Prettier, ESLint and the tests together; run it before handing work back. `npm run test:e2e` drives the page in a browser with Playwright, and needs the firmware fetched; run it too when the change reaches the page.
 - Never commit, never push. The human reviews; the human commits.
 
 ## Code style

@@ -1,15 +1,42 @@
-import { Cpc, KEY_MATRIX } from "../emulator"
+import { Cpc, JOYSTICK_MATRIX, KEY_MATRIX } from "../emulator"
 import { Element } from "./element"
+import { readGamepad } from "../input/gamepad"
 
 const DEFAULT_MODEL = "cpc6128"
+
+// Z, X and C are where Caprice32 (src/keyboard.cpp,
+// https://github.com/ColinPitrat/caprice32) and CPCEC (cpcec-os.h,
+// https://github.com/cpcitor/cpcec) put the buttons of a keyboard joystick.
+const JOYSTICK_ON_CURSORS = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  KeyZ: "fire2",
+  KeyX: "fire1",
+  KeyC: "spare"
+}
+
+const DIRECTIONS = ["up", "down", "left", "right"]
+
+const GAMEPAD_BUTTON = { fire2: 0, fire1: 1, spare: 2 }
+
+// Asking throws where a permissions policy forbids gamepads.
+function gamepadsAllowed() {
+  try {
+    navigator.getGamepads()
+    return true
+  } catch {
+    return false
+  }
+}
 
 class CpcElement extends Element {
   static observedAttributes = ["disc", "disc-b", "model", "roms", "snapshot", "symbols"]
 
+  #heldByGamepads = JOYSTICK_MATRIX.map(() => new Set())
+  #heldByKeyboard = new Set()
   #machine = null
-  #pendingReleases = new Set()
-  #presentCount = 0
-  #pressedAt = new Map()
 
   get machine() {
     return this.#machine
@@ -22,6 +49,8 @@ class CpcElement extends Element {
     if (!this.standing) {
       return
     }
+
+    this.#releaseAllHeld()
 
     const machine = this.#machine
     this.#machine = null
@@ -70,7 +99,7 @@ class CpcElement extends Element {
 
   dispose() {
     this.#machine?.stop()
-    this.#forgetKeys()
+    this.#releaseAllHeld()
   }
 
   onKeyDown(event) {
@@ -80,12 +109,12 @@ class CpcElement extends Element {
     }
 
     event.preventDefault()
-    this.#pendingReleases.delete(key)
 
     // The browser repeats a held key and so does the firmware.
-    if (!event.repeat) {
-      this.#pressedAt.set(key, this.#presentCount)
-      this.#machine?.pressKey(key)
+    if (!event.repeat && this.#machine) {
+      this.#heldByKeyboard.add(key)
+      this.#machine.pressKey(key)
+      this.#machine.changed()
     }
   }
 
@@ -97,29 +126,56 @@ class CpcElement extends Element {
 
     event.preventDefault()
 
-    // The firmware reads the matrix once a frame, so a key pressed and let go
-    // between two reads was never pressed at all. Holding the others any
-    // longer would carry a shift into the keystroke after them.
-    if (this.#presentCount > this.#pressedAt.get(key)) {
-      this.#pressedAt.delete(key)
-      this.#machine?.releaseKey(key)
-    } else {
-      this.#pendingReleases.add(key)
+    if (this.#heldByKeyboard.delete(key)) {
+      this.#machine.releaseKey(key)
+      this.#machine.changed()
     }
   }
 
   onBlur() {
-    this.#forgetKeys()
+    if (this.#heldByKeyboard.size > 0) {
+      this.#releaseHeld(this.#heldByKeyboard)
+      this.#machine.changed()
+    }
   }
 
-  onPresent() {
-    this.#presentCount++
+  onAdvance() {
+    const gamepads = navigator.getGamepads()
 
-    for (const key of this.#pendingReleases) {
-      this.#pressedAt.delete(key)
-      this.#machine.releaseKey(key)
+    for (let joystick = 0; joystick < JOYSTICK_MATRIX.length; joystick++) {
+      const switches = JOYSTICK_MATRIX[joystick],
+        pad = readGamepad(gamepads[joystick]),
+        before = this.#heldByGamepads[joystick],
+        held = new Set()
+
+      if (pad) {
+        for (const direction of DIRECTIONS) {
+          if (pad[direction]) {
+            held.add(switches[direction])
+          }
+        }
+
+        for (const [name, button] of Object.entries(GAMEPAD_BUTTON)) {
+          if (pad.buttons[button]) {
+            held.add(switches[name])
+          }
+        }
+      }
+
+      for (const key of held) {
+        if (!before.has(key)) {
+          this.#machine.pressKey(key)
+        }
+      }
+
+      for (const key of before) {
+        if (!held.has(key)) {
+          this.#machine.releaseKey(key)
+        }
+      }
+
+      this.#heldByGamepads[joystick] = held
     }
-    this.#pendingReleases.clear()
   }
 
   #fit(machine) {
@@ -128,7 +184,9 @@ class CpcElement extends Element {
       return
     }
 
-    machine.addEventListener("machine:frame", this.onPresent.bind(this), { signal })
+    if (gamepadsAllowed()) {
+      machine.addEventListener("machine:advance", this.onAdvance.bind(this), { signal })
+    }
     this.#machine = machine
 
     const ready = new Event("machine:ready")
@@ -137,10 +195,19 @@ class CpcElement extends Element {
     machine.start()
   }
 
-  #forgetKeys() {
-    this.#pendingReleases.clear()
-    this.#pressedAt.clear()
-    this.#machine?.releaseAllKeys()
+  #releaseHeld(held) {
+    for (const key of held) {
+      this.#machine.releaseKey(key)
+    }
+    held.clear()
+  }
+
+  #releaseAllHeld() {
+    this.#releaseHeld(this.#heldByKeyboard)
+
+    for (const held of this.#heldByGamepads) {
+      this.#releaseHeld(held)
+    }
   }
 
   // Keys reach the machine only while the machine itself holds focus: a
@@ -151,6 +218,14 @@ class CpcElement extends Element {
   #matrixKey(event) {
     if (event.metaKey || event.target != this) {
       return null
+    }
+
+    if (this.getAttribute("joystick") == "cursors") {
+      const name = JOYSTICK_ON_CURSORS[event.code]
+
+      if (name) {
+        return JOYSTICK_MATRIX[0][name]
+      }
     }
 
     return KEY_MATRIX[event.code]

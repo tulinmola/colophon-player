@@ -125,6 +125,9 @@ export class Machine extends EventTarget {
   onAnimationFrame(now) {
     this.#request = requestAnimationFrame(this.#advance)
 
+    const advancing = new Event("machine:advance")
+    this.dispatchEvent(advancing)
+
     const owed = (now - this.#last) * this.ticksPerMillisecond,
       maximum = MAXIMUM_DEBT_MILLISECONDS * this.ticksPerMillisecond
 

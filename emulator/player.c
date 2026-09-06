@@ -559,12 +559,6 @@ void player_release(uint8_t key) {
   capture_if_changed(before);
 }
 
-void player_release_all(void) {
-  keyboard_t before = cpc.keyboard;
-  keyboard_release_all(&cpc.keyboard);
-  capture_if_changed(before);
-}
-
 uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
 
 void player_poke(uint16_t address, uint8_t value) {
@@ -579,6 +573,7 @@ void player_remap(void) { cpc_remap(&cpc); }
 z80_t *player_z80(void) { return &cpc.cpu; }
 crtc_t *player_crtc(void) { return &cpc.crtc; }
 gate_array_t *player_gate_array(void) { return &cpc.gate_array; }
+keyboard_t *player_keyboard(void) { return &cpc.keyboard; }
 upd765_t *player_fdc(void) { return &cpc.fdc; }
 drive_t *player_drive(uint8_t drive) { return &cpc.drives[drive]; }
 floppy_t *player_floppy(uint8_t drive) { return &discs[drive]; }

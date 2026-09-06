@@ -335,6 +335,7 @@ colophon-controls,
 colophon-memory,
 colophon-crtc,
 colophon-gate-array,
+colophon-keyboard,
 colophon-disassembly,
 colophon-symbols,
 colophon-breakpoints,
@@ -760,6 +761,48 @@ colophon-upd765 {
 
 colophon-drive .fields + .fields {
   margin-top: 0.3rem;
+}
+
+colophon-keyboard {
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    padding: 0 0.5ch 0.2rem;
+    font-weight: 400;
+    color: $dim;
+  }
+
+  th[scope="row"] {
+    padding: 0 1ch 0 0;
+    text-align: right;
+  }
+
+  td label {
+    display: block;
+    min-width: 7ch;
+    padding: 0.1rem 0.5ch;
+    text-align: center;
+    white-space: nowrap;
+    color: $dim;
+    cursor: pointer;
+  }
+
+  td label:has(:checked) {
+    color: $foreground;
+    background: $well;
+  }
+
+  td label:has(:focus-visible) {
+    outline: 1px solid $dim;
+  }
+
+  td input {
+    position: absolute;
+    width: 0;
+    opacity: 0;
+  }
 }
 
 colophon-disc {

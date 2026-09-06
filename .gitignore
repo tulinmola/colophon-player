@@ -9,3 +9,5 @@ dist/
 # Amstrad's firmware images (see tools/fetch-roms.sh). Distributable with
 # emulators by Amstrad's permission, but fetched rather than committed.
 src/public/roms/
+test-results/
+playwright-report/

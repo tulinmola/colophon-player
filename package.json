@@ -26,11 +26,12 @@
     "preview": "vite preview",
     "prettier:check": "npx prettier . --check",
     "prettier:write": "npx prettier . --write",
-    "lint": "eslint 'src/**/*.js' 'tools/**/*.js' 'eslint.config.js' --ignore-pattern 'src/js/vendor/**/*'",
+    "lint": "eslint 'src/**/*.js' 'tools/**/*.js' 'e2e/**/*.js' 'eslint.config.js' 'playwright.config.js' --ignore-pattern 'src/js/vendor/**/*'",
     "roms:fetch": "node tools/fetch_roms.js",
     "emulator:build": "node tools/build_emulator.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest watch",
+    "test:e2e": "playwright test",
     "check": "npm run prettier:check && npm run lint && npm test"
   },
   "keywords": [
@@ -45,6 +46,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "eslint": "^10.8.1",
     "globals": "^17.11.0",
     "prettier": "^3.9.6",

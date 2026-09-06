@@ -12,6 +12,7 @@
 #include "drive.h"
 #include "floppy.h"
 #include "gate_array.h"
+#include "keyboard.h"
 #include "upd765.h"
 #include "z80.h"
 
@@ -87,6 +88,10 @@ int main(void) {
   printf("export const GATE_ARRAY_AT_R52 = %zu\n", offsetof(gate_array_t, r52));
   printf("export const GATE_ARRAY_AT_INTERRUPT_REQUEST = %zu\n",
          offsetof(gate_array_t, interrupt_request));
+
+  printf("export const KEYBOARD_SIZE = %zu\n", sizeof(keyboard_t));
+  printf("export const KEYBOARD_AT_LINES = %zu\n", offsetof(keyboard_t, lines));
+  printf("export const KEYBOARD_LINES = %d\n", KEYBOARD_LINES);
 
   printf("export const UPD765_SIZE = %zu\n", sizeof(upd765_t));
   printf("export const UPD765_AT_PHASE = %zu\n", offsetof(upd765_t, phase));
