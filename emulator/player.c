@@ -13,15 +13,15 @@
 #include <string.h>
 
 #include "cpc.h"
+#include "cpc_snapshot.h"
 #include "dsk.h"
 #include "gate_array.h"
-#include "snapshot.h"
 
 /* Sized for the largest machine: a 6128's 128K, and the 32K image holding
    the operating system and BASIC. */
 #define PLAYER_RAM_SIZE 0x20000
 #define PLAYER_ROM_SIZE 0x8000
-#define PLAYER_SNAPSHOT_SIZE (SNAPSHOT_HEADER_SIZE + PLAYER_RAM_SIZE)
+#define PLAYER_SNAPSHOT_SIZE (CPC_SNAPSHOT_HEADER_SIZE + PLAYER_RAM_SIZE)
 
 #define PLAYER_AMSDOS_SIZE 0x4000
 
@@ -408,7 +408,7 @@ void player_boot(uint32_t ram_size, bool disc_interface) {
 
 bool player_load_snapshot(uint32_t length) {
   const char *problem = NULL;
-  if (!snapshot_load(&cpc, snapshot, length, &problem)) {
+  if (!cpc_snapshot_load(&cpc, snapshot, length, &problem)) {
     return false;
   }
 

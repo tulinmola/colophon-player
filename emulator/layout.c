@@ -91,7 +91,7 @@ int main(void) {
 
   printf("export const KEYBOARD_SIZE = %zu\n", sizeof(keyboard_t));
   printf("export const KEYBOARD_AT_LINES = %zu\n", offsetof(keyboard_t, lines));
-  printf("export const KEYBOARD_LINES = %d\n", KEYBOARD_LINES);
+  printf("export const KEYBOARD_MAX_LINES = %d\n", KEYBOARD_MAX_LINES);
 
   printf("export const UPD765_SIZE = %zu\n", sizeof(upd765_t));
   printf("export const UPD765_AT_PHASE = %zu\n", offsetof(upd765_t, phase));

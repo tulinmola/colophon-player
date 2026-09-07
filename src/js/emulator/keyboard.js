@@ -1,9 +1,9 @@
-import { KEYBOARD_AT_LINES, KEYBOARD_LINES, KEYBOARD_SIZE } from "./layout"
+import { KEYBOARD_AT_LINES, KEYBOARD_MAX_LINES, KEYBOARD_SIZE } from "./layout"
 import { Struct } from "./struct"
 
 const BITS_A_LINE = 8
 
-// Keys are numbered line * 8 + bit, as keyboard.h and the manual number them.
+// Keys are numbered line * 8 + bit, as keyboard.h numbers a matrix position.
 function lineOf(key) {
   return Math.floor(key / BITS_A_LINE)
 }
@@ -17,7 +17,7 @@ export class Keyboard extends Struct {
 
   constructor(module, pointer, capture) {
     super(module, pointer, KEYBOARD_SIZE, capture)
-    this.#lines = this.bytesAt(KEYBOARD_AT_LINES, KEYBOARD_LINES)
+    this.#lines = this.bytesAt(KEYBOARD_AT_LINES, KEYBOARD_MAX_LINES)
   }
 
   // One byte a line, a set bit meaning released, as the machine reads them.
