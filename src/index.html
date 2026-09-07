@@ -2,59 +2,24 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <title>Colophon Debugger</title>
+    <title>Colophon Player</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="stylesheet" href="./css/index.css" />
     <meta name="theme-color" content="#000000" />
   </head>
-  <body>
-    <colophon-cpc model="cpc6128">
-      <div class="panels">
-        <colophon-controls></colophon-controls>
-        <colophon-monitor zoom="1.5"></colophon-monitor>
-        <!--
-        <colophon-screen
-          label="HUD screen"
-          view="beam heat"
-          base="&8000"
-          width="100"
-          height="40"
-          rasters="2"
-          mode="0"
-          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
-        ></colophon-screen>
-        <colophon-screen
-          label="Game screen"
-          view="beam heat"
-          base="&C000"
-          width="102"
-          height="160"
-          mode="0"
-          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
-        ></colophon-screen>
-        -->
-      </div>
-      <div class="panels">
-        <colophon-z80></colophon-z80>
-        <colophon-disassembly></colophon-disassembly>
-        <colophon-breakpoints></colophon-breakpoints>
-      </div>
-      <div class="panels">
-        <colophon-memory></colophon-memory>
-        <colophon-symbols></colophon-symbols>
-        <colophon-gate-array></colophon-gate-array>
-        <colophon-crtc></colophon-crtc>
-        <colophon-keyboard></colophon-keyboard>
-      </div>
-      <div class="panels">
-        <colophon-disc></colophon-disc>
-        <colophon-drive drive="a"></colophon-drive>
-        <colophon-upd765></colophon-upd765>
-        <colophon-track drive="a"></colophon-track>
-      </div>
-    </colophon-cpc>
-
-    <script src="./js/index.js" type="module"></script>
+  <body class="benches">
+    <h1>Colophon Player</h1>
+    <p>The debugger, on a bench for each machine put under it.</p>
+    <ul>
+      <li>
+        <a href="./benches/cpc_firmware.html">A CPC at its prompt</a> — a 6128 with nothing loaded
+        into it, its drawers empty and open.
+      </li>
+      <li>
+        <a href="./benches/cpc_abduction.html">Abduction</a> — a snapshot, the names it was written
+        with, and the two screens it draws away from the monitor.
+      </li>
+    </ul>
   </body>
 </html>

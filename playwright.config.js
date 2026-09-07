@@ -9,9 +9,10 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  // Waited for at the module: a test builds its own page and needs no bench.
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
+    url: `http://localhost:${PORT}/js/index.js`,
     reuseExistingServer: true
   }
 })

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Abduction, under the debugger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/css/index.css" />
+    <meta name="theme-color" content="#000000" />
+  </head>
+  <body>
+    <colophon-cpc model="cpc6128" snapshot="/abduction.sna" symbols="/abduction.noi">
+      <div class="panels">
+        <colophon-controls></colophon-controls>
+        <colophon-monitor zoom="1.5"></colophon-monitor>
+      </div>
+      <div class="panels">
+        <colophon-screen
+          label="HUD screen"
+          view="beam heat"
+          base="&8000"
+          width="100"
+          height="40"
+          rasters="2"
+          mode="0"
+          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
+        ></colophon-screen>
+        <colophon-screen
+          label="Game screen"
+          view="beam heat"
+          base="&C000"
+          width="102"
+          height="160"
+          mode="0"
+          palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
+        ></colophon-screen>
+      </div>
+      <div class="panels">
+        <colophon-z80></colophon-z80>
+        <colophon-disassembly></colophon-disassembly>
+        <colophon-breakpoints></colophon-breakpoints>
+      </div>
+      <div class="panels">
+        <colophon-memory></colophon-memory>
+        <colophon-symbols></colophon-symbols>
+        <colophon-gate-array></colophon-gate-array>
+        <colophon-crtc></colophon-crtc>
+        <colophon-keyboard></colophon-keyboard>
+      </div>
+    </colophon-cpc>
+
+    <script src="/js/index.js" type="module"></script>
+  </body>
+</html>

@@ -22,6 +22,25 @@ body {
   font-size: 13px;
 }
 
+.benches {
+  padding: 1rem;
+  line-height: 1.6;
+
+  h1 {
+    font-size: 1.2em;
+    font-weight: 400;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+    color: $dim;
+  }
+
+  a {
+    color: $foreground;
+  }
+}
+
 colophon-cpc {
   display: flex;
   align-items: start;
