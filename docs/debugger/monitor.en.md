@@ -22,10 +22,10 @@ The three dots at the heading's right offer the zoom and the recorder. The zoom 
 
 `Start recording` stands under `Record` at the foot of the options; it begins, and `Stop recording`, which takes its place, ends it and writes the video in a format the browser can make. While it runs the three dots are red, so a recording is never left going unnoticed. Only the monitor's picture is kept: the heading and the options stay outside it. A browser that cannot record a canvas leaves the item disabled.
 
-The recording is 384 by 272, the square-pixel size at which the element presents the monitor when `zoom` is `1`. Changing `zoom` changes the page and not the file.
+The recording is the square-pixel size at which the element presents the monitor when `zoom` is `1` — 384 by 272 for a CPC, 352 by 264 for a Spectrum. Changing `zoom` changes the page and not the file.
 
 ## The window
 
-The canvas is 768 by 272, cut from the 1024 by 312 the beam actually sweeps, at 208 across and 34 down. That is not a framing choice. It is the same window [the emulator crops its own screenshots to](../../emulator/command-line.en.md#the-picture), so a picture on the page and a picture written on the command line can be laid over one another and compared pixel for pixel — which is how the two are held to the same account.
+The window belongs to the machine and not to this element, which asks for it and crops to what it is told. A CPC's canvas is 768 by 272, cut from the 1024 by 312 the beam sweeps, at 208 across and 34 down; a Spectrum's is 352 by 264 out of 448 by 312, at 96 across and 20 down. Neither is a framing choice. Both are the windows [the emulator crops its own screenshots to](../../emulator/command-line.en.md#the-picture), so a picture on the page and a picture written on the command line can be laid over one another and compared pixel for pixel — which is how the two are held to the same account.
 
-The element presents the canvas at half its width, two samples to a displayed pixel, and the stylesheet turns smoothing off, so `zoom` enlarges without blurring.
+A CPC's raster is sixteen samples to the microsecond, so its canvas is presented at half its width, two samples to a displayed pixel; a Spectrum's is two samples to a T-state and already four by three, so its canvas is presented as it stands. The stylesheet turns smoothing off either way, so `zoom` enlarges without blurring.

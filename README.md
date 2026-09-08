@@ -4,7 +4,7 @@
 
 A colophon is written to be read. A manuscript sealed in its case can be catalogued, dated and shelved, and the note at the end of it still means nothing until someone opens the book at that page.
 
-The [emulator](https://github.com/tulinmola/colophon-emulator) opens the boxes of the 8-bit era: it runs Amstrad CPC games, watches them from the inside, and writes the note their authors never wrote. This is where that note is read. The player carries the emulator into a page, so the machine runs beside the account of it and anyone can hold the two against each other.
+The [emulator](https://github.com/tulinmola/colophon-emulator) opens the boxes of the 8-bit era: it runs Amstrad CPC and ZX Spectrum games, watches them from the inside, and writes the note their authors never wrote. This is where that note is read. The player carries the emulator into a page, so the machine runs beside the account of it and anyone can hold the two against each other.
 
 It will not stop at watching. Colophon's machine is stepped one clock at a time and its memory can be read from outside without disturbing it, so a page that can run a CPC can also halt it halfway down a scanline and ask what the beam has drawn so far. The reading room is meant to have a workbench in it.
 
@@ -33,13 +33,13 @@ npm run check            # formatting, linting and the tests
 npm run test:e2e         # the page driven in a browser, needing the firmware
 ```
 
-`npm run emulator:build` reads the emulator from `../colophon-emulator`, or from wherever `EMULATOR_DIR` points, and writes a module named after the commit it was built from — so a page can always say which machine it is running, and a build from an unclean tree cannot answer to a commit's name. The module is committed, and rebuilt only when the emulator moves.
+`npm run emulator:build` reads the emulator from `../colophon-emulator`, or from wherever `EMULATOR_DIR` points, and writes a module named after the commit it was built from and the host that was built with it — so a page can always say which module it is running, a build from an unclean tree cannot answer to a commit's name, and an edit to the host under `emulator/` cannot inherit one. The module is committed, and rebuilt only when the emulator moves.
 
-The firmware images are Amstrad's, fetched by `npm run roms:fetch` under the permission Amstrad gave in 1999 to distribute them with emulators. They are never committed.
+The firmware images are fetched by `npm run roms:fetch` and never committed. Both machines' are distributed under the permission Amstrad gave in 1999 — it bought Sinclair's computers along with the name, so the Spectrum's ROM is covered by it as the CPC's are.
 
 ## Documentation
 
-The player's documentation lives in `docs/`, beside the code it describes, and is gathered and published by [The Colophon Project](https://github.com/tulinmola/colophon-project). [The debugger](docs/debugger/index.en.md) sets out the panels and what each one reads; [the CPC](docs/cpc.en.md) is the machine it builds today, and the element that builds it.
+The player's documentation lives in `docs/`, beside the code it describes, and is gathered and published by [The Colophon Project](https://github.com/tulinmola/colophon-project). [The debugger](docs/debugger/index.en.md) sets out the panels and what each one reads; [the CPC](docs/cpc.en.md) and [the Spectrum](docs/spectrum.en.md) are the machines it builds, and the elements that build them.
 
 ## Releasing
 

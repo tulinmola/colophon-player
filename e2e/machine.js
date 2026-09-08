@@ -7,6 +7,8 @@ const BENCH = "/e2e-bench.html"
 
 export const CPC_6128 = { element: "colophon-cpc", attributes: 'model="cpc6128"' }
 
+export const SPECTRUM_48 = { element: "colophon-spectrum", attributes: 'model="spectrum48"' }
+
 function markup({ element, attributes }, panels) {
   return html`<!doctype html>
     <html lang="en" dir="ltr">

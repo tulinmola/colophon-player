@@ -1,7 +1,7 @@
 ---
 title: The memory
-description: The bytes themselves, read either as the processor sees them or as the banks hold them.
-order: 11
+description: The bytes themselves, read either as the processor sees them or as the machine's own memory holds them.
+order: 12
 ---
 
 `<colophon-memory>` shows the bytes: sixteen rows of sixteen, each with its address and the text it would make if it were text.
@@ -12,9 +12,9 @@ order: 11
 
 ## The two spaces
 
-`CPU` is what the processor can see this instant, addressed in four digits. `RAM` is the banks themselves, addressed in five, and on a 6128 that is twice the memory the processor can reach at once.
+`CPU` is what the processor can see this instant, addressed in four digits. `RAM` is the machine's own memory, addressed in as many digits as it takes: five on a 6128, where that is twice what the processor can reach at once, and four on a machine whose memory is no wider than its address space.
 
-The two differ wherever a ROM is paged in — the processor reads the firmware, the bank underneath still holds whatever was written there — and that difference is often the answer to why a program is reading what it seems to be reading.
+The two differ wherever a ROM is paged in — the processor reads the firmware, the memory underneath still holds whatever was written there — and that difference is often the answer to why a program is reading what it seems to be reading. They are also offset wherever a machine's memory does not begin at zero: a Spectrum's RAM answers from `&4000`, so its physical zero is the processor's `&4000`.
 
 ## Moving
 

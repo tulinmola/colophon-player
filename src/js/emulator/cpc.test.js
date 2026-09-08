@@ -85,7 +85,7 @@ function discImage({ cylinders = 1 } = {}) {
 async function bootMachine() {
   const module = await createModule()
 
-  module._player_boot(RAM_SIZE, true)
+  module._player_boot_cpc(RAM_SIZE, true)
 
   return new Cpc(module, RAM_SIZE, true)
 }

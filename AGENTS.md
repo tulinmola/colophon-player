@@ -6,9 +6,15 @@ Colophon Player is where Colophon is read: the debugger that reads the machine w
 
 The debugger owns its page and uses the light DOM: a selection dragged across two shadow roots copies only the first, and ARIA relationships do not cross one either, and a debugger is made of both. The player returns later as a composition of the same observers with a shadow root around it, not as a second application.
 
-`Cpc extends Machine` is everything that touches the module: nothing belongs in `Machine` if it names a `player_*` export. The host's prefix stays `player_` because the core owns `cpc_`.
+`Machine` is what the host offers whatever machine it is holding — the record it keeps, the marks it stops on, the processor and the matrix every board has. A machine class adds its own board to that and nothing else, so `Cpc` is the CRTC, the Gate Array, the drives and the discs, and `Spectrum` is the ULA. Nothing belongs in `Machine` that names a chip only one board has, and an export that reaches one machine's own hardware wears its name: `player_cpc_*` beside `player_boot_cpc`.
 
-Observers follow the chips, not the machine: one per chip header, and a machine observer only for what `cpc.c` itself owns — the memory map, the I/O decode, the video address wiring. A second machine sharing the Z80, the 6845, the AY and the 8255 inherits their observers unchanged.
+The host is `emulator/`, and it splits the way the emulator does: `player.c` is the record a machine is watched by, and `cpc.c` and `spectrum.c` are the boards. A machine drives — it runs its own loop, calls its own chips, and hands the record a word about each tick — so the record names no machine, no chip and no bus, and a third machine is a file rather than a case. What a machine owes the record is `player.h` and nothing more. The host's prefix stays `player_` because the core owns `cpc_` and `spectrum_`.
+
+A file is the only thing in C that keeps the record out of a machine, which is why the split is by file and each board's struct is `static`. Storage is shared because one machine stands at a time. The host says how much room it gives — the numbers are the largest machine's, and it is guessing — and each board proves at compile time that it fits, so a machine grown past the room breaks the build rather than running past the end of it.
+
+Observers follow the chips, not the machine: one per chip header, and a machine observer only for what a machine file itself owns — the memory map, the I/O decode, the video address wiring. A machine sharing a chip inherits its observer unchanged, and an observer that turns out to need a machine's own numbers asks the machine for them rather than assuming: the monitor asks for the window it crops, the keyboard for the legends on its keys.
+
+An observer that only one machine can answer is named for it, as `<colophon-cpc-screen>` is: placing one in a machine that has no such chip is a page's error, and it is left to fail rather than guarded.
 
 The module is fetched after the elements reach the page, so nothing may look for a machine once and expect to find it; absorbing that is the whole of what `MachineObserver` is for. Observers find the machine by walking up for whatever holds one, never by tag name or attribute.
 
@@ -43,7 +49,7 @@ A page describes what the player does today, so a change to what the player does
 ## Build and test
 
 - `npm start` runs the site, `npm run build` writes `dist/`.
-- `npm run emulator:build` compiles the machine and the hosts into `src/js/vendor/`, stamped with the emulator's commit. Update the imports it names, and delete the superseded build rather than leave it to be picked up by mistake.
+- `npm run emulator:build` compiles the machine and the hosts into `src/js/vendor/`, stamped with the emulator's commit and a digest of the host beside it, because `emulator/` is this repository's and a commit alone cannot tell two builds apart. Update the imports it names, and delete the superseded build rather than leave it to be picked up by mistake.
 - `npm run check` is Prettier, ESLint and the tests together; run it before handing work back. `npm run test:e2e` drives the page in a browser with Playwright, and needs the firmware fetched; run it too when the change reaches the page.
 - Never commit, never push. The human reviews; the human commits.
 
@@ -69,7 +75,7 @@ A page describes what the player does today, so a change to what the player does
 ## Naming
 
 - The emulator's names are the machine's names, and they survive the crossing: what the Compendium and the datasheets call a thing is what it is called here too, and a shown abbreviation carries its long form in an `<abbr>` in those same words.
-- Wrappers around the WASM module mirror the C API mechanically, in the host language's case: `cpc_tick` becomes `tick` on the machine object, `keyboard_press` becomes `pressKey`. A wrapper that renames what it wraps hides the emulator from anyone reading both.
+- Wrappers around the WASM module mirror the C API mechanically, in the host language's case: `spectrum_tick` becomes `tick` on the machine object, `keyboard_press` becomes `pressKey`. A wrapper that renames what it wraps hides the emulator from anyone reading both.
 - Ours are named for what they extend and what they do, not for the platform's plumbing: `Element` extends `HTMLElement`, and `init` runs where `connectedCallback` fires.
 
 ## Simplicity And Ownership

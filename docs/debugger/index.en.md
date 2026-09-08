@@ -1,10 +1,10 @@
 ---
 title: The debugger
 description: The panels the debugger is made of, what they share, and why none of them is built into the machine.
-order: 2
+order: 3
 ---
 
-The debugger is not one element but a collection of them, each watching one part of the machine. [`<colophon-cpc>`](../cpc.en.md) builds the machine and holds it; every panel here is placed inside it and finds it by looking upward. Keep the panels a game under study asks for and discard the rest — [a whole page](../index.en.md#carrying-it-into-a-page) is set out on the page before this one, and it is meant to be copied and cut down.
+The debugger is not one element but a collection of them, each watching one part of the machine. The element that builds the machine — [`<colophon-cpc>`](../cpc.en.md) or [`<colophon-spectrum>`](../spectrum.en.md) — holds it; every panel here is placed inside it and finds it by looking upward. Keep the panels a game under study asks for and discard the rest — [a whole page](../index.en.md#carrying-it-into-a-page) is set out on the page before this one, and it is meant to be copied and cut down.
 
 ```html
 <colophon-cpc model="cpc6128" snapshot="game.sna">
@@ -17,10 +17,11 @@ The debugger is not one element but a collection of them, each watching one part
 ## The panels
 
 - [The monitor](monitor.en.md) — the picture as a tube would present it.
-- [The screen](screen.en.md) — any region of memory read as though it were a screen.
+- [The CPC's screen](screen.en.md) — any region of a CPC's memory read as though it were a screen.
 - [The controls](controls.en.md) — run, stop, and moving the machine either way by a grain, under the rule they all obey.
 - [The Z80](z80.en.md) — the processor's registers, flags and interrupt state.
-- [The CRTC](crtc.en.md) — the 6845 counting out the frame.
+- [The CRTC](crtc.en.md) — the 6845 counting out a CPC's frame.
+- [The ULA](ula.en.md) — the one chip that counts out a Spectrum's, and paints it.
 - [The Gate Array](gate-array.en.md) — the inks, the mode, the ROMs and the interrupt counter.
 - [The keyboard](keyboard.en.md) — the matrix as the machine reads it, both joysticks among its switches, each the reader's to hold.
 - [The disassembly](disassembly.en.md) — the bytes at the program counter read back as instructions.
@@ -42,7 +43,7 @@ The breakpoints are the one exception, and they prove the rule's shape: a trap t
 
 That is why the apparatus stands out here rather than in there, and why these elements are observers and not features of the emulator. [A machine fact belongs in the machine and observation policy belongs in the host](../../emulator/observation.en.md#the-rule) is the rule the machine was built to, and this page is one thing that rule makes possible. A page of panels is one thing that can be built on a machine like that. A command line drawing a map of every write the boot made is another, and neither needs to know the other exists.
 
-It also means the panels follow the chips rather than the machine. The processor, the 6845 and the memory are watched by elements that know only their own chip, so the day a second machine is built around the same parts, those elements come along unchanged.
+It also means the panels follow the chips rather than the machine. The processor, the 6845 and the memory are watched by elements that know only their own chip, which is what let [the Spectrum](../spectrum.en.md) arrive with the processor, the memory, the disassembly and the breakpoints already watching it, none of them edited.
 
 The disc is where that shows most plainly, because a disc is three things and not one: the medium, the drive that turns it, and the controller that reads it. [None of the three names a machine anywhere in its code](../../emulator/core.en.md), so each gets a panel of its own and all three would go into a second machine as they are. Only [the drawers](disc.en.md) are the machine's, because putting a disc into a drive is a thing the board does.
 

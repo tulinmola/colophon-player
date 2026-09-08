@@ -6,7 +6,7 @@ order: 1
 
 `<colophon-cpc>` builds a machine and holds it. It is the only element here that owns anything: the panels placed inside it find it by looking upward, and not one of them knows how to make one. It carries the keyboard and the joysticks as well, because a machine that cannot be typed at is a machine standing at its prompt forever.
 
-A CPC is the machine there is today. The element is named for it rather than for its part in a page, so that the day a second machine arrives it stands beside this one rather than underneath it — and the panels, which watch chips and not machines, come along unchanged.
+The element is named for the machine rather than for its part in a page, so that [the Spectrum](spectrum.en.md) stands beside it rather than underneath it — and the panels, which watch chips and not machines, came along to that one unchanged.
 
 ```html
 <colophon-cpc model="cpc6128" snapshot="game.sna">

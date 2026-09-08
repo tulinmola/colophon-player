@@ -38,6 +38,8 @@
     "colophon",
     "amstrad",
     "cpc",
+    "sinclair",
+    "zx-spectrum",
     "emulator",
     "web-component",
     "wasm"

@@ -1,7 +1,7 @@
 ---
 title: The track
 description: The medium under the head — the sectors as they pass it, and the disagreements a protected disc is built out of.
-order: 17
+order: 18
 ---
 
 A disc is not a file, and the moment it matters that it is not is when a program is protected. `<colophon-track>` reads one track the way a head finds it: the sectors in the order they come round, what each announces about itself, and what is really recorded behind that announcement.

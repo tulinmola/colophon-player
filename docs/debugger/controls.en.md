@@ -24,7 +24,7 @@ The first key wears the machine's state as its sign: ▶ while the machine stand
 
 The direction is an arrow and the grain is a word, and the grain in force is the lit one — always on the face, and changed only by pressing it.
 
-`Scanline` and `Row` follow the 6845's own counters, so a line and a row are whatever the program has made them, ruptures included — and both exist for [the screen's beam view](screen.en.md#the-beam-view), whose boundary they walk down the picture.
+`Scanline` and `Row` follow the machine's own beam counters, so a line and a row are whatever the program has made them, ruptures included — and both exist for [the screen's beam view](screen.en.md#the-beam-view), whose boundary they walk down the picture.
 
 The panel reads `Tick`, the machine's own count of T-states since it was built or last loaded from a snapshot; `Frame`, the count the [screen's heat](screen.en.md#the-heat-view) ages against; and `Behind`, how far back of the present the machine is standing, in milliseconds of its own time, or `now` when it is standing there.
 

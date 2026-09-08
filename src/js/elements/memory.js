@@ -188,7 +188,7 @@ class MemoryElement extends MachineObserver {
         }
       : {
           size: ram.length,
-          digits: 5,
+          digits: ram.length > 0x10000 ? 5 : 4,
           read: at => ram[at],
           write: (at, value) => machine.writeRam(at, value)
         }

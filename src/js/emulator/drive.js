@@ -73,18 +73,18 @@ export class Drive extends Struct {
 
   // Answered by the drive rather than stored, so none can contradict the rest.
   get ready() {
-    return this.#module._player_drive_ready(this.#unit) != 0
+    return this.#module._player_cpc_drive_ready(this.#unit) != 0
   }
 
   get trackZero() {
-    return this.#module._player_drive_track_zero(this.#unit) != 0
+    return this.#module._player_cpc_drive_track_zero(this.#unit) != 0
   }
 
   get writeProtected() {
-    return this.#module._player_drive_write_protected(this.#unit) != 0
+    return this.#module._player_cpc_drive_write_protected(this.#unit) != 0
   }
 
   get twoSided() {
-    return this.#module._player_drive_two_sided(this.#unit) != 0
+    return this.#module._player_cpc_drive_two_sided(this.#unit) != 0
   }
 }

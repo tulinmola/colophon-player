@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { JOYSTICK_MATRIX } from "../src/js/emulator/cpc_joysticks"
 import { KEY_MATRIX } from "../src/js/emulator/cpc_keys"
 
-const KEY_F = KEY_MATRIX.KeyF,
+const [KEY_F] = KEY_MATRIX.KeyF,
   JOYSTICK_0_FIRE_2 = JOYSTICK_MATRIX[0].fire2
 
 const KEYBOARD = "<colophon-keyboard></colophon-keyboard>"

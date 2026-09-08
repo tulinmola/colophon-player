@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test"
 import { JOYSTICK_MATRIX } from "../src/js/emulator/cpc_joysticks"
 import { KEY_MATRIX } from "../src/js/emulator/cpc_keys"
 
-const KEY_F = KEY_MATRIX.KeyF,
-  CURSOR_UP = KEY_MATRIX.ArrowUp,
+const [KEY_F] = KEY_MATRIX.KeyF,
+  [CURSOR_UP] = KEY_MATRIX.ArrowUp,
   [JOYSTICK_0] = JOYSTICK_MATRIX
 
 // Any panel with a field: somewhere that is not the machine to put the focus.

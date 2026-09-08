@@ -103,7 +103,7 @@ class Z80Element extends MachineObserver {
             renderState("IFF1", "Interrupt enable flip-flop 1", "iff1"),
             renderState("IFF2", "Interrupt enable flip-flop 2", "iff2"),
             renderState("HALT", "Stopped on HALT until an interrupt", "halted"),
-            renderLine("INT", "Interrupt line, driven by the Gate Array", "intLine")
+            renderLine("INT", "Interrupt line, driven by the machine's video chip", "intLine")
           ].join("")}
         </div>
       </form>
