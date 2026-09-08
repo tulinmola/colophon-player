@@ -111,7 +111,7 @@ export class Upd765 extends Struct {
   }
 
   get status() {
-    return this.#module._player_fdc_status()
+    return this.#module._player_cpc_fdc_status()
   }
 
   get requestForMaster() {

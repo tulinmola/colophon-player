@@ -22,7 +22,27 @@ body {
   font-size: 13px;
 }
 
-colophon-cpc {
+.benches {
+  padding: 1rem;
+  line-height: 1.6;
+
+  h1 {
+    font-size: 1.2em;
+    font-weight: 400;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+    color: $dim;
+  }
+
+  a {
+    color: $foreground;
+  }
+}
+
+colophon-cpc,
+colophon-spectrum {
   display: flex;
   align-items: start;
   gap: 1rem;
@@ -336,15 +356,17 @@ colophon-memory,
 colophon-crtc,
 colophon-gate-array,
 colophon-keyboard,
+colophon-ula,
 colophon-disassembly,
 colophon-symbols,
 colophon-breakpoints,
 colophon-upd765,
 colophon-drive,
 colophon-disc,
+colophon-tape,
 colophon-track,
 colophon-monitor,
-colophon-screen {
+colophon-cpc-screen {
   display: block;
   width: fit-content;
   background: $card;
@@ -363,11 +385,11 @@ colophon-screen {
   }
 }
 
-colophon-screen .picture {
+colophon-cpc-screen .picture {
   position: relative;
 }
 
-colophon-screen canvas {
+colophon-cpc-screen canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -779,6 +801,10 @@ colophon-keyboard {
     text-align: right;
   }
 
+  td {
+    min-width: 8ch;
+  }
+
   td label {
     display: block;
     min-width: 7ch;
@@ -805,6 +831,76 @@ colophon-keyboard {
   }
 }
 
+// A drawer and a deck are the same row: what is in it, what it is doing, and
+// the keys that work it.
+colophon-controls .run,
+colophon-tape [data-action="play"] {
+  display: grid;
+
+  span {
+    grid-area: 1 / 1;
+  }
+}
+
+colophon-controls:not([running]) .run span + span,
+colophon-controls[running] .run span:first-child,
+colophon-tape:not([playing]) [data-action="play"] span + span,
+colophon-tape[playing] [data-action="play"] span:first-child {
+  visibility: hidden;
+}
+
+colophon-disc li,
+colophon-tape .deck {
+  display: grid;
+  grid-template-columns: var(--columns);
+  align-items: baseline;
+  gap: 0 0.75rem;
+  color: $dim;
+  white-space: nowrap;
+}
+
+colophon-disc li[loaded] output[name="name"],
+colophon-tape[loaded] output[name="name"] {
+  color: $foreground;
+}
+
+colophon-disc button,
+colophon-tape button {
+  all: unset;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    color: $foreground;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $dim;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+colophon-disc p,
+colophon-tape p {
+  margin: 0.5rem 0 0;
+  max-width: 40ch;
+  color: $dim;
+  text-wrap: pretty;
+}
+
+colophon-disc p[role="status"],
+colophon-tape p[role="status"] {
+  color: $invalid;
+
+  &:empty {
+    display: none;
+  }
+}
+
 colophon-disc {
   ul {
     margin: 0;
@@ -812,56 +908,22 @@ colophon-disc {
     list-style: none;
   }
 
-  li {
-    display: grid;
-    grid-template-columns: var(--columns);
-    align-items: baseline;
-    gap: 0 0.75rem;
-    color: $dim;
-    white-space: nowrap;
-
-    &[loaded] output[name="name"] {
-      color: $foreground;
-    }
-  }
-
   output[name="marks"] {
     margin-right: auto;
     font-variant-numeric: tabular-nums;
   }
+}
 
-  button {
-    all: unset;
-    text-align: center;
-    cursor: pointer;
-
-    &:hover {
-      color: $foreground;
-    }
-
-    &:focus-visible {
-      outline: 1px solid $dim;
-    }
-
-    &:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
+colophon-tape {
+  progress {
+    align-self: center;
+    width: 100%;
+    height: 0.4rem;
+    accent-color: $dim;
   }
 
-  p {
-    margin: 0.5rem 0 0;
-    max-width: 40ch;
-    color: $dim;
-    text-wrap: pretty;
-  }
-
-  p[role="status"] {
-    color: $invalid;
-
-    &:empty {
-      display: none;
-    }
+  &[playing] progress {
+    accent-color: $foreground;
   }
 }
 
@@ -997,15 +1059,6 @@ colophon-controls {
     &:hover {
       color: $background;
     }
-  }
-
-  .run span {
-    grid-area: 1 / 1;
-  }
-
-  &:not([running]) .run span + span,
-  &[running] .run span:first-child {
-    visibility: hidden;
   }
 
   .fields {

@@ -8,7 +8,7 @@ A colophon is written to be read, and a machine is meant to be watched. The play
 
 Today that page is a debugger. It builds a machine, runs it at the speed the hardware ran, and lets a reader stop it between instructions and ask what it holds: the registers, the bytes, the counters of the chip drawing the picture, and the picture itself. [The debugger](debugger/index.en.md) sets out each of its panels and what each one reads.
 
-The machine it builds today is [a CPC](cpc.en.md), and the element that builds one is named for it: a second machine will stand beside it rather than replace it.
+There are two machines: [a CPC](cpc.en.md) and [a Spectrum](spectrum.en.md). Each has an element named for it, because a machine is a board with particular chips soldered to it and whatever builds one has to know which. The panels know only their own chip, so they watch either machine without being told which they are in.
 
 ## Carrying it into a page
 
@@ -42,7 +42,9 @@ The debugger travels as two files, each pinned to a version that cannot change u
 </html>
 ```
 
-The stylesheet dresses the page and not only the elements: it resets the document and sets the body's colour and type, which is why the page above holds nothing else. `panels` is the one class it offers the page, and it stacks what it holds into a column beside the monitor. [The controls](debugger/controls.en.md) take a line to themselves when they are placed directly inside `<colophon-cpc>`, rather than standing in one of those columns.
+The stylesheet dresses the page and not only the elements: it resets the document and sets the body's colour and type, which is why the page above holds nothing else. `panels` is the one class it offers the page, and it stacks what it holds into a column beside the monitor. [The controls](debugger/controls.en.md) take a line to themselves when they are placed directly inside the machine element, rather than standing in one of those columns.
+
+That page builds a CPC; a Spectrum is the same shape with [`<colophon-spectrum>`](spectrum.en.md) in its place and its own firmware in `/roms`.
 
 The rest is files standing where the page looks for them.
 
@@ -53,7 +55,7 @@ roms/cpc6128.rom    fetched from the root of the site
 roms/amsdos.rom     and this one, on any machine with a disc interface
 ```
 
-The snapshot is named by the `snapshot` attribute and fetched relative to the page, and a disc image named by `disc` is fetched the same way. The firmware is looked for in `/roms` at the root of the site, whatever the page's own address; a `roms` attribute on `<colophon-cpc>` sends it elsewhere, and a relative one there is resolved against the page like any other link. Which machine's firmware is read follows from `model`. `amsdos.rom` is read alongside it wherever the disc interface is fitted, which the 664 and the 6128 have built in and a 464 gets only when it is given a disc.
+The snapshot is named by the `snapshot` attribute and fetched relative to the page, and a disc image named by `disc` is fetched the same way. The firmware is looked for in `/roms` at the root of the site, whatever the page's own address; a `roms` attribute on the machine element sends it elsewhere, and a relative one there is resolved against the page like any other link. Which machine's firmware is read follows from `model`. `amsdos.rom` is read alongside it wherever the disc interface is fitted, which the 664 and the 6128 have built in and a 464 gets only when it is given a disc.
 
 Nothing is asked of the server but to hand files over, and any static server will do — one is needed all the same, because a browser will fetch neither a module nor a snapshot nor a disc image from a page opened straight off the filesystem.
 

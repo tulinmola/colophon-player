@@ -1,7 +1,7 @@
 ---
 title: The drive
 description: The mechanism between the controller and the disc — the motor, the head, and the lines a controller reads.
-order: 15
+order: 16
 ---
 
 Between a controller and a disc there is a machine with moving parts, turning at a speed nothing else here keeps. `<colophon-drive>` is that mechanism: whether the motor turns, where the head stands, and what the drive is telling the controller about itself.

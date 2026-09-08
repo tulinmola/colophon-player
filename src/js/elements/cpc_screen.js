@@ -1,8 +1,8 @@
 import { hex, html, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
+import { CpcScreen } from "../emulator"
 import { MachineObserver } from "./machine_observer"
-import { Screen } from "../emulator"
 
 const SAMPLES_PER_BYTE = 8
 
@@ -45,7 +45,7 @@ function renderRasters() {
   </label>`
 }
 
-class ScreenElement extends MachineObserver {
+class CpcScreenElement extends MachineObserver {
   static observedAttributes = [
     "base",
     "height",
@@ -79,7 +79,7 @@ class ScreenElement extends MachineObserver {
       palette = inks ? inks.trim().split(/\s+/u).map(parseHex) : machine.gateArray.inks
 
     const { ram, video } = machine,
-      screen = new Screen({ reading, base, width, height, rasters, mode, palette, ram, video })
+      screen = new CpcScreen({ reading, base, width, height, rasters, mode, palette, ram, video })
 
     this.#screen = screen
 
@@ -387,4 +387,4 @@ class ScreenElement extends MachineObserver {
   }
 }
 
-ScreenElement.define("colophon-screen")
+CpcScreenElement.define("colophon-cpc-screen")

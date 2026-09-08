@@ -6,8 +6,9 @@ node_modules/
 dist/
 .env.*.local
 
-# Amstrad's firmware images (see tools/fetch-roms.sh). Distributable with
-# emulators by Amstrad's permission, but fetched rather than committed.
+# The machines' firmware images, fetched by tools/fetch_roms.js rather than
+# committed. What may be distributed with an emulator, and on whose
+# permission, is recorded in the emulator's own fetch script.
 src/public/roms/
 test-results/
 playwright-report/

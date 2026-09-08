@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>A Spectrum at its prompt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/css/index.css" />
+    <meta name="theme-color" content="#000000" />
+  </head>
+  <body>
+    <colophon-spectrum model="spectrum48">
+      <div class="panels">
+        <colophon-controls></colophon-controls>
+        <colophon-monitor zoom="2"></colophon-monitor>
+        <colophon-tape></colophon-tape>
+      </div>
+      <div class="panels">
+        <colophon-z80></colophon-z80>
+        <colophon-disassembly></colophon-disassembly>
+        <colophon-breakpoints></colophon-breakpoints>
+      </div>
+      <div class="panels">
+        <colophon-memory></colophon-memory>
+        <colophon-ula></colophon-ula>
+        <colophon-keyboard></colophon-keyboard>
+      </div>
+    </colophon-spectrum>
+
+    <script src="/js/index.js" type="module"></script>
+  </body>
+</html>

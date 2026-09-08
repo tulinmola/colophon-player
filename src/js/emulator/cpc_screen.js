@@ -92,7 +92,7 @@ function addressesFor({ reading, base, width, height, rasters, wrap, video }) {
   }
 }
 
-export class Screen {
+export class CpcScreen {
   #addresses
   #palette
   #ram

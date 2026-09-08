@@ -1,10 +1,10 @@
 ---
 title: The keyboard
-description: The matrix as the machine reads it, ten lines of eight switches with both joysticks among them, each one the reader's to hold.
-order: 9
+description: The matrix as the machine reads it, a line to a row and a bit to a column, each switch the reader's to hold.
+order: 10
 ---
 
-`<colophon-keyboard>` shows the matrix: ten lines of eight switches, read the long way round — the processor asks the 8255, which asks the sound chip, which reads the grid. A key pressed at [the element](../cpc.en.md#the-keyboard), a gamepad's direction, a switch closed here: all of them arrive in the same grid, and this panel is where what arrived can be seen.
+`<colophon-keyboard>` shows the matrix, whichever machine's it is: a CPC's ten lines of eight, read the long way round — the processor asks the 8255, which asks the sound chip, which reads the grid — or a Spectrum's eight half-rows of five, hanging off the upper address lines with nothing in between. A key pressed at the element, a gamepad's direction, a switch closed here: all of them arrive in the same grid, and this panel is where what arrived can be seen.
 
 ```html
 <colophon-keyboard></colophon-keyboard>
@@ -12,9 +12,11 @@ order: 9
 
 ## The grid
 
-A line to a row and a bit to a column, in the firmware's own numbering, so a switch's key number is its line times eight plus its bit — the number `INKEY` and `KEY DEF` take, and the one each switch carries on its title. A switch under a finger stands out in white; the rest are dim.
+A line to a row and a bit to a column, so a switch's key number is its line times eight plus its bit — on a CPC the number `INKEY` and `KEY DEF` take — and each switch carries that number on its title. A switch under a finger stands out in white; the rest are dim.
 
-Each switch wears the inscription of the key that closes it. Line 9 is joystick 0 and wears its names in the manual's brackets, `(UP)` to `(SPARE)`, with `DEL` on its last bit; line 6 wears the letters 6, 5, R, T, G, F and B, and its title says which of joystick 1's switches each one is as well, because [on this machine the second joystick is those keys](../cpc.en.md#the-joysticks).
+Each switch wears the inscription of the key that closes it, and the legends are the machine's rather than the panel's: it draws as many lines as the board wires and asks the machine what is printed on each key. A position the board leaves unwired keeps its column and holds no switch, because the matrix is eight bits wide whether or not a machine uses them all — a Spectrum wires five of every eight and the other three read as released for ever.
+
+On a CPC, line 9 is joystick 0 and wears its names in the manual's brackets, `(UP)` to `(SPARE)`, with `DEL` on its last bit; line 6 wears the letters 6, 5, R, T, G, F and B, and its title says which of joystick 1's switches each one is as well, because [on that machine the second joystick is those keys](../cpc.en.md#the-joysticks).
 
 ## Holding a switch
 

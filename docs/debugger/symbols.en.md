@@ -1,7 +1,7 @@
 ---
 title: The symbols
 description: The names a program was written with, set against the addresses it runs at.
-order: 12
+order: 13
 ---
 
 A program is written in names and runs as addresses. Whatever turned the one into the other wrote down what it had done, and this panel is that note read back: `<colophon-symbols>` lists every named address the machine was given, in the order they stand in memory, and marks the one the machine is inside.
@@ -16,7 +16,7 @@ A program is written in names and runs as addresses. Whatever turned the one int
 
 The three dots at the heading's right hold `lines`, and the panel is built again at the height asked for.
 
-The names are not the panel's. They are given to the machine by [`<colophon-cpc>`](../cpc.en.md), which fetches the file the `symbols` attribute names, and every panel that can use them draws on the same list — [the disassembly](disassembly.en.md#the-names) reads its listing back with them. A page that gives no symbol file may still place this panel, and it stands there counting nothing.
+The names are not the panel's. They are given to the machine by the element that built it, which fetches the file the `symbols` attribute names, and every panel that can use them draws on the same list — [the disassembly](disassembly.en.md#the-names) reads its listing back with them. A page that gives no symbol file may still place this panel, and it stands there counting nothing.
 
 ## The files it reads
 

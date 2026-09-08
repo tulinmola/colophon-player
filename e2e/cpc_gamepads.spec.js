@@ -1,4 +1,4 @@
-import { bootStopped, expectPressed, expectReleased, pressed } from "./machine"
+import { CPC_6128, bootStopped, expectPressed, expectReleased, pressed } from "./machine"
 import { expect, test } from "@playwright/test"
 import { JOYSTICK_MATRIX } from "../src/js/emulator/cpc_joysticks"
 
@@ -40,11 +40,11 @@ function unplugAll(page) {
 }
 
 async function run(element) {
-  await element.evaluate(cpc => cpc.machine.start())
+  await element.evaluate(host => host.machine.start())
 }
 
 test("the first gamepad is joystick 0, read as the machine runs", async function ({ page }) {
-  const element = await bootStopped(page)
+  const element = await bootStopped(page, CPC_6128)
 
   await plug(page, 0, { held: [0, DPAD_UP] })
 
@@ -62,7 +62,7 @@ test("the first gamepad is joystick 0, read as the machine runs", async function
 })
 
 test("the second gamepad is joystick 1, over the letters", async function ({ page }) {
-  const element = await bootStopped(page)
+  const element = await bootStopped(page, CPC_6128)
 
   await plug(page, 0)
   await plug(page, 1, { held: [0, DPAD_LEFT] })
@@ -73,7 +73,7 @@ test("the second gamepad is joystick 1, over the letters", async function ({ pag
 })
 
 test("a gamepad unplugged lets its switches go", async function ({ page }) {
-  const element = await bootStopped(page)
+  const element = await bootStopped(page, CPC_6128)
 
   await plug(page, 0, { held: [DPAD_UP] })
   await run(element)
@@ -84,13 +84,13 @@ test("a gamepad unplugged lets its switches go", async function ({ page }) {
 })
 
 test("a held direction outlives a stop, for stepping under it", async function ({ page }) {
-  const element = await bootStopped(page)
+  const element = await bootStopped(page, CPC_6128)
 
   await plug(page, 0, { held: [DPAD_UP] })
   await run(element)
   await expectPressed(element, [JOYSTICK_0.up])
 
-  await element.evaluate(cpc => cpc.machine.stop())
+  await element.evaluate(host => host.machine.stop())
   await unplugAll(page)
   await page.waitForTimeout(100)
   expect(await pressed(element, JOYSTICK_0.up)).toBe(true)

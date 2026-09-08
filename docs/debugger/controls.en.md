@@ -24,9 +24,15 @@ The first key wears the machine's state as its sign: ▶ while the machine stand
 
 The direction is an arrow and the grain is a word, and the grain in force is the lit one — always on the face, and changed only by pressing it.
 
-`Scanline` and `Row` follow the 6845's own counters, so a line and a row are whatever the program has made them, ruptures included — and both exist for [the screen's beam view](screen.en.md#the-beam-view), whose boundary they walk down the picture.
+`Scanline` and `Row` follow the machine's own beam counters, so a line and a row are whatever the program has made them, ruptures included — and both exist for [the screen's beam view](screen.en.md#the-beam-view), whose boundary they walk down the picture.
 
 The panel reads `Tick`, the machine's own count of T-states since it was built or last loaded from a snapshot; `Frame`, the count the [screen's heat](screen.en.md#the-heat-view) ages against; and `Behind`, how far back of the present the machine is standing, in milliseconds of its own time, or `now` when it is standing there.
+
+## Faster than it ran
+
+▶ runs the machine at the speed the hardware ran, which is the only speed that answers the question the debugger is for. `Speed`, behind the three dots at the heading's right, multiplies it: at 8× the machine runs eight of its milliseconds for each of the reader's, which is how [a tape](tape.en.md) measured in minutes is sat through.
+
+Nothing else changes. The same ticks happen in the same order and the record counts them the same way, because what is multiplied is how much of the machine's time each of the browser's frames is asked to carry, and not the machine. A program watched fast is the program.
 
 ## The mark the program carries
 

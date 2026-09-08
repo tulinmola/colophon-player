@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>A CPC at its prompt</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/css/index.css" />
+    <meta name="theme-color" content="#000000" />
+  </head>
+  <body>
+    <colophon-cpc model="cpc6128">
+      <div class="panels">
+        <colophon-controls></colophon-controls>
+        <colophon-monitor zoom="1.5"></colophon-monitor>
+      </div>
+      <div class="panels">
+        <colophon-z80></colophon-z80>
+        <colophon-disassembly></colophon-disassembly>
+        <colophon-breakpoints></colophon-breakpoints>
+      </div>
+      <div class="panels">
+        <colophon-memory></colophon-memory>
+        <colophon-gate-array></colophon-gate-array>
+        <colophon-crtc></colophon-crtc>
+        <colophon-keyboard></colophon-keyboard>
+      </div>
+      <div class="panels">
+        <colophon-disc></colophon-disc>
+        <colophon-drive drive="a"></colophon-drive>
+        <colophon-upd765></colophon-upd765>
+        <colophon-track drive="a"></colophon-track>
+      </div>
+    </colophon-cpc>
+
+    <script src="/js/index.js" type="module"></script>
+  </body>
+</html>

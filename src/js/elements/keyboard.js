@@ -3,94 +3,14 @@ import { MachineObserver } from "./machine_observer"
 
 const BITS_A_LINE = 8
 
-// The inscription of the key at each position, in the firmware's numbering,
-// from Appendix I of SOFT 968 and "Reading the keyboard and Joysticks"
-// (Kevin Thacker's cpctech), https://cpctech.cpcwiki.de/docs/keyboard.html
-const INSCRIPTIONS = [
-  ["↑", "Cursor up"],
-  ["→", "Cursor right"],
-  ["↓", "Cursor down"],
-  ["f9", "f9, on the keypad"],
-  ["f6", "f6, on the keypad"],
-  ["f3", "f3, on the keypad"],
-  ["ENTER", "Enter, on the keypad"],
-  ["f.", "f., on the keypad"],
-  ["←", "Cursor left"],
-  ["COPY", "Copy"],
-  ["f7", "f7, on the keypad"],
-  ["f8", "f8, on the keypad"],
-  ["f5", "f5, on the keypad"],
-  ["f1", "f1, on the keypad"],
-  ["f2", "f2, on the keypad"],
-  ["f0", "f0, on the keypad"],
-  ["CLR", "Clear"],
-  ["[", "[ and {"],
-  ["RETURN", "Return"],
-  ["]", "] and }"],
-  ["f4", "f4, on the keypad"],
-  ["SHIFT", "Shift, either side"],
-  ["\\", "\\ and `"],
-  ["CTRL", "Control"],
-  ["^", "^ and £"],
-  ["-", "- and ="],
-  ["@", "@ and |"],
-  ["P", "P"],
-  [";", "; and +"],
-  [":", ": and *"],
-  ["/", "/ and ?"],
-  [".", ". and >"],
-  ["0", "0 and _"],
-  ["9", "9 and )"],
-  ["O", "O"],
-  ["I", "I"],
-  ["L", "L"],
-  ["K", "K"],
-  ["M", "M"],
-  [",", ", and <"],
-  ["8", "8 and ("],
-  ["7", "7 and '"],
-  ["U", "U"],
-  ["Y", "Y"],
-  ["H", "H"],
-  ["J", "J"],
-  ["N", "N"],
-  ["SPACE", "Space"],
-  ["6", "6 and &, and joystick 1 up"],
-  ["5", "5 and %, and joystick 1 down"],
-  ["R", "R, and joystick 1 left"],
-  ["T", "T, and joystick 1 right"],
-  ["G", "G, and joystick 1 fire 2"],
-  ["F", "F, and joystick 1 fire 1"],
-  ["B", "B, and joystick 1 spare"],
-  ["V", "V"],
-  ["4", "4 and $"],
-  ["3", "3 and #"],
-  ["E", "E"],
-  ["W", "W"],
-  ["S", "S"],
-  ["D", "D"],
-  ["C", "C"],
-  ["X", "X"],
-  ["1", "1 and !"],
-  ["2", "2 and the double quote"],
-  ["ESC", "Escape"],
-  ["Q", "Q"],
-  ["TAB", "Tab"],
-  ["A", "A"],
-  ["CAPS", "Caps Lock"],
-  ["Z", "Z"],
-  ["(UP)", "Joystick 0 up"],
-  ["(DOWN)", "Joystick 0 down"],
-  ["(LEFT)", "Joystick 0 left"],
-  ["(RIGHT)", "Joystick 0 right"],
-  ["(FIRE 2)", "Joystick 0 fire 2, the main button"],
-  ["(FIRE 1)", "Joystick 0 fire 1"],
-  ["(SPARE)", "Joystick 0 spare"],
-  ["DEL", "Delete"]
-]
+function renderKey(inscriptions, key) {
+  const legend = inscriptions[key]
 
-function renderKey(key) {
-  const [inscription, meaning] = INSCRIPTIONS[key]
+  if (!legend) {
+    return html`<td></td>`
+  }
+
+  const [inscription, meaning] = legend
 
   return html`<td>
     <label title="Key ${key}: ${meaning}">
@@ -100,8 +20,10 @@ function renderKey(key) {
   </td>`
 }
 
-function renderLine(line) {
-  const keys = Array.from({ length: BITS_A_LINE }, (_, bit) => renderKey(line * BITS_A_LINE + bit))
+function renderLine(inscriptions, line) {
+  const keys = Array.from({ length: BITS_A_LINE }, (_, bit) =>
+    renderKey(inscriptions, line * BITS_A_LINE + bit)
+  )
 
   return html`<tr>
     <th scope="row">${line}</th>
@@ -117,8 +39,11 @@ class KeyboardElement extends MachineObserver {
   #form
 
   watch(machine) {
-    const bits = Array.from({ length: BITS_A_LINE }, (_, bit) => renderBit(bit)),
-      lines = Array.from(machine.keyboard.lines, (_, line) => renderLine(line))
+    const inscriptions = machine.inscriptions,
+      bits = Array.from({ length: BITS_A_LINE }, (_, bit) => renderBit(bit)),
+      lines = Array.from({ length: machine.keyboardLines }, (_, line) =>
+        renderLine(inscriptions, line)
+      )
 
     this.innerHTML = html`
       <h2>Keyboard</h2>
@@ -165,8 +90,10 @@ class KeyboardElement extends MachineObserver {
     const keyboard = machine.keyboard,
       field = this.#form.elements
 
-    for (let key = 0; key < keyboard.lines.length * BITS_A_LINE; key++) {
-      writeValue(field[`key${key}`], keyboard.pressed(key))
+    for (let key = 0; key < machine.keyboardLines * BITS_A_LINE; key++) {
+      if (field[`key${key}`]) {
+        writeValue(field[`key${key}`], keyboard.pressed(key))
+      }
     }
   }
 }

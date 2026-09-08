@@ -1,5 +1,14 @@
 import { execFileSync, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from "node:fs"
+import { createHash } from "node:crypto"
 import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
 import { tmpdir } from "node:os"
@@ -7,20 +16,54 @@ import { tmpdir } from "node:os"
 const ROOT = resolve(fileURLToPath(import.meta.url), "../.."),
   EMULATOR_DIR = resolve(ROOT, process.env.EMULATOR_DIR ?? "../colophon-emulator"),
   VENDOR_DIR = resolve(ROOT, "src/js/vendor"),
-  EXPORTS = resolve(ROOT, "emulator/exports.json"),
-  HOST = resolve(ROOT, "emulator/player.c"),
-  LAYOUT = resolve(ROOT, "emulator/layout.c")
+  HOST_DIR = resolve(ROOT, "emulator"),
+  EXPORTS = resolve(HOST_DIR, "exports.json"),
+  LAYOUT = resolve(HOST_DIR, "layout.c")
+
+// The record and a file for each machine. Read from the directory so a
+// machine added and left out of a list cannot be missing from the module.
+function hostSources() {
+  return readdirSync(HOST_DIR)
+    .filter(name => name.endsWith(".c") && resolve(HOST_DIR, name) != LAYOUT)
+    .map(name => resolve(HOST_DIR, name))
+    .sort()
+}
+
+// Every file the module is built from, so that none of them can change under
+// a name the last build already answered to.
+function hostFiles() {
+  const headers = readdirSync(HOST_DIR)
+    .filter(name => name.endsWith(".h"))
+    .map(name => resolve(HOST_DIR, name))
+    .sort()
+
+  return [EXPORTS, LAYOUT, ...hostSources(), ...headers]
+}
 
 function git(...args) {
   return execFileSync("git", ["-C", EMULATOR_DIR, ...args], { encoding: "utf8" }).trim()
 }
 
+// The host is this repository's and the machine is the emulator's, so the
+// commit alone cannot tell two builds apart: a name that outlives an edit to
+// player.c is a page unable to say which module it is running.
+function hostDigest() {
+  const digest = createHash("sha256")
+
+  for (const path of hostFiles()) {
+    digest.update(readFileSync(path))
+  }
+
+  return digest.digest("hex").slice(0, 7)
+}
+
 function emulatorVersion() {
   const commit = git("rev-parse", "--short", "HEAD"),
     // A build from uncommitted sources must not answer to a commit's name.
-    clean = spawnSync("git", ["-C", EMULATOR_DIR, "diff", "--quiet", "HEAD", "--", "src"]).status
+    clean = spawnSync("git", ["-C", EMULATOR_DIR, "diff", "--quiet", "HEAD", "--", "src"]).status,
+    machine = clean == 0 ? commit : `${commit}-dirty`
 
-  return clean == 0 ? commit : `${commit}-dirty`
+  return `${machine}-${hostDigest()}`
 }
 
 function machineSources() {
@@ -70,7 +113,7 @@ execFileSync(
   "emcc",
   [
     ...machineSources(),
-    HOST,
+    ...hostSources(),
     "-I",
     resolve(EMULATOR_DIR, "src"),
     "-std=c99",

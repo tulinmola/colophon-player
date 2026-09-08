@@ -1,43 +1,22 @@
 /*
- * player.c — the machine's host in a page.
+ * player.c — the record a machine is watched by, and the page's side of it.
  *
- * The core allocates nothing and does no I/O, so a host owns the machine,
- * its memory and its screen and decides when it runs. This one holds all of
- * it in fixed storage: the module's memory is whatever it needs when it
- * loads and never grows. The page writes ROM and snapshot bytes straight
- * into the buffers exported below, which is the whole of the traffic in
- * that direction.
+ * The core allocates nothing and does no I/O, so a host owns the machine, its
+ * memory and its screen and decides when it runs. This one holds all of it in
+ * fixed storage: the module's memory is whatever it needs when it loads and
+ * never grows. The page writes ROM and snapshot bytes straight into the
+ * buffers exported below, which is the whole of the traffic in that
+ * direction.
+ *
+ * A machine drives; this watches. Nothing here may name a machine, a chip or
+ * a bus.
  */
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "cpc.h"
-#include "dsk.h"
-#include "gate_array.h"
-#include "snapshot.h"
+#include "player.h"
 
-/* Sized for the largest machine: a 6128's 128K, and the 32K image holding
-   the operating system and BASIC. */
-#define PLAYER_RAM_SIZE 0x20000
-#define PLAYER_ROM_SIZE 0x8000
-#define PLAYER_SNAPSHOT_SIZE (SNAPSHOT_HEADER_SIZE + PLAYER_RAM_SIZE)
-
-#define PLAYER_AMSDOS_SIZE 0x4000
-
-/* As wide as the core's own drives[], since cpc_insert_disc is indexed by the
-   same number these buffers are. */
-#define PLAYER_DRIVES 2
-
-/* A CPC's own discs are a fifth of this. The rest is for the extended images
-   of protected ones, which store every reading of an unstable sector. */
-#define PLAYER_DISC_SIZE 0x100000
-
-/* A frame is 312 lines of 64µs, and four T-states fill a microsecond of a
-   4MHz clock. */
-#define PLAYER_TICKS_PER_FRAME (CPC_FRAMEBUFFER_HEIGHT * 64 * 4)
-
-#define PLAYER_STATE_TICKS PLAYER_TICKS_PER_FRAME
 #define PLAYER_STATES 128
 #define PLAYER_TRACE_ENTRIES (1 << 19)
 
@@ -46,14 +25,18 @@
 #define PLAYER_GRAIN_ROW 2
 #define PLAYER_GRAIN_FRAME 3
 
-/* A wasm export cannot hand back a 64-bit integer without splitting it, and
-   every tick this machine will reach fits in a double exactly. */
-typedef double player_tick_t;
+typedef enum {
+  PLAYER_UNTIL_LIMIT,
+  PLAYER_UNTIL_SETTLED,
+  PLAYER_UNTIL_TICK,
+  PLAYER_UNTIL_RETRACE,
+  PLAYER_UNTIL_GRAIN,
+} player_until;
 
 typedef struct {
   player_tick_t tick;
   uint32_t frame;
-  cpc_t cpc;
+  uint8_t machine[PLAYER_MACHINE_BYTES];
   uint8_t ram[PLAYER_RAM_SIZE];
 } player_state_t;
 
@@ -64,24 +47,18 @@ typedef struct {
   uint8_t value;
 } player_write_t;
 
-static cpc_t cpc;
-static uint8_t ram[PLAYER_RAM_SIZE];
-static uint8_t framebuffer[CPC_FRAMEBUFFER_WIDTH * CPC_FRAMEBUFFER_HEIGHT];
-static uint8_t rom[PLAYER_ROM_SIZE];
-static uint8_t amsdos[PLAYER_AMSDOS_SIZE];
-static uint8_t snapshot[PLAYER_SNAPSHOT_SIZE];
+uint8_t player_ram_bytes[PLAYER_RAM_SIZE];
+uint8_t player_rom_bytes[PLAYER_ROM_SIZE];
+uint8_t player_framebuffer_bytes[PLAYER_FRAMEBUFFER_SIZE];
+uint8_t player_snapshot_bytes[PLAYER_SNAPSHOT_SIZE];
 
-/* A floppy borrows its image where it lies, so a buffer here is the disc while
-   it is in the drive: it must not move, and nothing may write over it until
-   that disc comes out. */
-static uint8_t disc_images[PLAYER_DRIVES][PLAYER_DISC_SIZE];
-static floppy_t discs[PLAYER_DRIVES];
-static uint8_t written_disc[PLAYER_DISC_SIZE];
-static const char *disc_problem;
+/* Zeroed until a page builds one. */
+static player_subject_t standing;
 
-/* The frame each physical byte was last stored to, taken from the pins the
-   tick already returns — the tap the emulator's observation.en.md costs at
-   nothing measurable. Zero means never, so frames count from one. */
+/* The frame each physical byte was last stored to, taken from the word a
+   machine already says after each tick — the tap the emulator's
+   observation.en.md costs at nothing measurable. Zero means never, so frames
+   count from one. */
 static uint32_t written[PLAYER_RAM_SIZE];
 static uint32_t frame;
 
@@ -113,7 +90,10 @@ static bool rewound;   /* standing somewhere the record has run past */
 
 /* WinAPE's BRK (http://www.winape.net/help/debug.html). A Z80 runs the pair
    as a NONI: 8 T-states, R twice advanced, nothing else touched
-   (https://mdfs.net/Docs/Comp/Z80/UnDocOps). */
+   (https://mdfs.net/Docs/Comp/Z80/UnDocOps).
+
+   This pair and the table below are a Z80's, and so is the record while they
+   are: a machine with another processor wants both widened. */
 #define PLAYER_BREAK_PREFIX 0xED
 #define PLAYER_BREAK_OPCODE 0xFF
 
@@ -126,12 +106,30 @@ static bool break_instructions;
 static uint8_t trap_kind;
 static uint16_t trap_address;
 
-static void forget_stamps(void) { memset(written, 0, sizeof written); }
+/* What a run is waiting for, said whole by whoever asks for it so that no
+   field of it can be inherited from the run before. */
+typedef struct {
+  player_until until;
+  bool honours_marks;
+  uint64_t tick;
+  uint32_t grain;
+} player_goal_t;
 
-static void forget_writes(void) {
-  forget_stamps();
-  frame = 1;
-}
+/* The run in hand: what it was asked for, and what it has seen. */
+static struct {
+  player_goal_t goal;
+  /* A walk looking for the last grain begun. Its grain is its own: the run
+     it is made of asks to reach a tick, and would otherwise carry it away. */
+  bool tracking;
+  uint32_t tracked;
+  bool begun;            /* it has been crossed at least once */
+  player_tick_t entered; /* where, or -1 */
+  uint16_t row;
+  uint16_t line;
+  uint32_t frame;
+} run;
+
+static void forget_stamps(void) { memset(written, 0, sizeof written); }
 
 static player_state_t *state_at(uint32_t index) {
   return &states[(states_oldest + index) % PLAYER_STATES];
@@ -140,9 +138,9 @@ static player_state_t *state_at(uint32_t index) {
 static void store_state(player_state_t *state) {
   state->tick = (player_tick_t)ticks;
   state->frame = frame;
-  state->cpc = cpc;
-  memcpy(state->ram, ram, cpc.ram_size);
-  next_state_due = ticks + PLAYER_STATE_TICKS;
+  memcpy(state->machine, standing.state, standing.state_bytes);
+  memcpy(state->ram, player_ram_bytes, standing.memory_bytes);
+  next_state_due = ticks + standing.ticks_per_frame;
 }
 
 static void keep_state(void) {
@@ -155,21 +153,6 @@ static void keep_state(void) {
   }
 
   store_state(state);
-}
-
-static void forget_history(void) {
-  states_oldest = 0;
-  states_held = 0;
-  trace_first = 0;
-  trace_held = 0;
-  traced = NULL;
-  ticks = 0;
-  fetch_pc = 0;
-  fetch_tick = 0;
-  recorded_until = 0;
-  replaying = false;
-  rewound = false;
-  keep_state();
 }
 
 static void keep_write(uint32_t physical, uint8_t value) {
@@ -205,9 +188,11 @@ static void forget_after(void) {
   recorded_until = ticks;
 }
 
-/* No replay reaches a value written from outside: this state is the only
-   place that moment exists. */
 static void capture(void) {
+  if (standing.state == NULL) {
+    return;
+  }
+
   if (rewound) {
     forget_after();
     rewound = false;
@@ -223,67 +208,306 @@ static void capture(void) {
   keep_state();
 }
 
-static void tick(void) {
-  bool retraced = cpc.monitor.frame_retraced;
+void player_capture(void) { capture(); }
 
-  if (!replaying &&
-      (rewound || (ticks >= next_state_due && z80_instruction_complete(&cpc.cpu)))) {
+static void load_state(uint32_t index) {
+  const player_state_t *state = state_at(index);
+
+  memcpy(standing.state, state->machine, standing.state_bytes);
+  memcpy(player_ram_bytes, state->ram, standing.memory_bytes);
+  frame = state->frame;
+  ticks = (uint64_t)state->tick;
+
+  if (standing.restore != NULL) {
+    standing.restore();
+  }
+}
+
+/* Whether the machine has just reached a mark it must stop on: a watch that
+ * fired mid-instruction and has reached its boundary, the program counter
+ * standing on an execute breakpoint, or a break instruction the program
+ * carries. A watch waits for that boundary ahead of any retrace, which is why
+ * a run waiting for one asks whether a mark is pending before it stops.
+ *
+ * Where PC has arrived and not where it left, because the instruction
+ * standing there has not run and a resume would walk off the mark without
+ * being told to. */
+static bool trapped(const player_moment_t *moment) {
+  if (trap_kind != PLAYER_TRAP_NONE) {
+    /* A watch fires mid-instruction; the stop waits for the boundary. */
+    return moment->settled;
+  }
+
+  if (((trapping & PLAYER_TRAP_EXECUTE) == 0 && !break_instructions) || !moment->settled) {
+    return false;
+  }
+
+  uint16_t pc = moment->program_counter;
+
+  if ((breakpoints[pc] & PLAYER_TRAP_EXECUTE) != 0) {
+    trap_kind = PLAYER_TRAP_EXECUTE;
+    trap_address = pc;
+    return true;
+  }
+
+  if (break_instructions && standing.peek(pc) == PLAYER_BREAK_PREFIX &&
+      standing.peek((uint16_t)(pc + 1)) == PLAYER_BREAK_OPCODE) {
+    trap_kind = PLAYER_TRAP_BREAK;
+    trap_address = pc;
+    return true;
+  }
+
+  return false;
+}
+
+static bool crossed(uint32_t grain, const player_moment_t *moment) {
+  switch (grain) {
+    case PLAYER_GRAIN_INSTRUCTION:
+      return true;
+    case PLAYER_GRAIN_SCANLINE:
+      return moment->row != run.row || moment->line != run.line;
+    case PLAYER_GRAIN_ROW:
+      return moment->row != run.row;
+    case PLAYER_GRAIN_FRAME:
+      return frame != run.frame;
+    default:
+      return false;
+  }
+}
+
+void player_stand(const player_subject_t *subject) {
+  standing = *subject;
+  player_forget();
+}
+
+void player_before(bool settled, uint16_t row, uint16_t line) {
+  if (run.tracking && run.begun && settled) {
+    run.entered = (player_tick_t)ticks;
+    run.begun = run.tracked == PLAYER_GRAIN_INSTRUCTION;
+  }
+
+  if (!replaying && (rewound || (ticks >= next_state_due && settled))) {
     capture();
   }
 
-  if (z80_instruction_complete(&cpc.cpu)) {
-    fetch_pc = cpc.cpu.pc;
-    fetch_tick = ticks;
-  }
+  run.row = row;
+  run.line = line;
+  run.frame = frame;
+}
 
-  uint64_t pins = cpc_tick(&cpc);
+void player_fetching(uint16_t program_counter) {
+  fetch_pc = program_counter;
+  fetch_tick = ticks;
+}
+
+bool player_after(const player_moment_t *moment) {
   ticks++;
 
   if (!replaying) {
     recorded_until = ticks;
   }
 
-  if ((pins & (Z80_MREQ | Z80_WR)) == (Z80_MREQ | Z80_WR)) {
-    uint16_t address = z80_address(pins);
-    size_t physical = (size_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
-    written[physical] = frame;
+  if (moment->access == PLAYER_ACCESS_WRITE && moment->physical != PLAYER_NOWHERE) {
+    written[moment->physical] = frame;
 
     if (!replaying) {
-      keep_write((uint32_t)physical, z80_data(pins));
+      keep_write(moment->physical, moment->value);
     }
   }
 
-  if ((trapping & (PLAYER_TRAP_READ | PLAYER_TRAP_WRITE)) != 0 && trap_kind == PLAYER_TRAP_NONE) {
-    /* M1 keeps opcode fetches out of the read tap: read means read as data. */
-    uint64_t memory = pins & (Z80_M1 | Z80_MREQ | Z80_RD | Z80_WR);
-    uint16_t address = z80_address(pins);
+  if ((trapping & (PLAYER_TRAP_READ | PLAYER_TRAP_WRITE)) != 0 && trap_kind == PLAYER_TRAP_NONE &&
+      moment->access != PLAYER_ACCESS_NONE) {
+    uint8_t wanted = moment->access == PLAYER_ACCESS_WRITE ? PLAYER_TRAP_WRITE : PLAYER_TRAP_READ;
 
-    if (memory == (Z80_MREQ | Z80_WR) && (breakpoints[address] & PLAYER_TRAP_WRITE) != 0) {
-      trap_kind = PLAYER_TRAP_WRITE;
-      trap_address = address;
-    } else if (memory == (Z80_MREQ | Z80_RD) && (breakpoints[address] & PLAYER_TRAP_READ) != 0) {
-      trap_kind = PLAYER_TRAP_READ;
-      trap_address = address;
+    if ((breakpoints[moment->address] & wanted) != 0) {
+      trap_kind = wanted;
+      trap_address = moment->address;
     }
   }
 
-  if (cpc.monitor.frame_retraced && !retraced) {
+  if (moment->frame_ended) {
     frame++;
   }
-}
 
-/* cpc_finish_instruction would tick the core out of the tap's sight, so the
-   host walks the same loop itself; the guard is the core's own. */
-static void finish_instruction(void) {
-  for (int guard = 0; guard < 256 && !z80_instruction_complete(&cpc.cpu); guard++) {
-    tick();
+  if (run.tracking) {
+    run.begun = run.begun || crossed(run.tracked, moment);
   }
+
+  bool stop = run.goal.honours_marks && trapped(moment);
+
+  switch (run.goal.until) {
+    case PLAYER_UNTIL_SETTLED:
+      stop = stop || moment->settled;
+      break;
+    case PLAYER_UNTIL_TICK:
+      stop = stop || ticks >= run.goal.tick;
+      break;
+    case PLAYER_UNTIL_RETRACE:
+      stop = stop || (trap_kind == PLAYER_TRAP_NONE && moment->frame_ended);
+      break;
+    case PLAYER_UNTIL_GRAIN:
+      stop = stop || crossed(run.goal.grain, moment);
+      break;
+    default:
+      break;
+  }
+
+  return !stop;
 }
 
-static bool standing_on_break_instruction(void) {
-  return cpc_peek(&cpc, cpc.cpu.pc) == PLAYER_BREAK_PREFIX &&
-         cpc_peek(&cpc, (uint16_t)(cpc.cpu.pc + 1)) == PLAYER_BREAK_OPCODE;
+static uint32_t run_until(player_goal_t goal, uint32_t limit) {
+  run.goal = goal;
+
+  return standing.run(limit);
 }
+
+/* The guard is the core's own: longer than the longest instruction, the
+   charges it can earn along a line, and an interrupt taken at the end of it. */
+static void finish_instruction(void) {
+  if (standing.settled()) {
+    return;
+  }
+
+  const player_goal_t goal = {.until = PLAYER_UNTIL_SETTLED};
+
+  run_until(goal, 256);
+}
+
+static void run_to(player_tick_t target) {
+  if ((player_tick_t)ticks >= target) {
+    return;
+  }
+
+  const player_goal_t goal = {.until = PLAYER_UNTIL_TICK, .tick = (uint64_t)target};
+
+  run_until(goal, (uint32_t)(target - (player_tick_t)ticks));
+}
+
+uint8_t *player_rom(void) { return player_rom_bytes; }
+uint8_t *player_snapshot(void) { return player_snapshot_bytes; }
+
+/* How much a page may write into the buffers above, so that an image larger
+   than the room here is refused rather than laid over what follows it. */
+uint32_t player_snapshot_capacity(void) { return PLAYER_SNAPSHOT_SIZE; }
+uint32_t player_rom_capacity(void) { return PLAYER_ROM_SIZE; }
+uint32_t player_ram_capacity(void) { return PLAYER_RAM_SIZE; }
+
+/* Addresses into it are physical, the video hardware's own view; peek and
+   poke walk the machine's own map instead. */
+uint8_t *player_ram(void) { return player_ram_bytes; }
+
+/* Hardware colour codes, one byte a sample, the whole raster. */
+uint8_t *player_framebuffer(void) { return player_framebuffer_bytes; }
+
+uint32_t *player_writes(void) { return written; }
+uint32_t player_frame(void) { return frame; }
+
+void player_forget(void) {
+  forget_stamps();
+  frame = 1;
+
+  states_oldest = 0;
+  states_held = 0;
+  trace_first = 0;
+  trace_held = 0;
+  traced = NULL;
+  ticks = 0;
+  fetch_pc = 0;
+  fetch_tick = 0;
+  recorded_until = 0;
+  replaying = false;
+  rewound = false;
+  run.tracking = false;
+  keep_state();
+}
+
+void player_clear_breakpoints(void) {
+  memset(breakpoints, 0, sizeof breakpoints);
+  trapping = PLAYER_TRAP_NONE;
+}
+
+/* Inclusive of both ends, and `at` is wider than the address it holds so a
+   range reaching &FFFF finishes instead of wrapping. */
+void player_set_breakpoint(uint16_t from, uint16_t until, uint8_t kinds) {
+  for (uint32_t at = from; at <= until; at++) {
+    breakpoints[at] |= kinds;
+  }
+
+  trapping |= kinds;
+}
+
+void player_set_break_instructions(bool honoured) { break_instructions = honoured; }
+
+uint32_t player_trap_kind(void) { return trap_kind; }
+uint32_t player_trap_address(void) { return trap_address; }
+
+void player_run_frames(uint32_t frames) {
+  const player_goal_t goal = {.until = PLAYER_UNTIL_LIMIT};
+
+  run_until(goal, frames * standing.ticks_per_frame);
+  finish_instruction();
+}
+
+/* The monitor sends the beam to the top-left corner as the frame sync
+ * reaches its length, so the moment it reports a retrace is the moment the
+ * framebuffer holds a whole frame and nothing of the next.
+ *
+ * Software decides how long a frame is, and may decide never to finish one:
+ * a rupture that leaves the vsync position past the vertical total stops the
+ * frames for as long as it holds. The caller says how long it is prepared to
+ * wait, so there is no frame to be waited for forever. */
+uint32_t player_run_until_retrace(uint32_t limit) {
+  /* Left standing, the last stop's record would trap the resume on itself. */
+  const player_goal_t goal = {.until = PLAYER_UNTIL_RETRACE, .honours_marks = true};
+
+  trap_kind = PLAYER_TRAP_NONE;
+
+  return run_until(goal, limit);
+}
+
+/* Run on until the beam has crossed the named grain, then finish the
+ * instruction standing there. A mark stops a step as it stops a run: a reader
+ * who sets a breakpoint and steps a frame means to be stopped by it. */
+void player_step_to(uint32_t grain) {
+  const player_goal_t goal = {.until = PLAYER_UNTIL_GRAIN, .honours_marks = true, .grain = grain};
+
+  trap_kind = PLAYER_TRAP_NONE;
+  run_until(goal, standing.ticks_per_frame * 2);
+  finish_instruction();
+}
+
+void player_finish_instruction(void) { finish_instruction(); }
+
+uint8_t player_peek(uint16_t address) { return standing.peek(address); }
+
+void player_poke(uint16_t address, uint8_t value) { standing.poke(address, value); }
+
+void player_press(uint8_t key) { standing.press(key); }
+void player_release(uint8_t key) { standing.release(key); }
+
+bool player_load_snapshot(uint32_t length) { return standing.load_snapshot(length); }
+
+/* A CPC's sample is a hardware colour code, a Spectrum's is a bright bit and
+   three guns; each machine reads its own. */
+uint32_t player_rgb(uint8_t sample) { return standing.rgb(sample); }
+
+z80_t *player_z80(void) { return standing.processor; }
+keyboard_t *player_keyboard(void) { return standing.matrix; }
+
+player_tick_t player_ticks(void) { return (player_tick_t)ticks; }
+
+player_tick_t player_history_from(void) {
+  uint32_t index = 0;
+
+  while (index < states_held - 1 &&
+         state_at(index)->tick - state_at(0)->tick < standing.ticks_per_frame) {
+    index++;
+  }
+
+  return state_at(index)->tick;
+}
+
+player_tick_t player_history_until(void) { return (player_tick_t)recorded_until; }
 
 static uint32_t state_to_run_from(player_tick_t tick) {
   uint32_t index = 0;
@@ -298,26 +522,10 @@ static uint32_t state_to_run_from(player_tick_t tick) {
   return index;
 }
 
-static void load_state(uint32_t index) {
-  const player_state_t *state = state_at(index);
-
-  cpc = state->cpc;
-  memcpy(ram, state->ram, cpc.ram_size);
-  frame = state->frame;
-  ticks = (uint64_t)state->tick;
-  cpc_remap(&cpc);
-}
-
-static void run_to(player_tick_t target) {
-  while ((player_tick_t)ticks < target) {
-    tick();
-  }
-}
-
 static uint32_t state_a_frame_before(uint32_t index) {
   uint32_t start = index;
 
-  while (start > 0 && state_at(index)->tick - state_at(start)->tick < PLAYER_STATE_TICKS) {
+  while (start > 0 && state_at(index)->tick - state_at(start)->tick < standing.ticks_per_frame) {
     start--;
   }
 
@@ -349,275 +557,6 @@ static void stand_at(player_tick_t target) {
   replaying = false;
 }
 
-uint8_t *player_rom(void) { return rom; }
-uint8_t *player_amsdos(void) { return amsdos; }
-uint8_t *player_snapshot(void) { return snapshot; }
-
-uint8_t *player_disc(uint8_t drive) { return disc_images[drive]; }
-uint32_t player_disc_capacity(void) { return PLAYER_DISC_SIZE; }
-uint8_t *player_written_disc(void) { return written_disc; }
-
-/* Addresses into it are physical, the video hardware's own view; peek and
-   poke walk the CPU's banking instead. */
-uint8_t *player_ram(void) { return ram; }
-
-/* Hardware colour codes, one byte a sample, the whole raster. */
-uint8_t *player_framebuffer(void) { return framebuffer; }
-
-uint32_t *player_writes(void) { return written; }
-uint32_t player_frame(void) { return frame; }
-
-void player_clear_breakpoints(void) {
-  memset(breakpoints, 0, sizeof breakpoints);
-  trapping = PLAYER_TRAP_NONE;
-}
-
-/* Inclusive of both ends, and `at` is wider than the address it holds so a
-   range reaching &FFFF finishes instead of wrapping. */
-void player_set_breakpoint(uint16_t from, uint16_t until, uint8_t kinds) {
-  for (uint32_t at = from; at <= until; at++) {
-    breakpoints[at] |= kinds;
-  }
-
-  trapping |= kinds;
-}
-
-void player_set_break_instructions(bool honoured) { break_instructions = honoured; }
-
-uint32_t player_trap_kind(void) { return trap_kind; }
-uint32_t player_trap_address(void) { return trap_address; }
-
-/* The operating system fills the lower half of the image, BASIC the upper
- * as ROM 0, and the disc interface brings its own ROM as upper ROM 7.
- *
- * cpc_init empties the drives, so a disc that was in one goes back in after
- * this and not before. */
-void player_boot(uint32_t ram_size, bool disc_interface) {
-  cpc_init(&cpc, ram, ram_size, rom);
-  cpc_set_upper_rom(&cpc, 0, rom + 0x4000);
-
-  if (disc_interface) {
-    cpc_fit_disc_interface(&cpc, true);
-    cpc_set_upper_rom(&cpc, 7, amsdos);
-  }
-
-  cpc_connect_monitor(&cpc, framebuffer);
-  forget_writes();
-  forget_history();
-}
-
-bool player_load_snapshot(uint32_t length) {
-  const char *problem = NULL;
-  if (!snapshot_load(&cpc, snapshot, length, &problem)) {
-    return false;
-  }
-
-  forget_writes();
-  forget_history();
-  return true;
-}
-
-/* The disc comes out before the image is read, because dsk_read empties the
- * floppy it refuses: leaving it mounted would leave the drive holding a medium
- * with nothing on it rather than an empty drive.
- *
- * A length with no room for it is refused first of all, having touched
- * nothing, so the disc already in the drive stays there. */
-bool player_insert_disc(uint8_t drive, uint32_t length) {
-  disc_problem = NULL;
-
-  if (length > PLAYER_DISC_SIZE) {
-    disc_problem = "the image is larger than the room a disc is given here";
-    return false;
-  }
-
-  cpc_insert_disc(&cpc, drive, NULL);
-
-  if (!dsk_read(&discs[drive], disc_images[drive], length, &disc_problem)) {
-    capture();
-    return false;
-  }
-
-  cpc_insert_disc(&cpc, drive, &discs[drive]);
-  capture();
-  return true;
-}
-
-/* The medium is left where it is: a moment the record can still be stood at
- * had this disc in the drive, and the pointer it holds must still find it. */
-void player_eject_disc(uint8_t drive) {
-  cpc_insert_disc(&cpc, drive, NULL);
-  capture();
-}
-
-const char *player_disc_problem(void) { return disc_problem; }
-
-/* Zero where there is no image to write, or where the room here falls short
- * of the one dsk_write measured, in which case it wrote nothing. */
-uint32_t player_save_disc(uint8_t drive) {
-  const floppy_t *disc = cpc.drives[drive].floppy;
-
-  disc_problem = NULL;
-
-  if (disc == NULL) {
-    disc_problem = "there is no disc in that drive to write";
-    return 0;
-  }
-
-  size_t needed = dsk_write(disc, written_disc, sizeof written_disc);
-
-  if (needed == 0) {
-    disc_problem = "the disc holds a track the image format cannot describe";
-    return 0;
-  }
-
-  if (needed > sizeof written_disc) {
-    disc_problem = "the disc needs more room than an image here is given";
-    return 0;
-  }
-
-  return (uint32_t)needed;
-}
-
-void player_run_frames(uint32_t frames) {
-  uint32_t ticks_wanted = frames * PLAYER_TICKS_PER_FRAME;
-  for (uint32_t count = 0; count < ticks_wanted; count++) {
-    tick();
-  }
-}
-
-/* The monitor sends the beam to the top-left corner as the frame sync
- * reaches its length, so the moment it reports a retrace is the moment the
- * framebuffer holds a whole frame and nothing of the next.
- *
- * Software decides how long a frame is, and may decide never to finish one:
- * a rupture that leaves the vsync position past the vertical total stops the
- * frames for as long as it holds. The caller says how long it is prepared to
- * wait, so there is no frame to be waited for forever. */
-uint32_t player_run_until_retrace(uint32_t limit) {
-  uint32_t start = frame;
-
-  /* Left standing, the last stop's record would trap the resume on itself. */
-  trap_kind = PLAYER_TRAP_NONE;
-
-  for (uint32_t count = 1; count <= limit; count++) {
-    tick();
-
-    if (trap_kind != PLAYER_TRAP_NONE) {
-      /* A watch fires mid-instruction; the stop waits for the boundary, and
-         for it ahead of any retrace. */
-      if (z80_instruction_complete(&cpc.cpu)) {
-        return count;
-      }
-      continue;
-    }
-
-    if (((trapping & PLAYER_TRAP_EXECUTE) != 0 || break_instructions) &&
-        z80_instruction_complete(&cpc.cpu)) {
-      /* Where PC has arrived, not where it left: the instruction standing
-         there has not run, and a resume walks off the mark without being told
-         to. */
-      if ((breakpoints[cpc.cpu.pc] & PLAYER_TRAP_EXECUTE) != 0) {
-        trap_kind = PLAYER_TRAP_EXECUTE;
-        trap_address = cpc.cpu.pc;
-        return count;
-      }
-
-      if (break_instructions && standing_on_break_instruction()) {
-        trap_kind = PLAYER_TRAP_BREAK;
-        trap_address = cpc.cpu.pc;
-        return count;
-      }
-    }
-
-    if (frame != start) {
-      return count;
-    }
-  }
-
-  return limit;
-}
-
-/* An export that changes the machine without ticking it keeps the record —
-   and only if it changed anything, or a blur releasing nothing would spend a
-   moment of history. */
-static void capture_if_changed(keyboard_t before) {
-  if (memcmp(&before, &cpc.keyboard, sizeof before) != 0) {
-    capture();
-  }
-}
-
-void player_press(uint8_t key) {
-  keyboard_t before = cpc.keyboard;
-  keyboard_press(&cpc.keyboard, key);
-  capture_if_changed(before);
-}
-
-void player_release(uint8_t key) {
-  keyboard_t before = cpc.keyboard;
-  keyboard_release(&cpc.keyboard, key);
-  capture_if_changed(before);
-}
-
-uint8_t player_peek(uint16_t address) { return cpc_peek(&cpc, address); }
-
-void player_poke(uint16_t address, uint8_t value) {
-  cpc_poke(&cpc, address, value);
-  capture();
-}
-
-/* The pages the processor reads are derived from the ROM enables and the
-   bank register, so a host that writes those recomputes them. */
-void player_remap(void) { cpc_remap(&cpc); }
-
-z80_t *player_z80(void) { return &cpc.cpu; }
-crtc_t *player_crtc(void) { return &cpc.crtc; }
-gate_array_t *player_gate_array(void) { return &cpc.gate_array; }
-keyboard_t *player_keyboard(void) { return &cpc.keyboard; }
-upd765_t *player_fdc(void) { return &cpc.fdc; }
-drive_t *player_drive(uint8_t drive) { return &cpc.drives[drive]; }
-floppy_t *player_floppy(uint8_t drive) { return &discs[drive]; }
-
-/* The main status register as the processor polls it: the chip works it out
-   from what it is doing rather than keeping it, and reading it moves
-   nothing. */
-uint32_t player_fdc_status(void) { return upd765_read(&cpc.fdc, UPD765_STATUS); }
-
-bool player_drive_ready(uint8_t drive) { return drive_ready(&cpc.drives[drive]); }
-bool player_drive_track_zero(uint8_t drive) { return drive_track_zero(&cpc.drives[drive]); }
-bool player_drive_two_sided(uint8_t drive) { return drive_two_sided(&cpc.drives[drive]); }
-
-bool player_drive_write_protected(uint8_t drive) {
-  return drive_write_protected(&cpc.drives[drive]);
-}
-
-void player_finish_instruction(void) { finish_instruction(); }
-
-/* Without the tick, a machine already between instructions would not move.
-   Uncleared, the record would be the last stop's rather than this step's. */
-void player_step_instruction(void) {
-  trap_kind = PLAYER_TRAP_NONE;
-  tick();
-  finish_instruction();
-}
-
-player_tick_t player_ticks(void) { return (player_tick_t)ticks; }
-
-player_tick_t player_history_from(void) {
-  uint32_t index = 0;
-
-  while (index < states_held - 1 &&
-         state_at(index)->tick - state_at(0)->tick < PLAYER_STATE_TICKS) {
-    index++;
-  }
-
-  return state_at(index)->tick;
-}
-
-player_tick_t player_history_until(void) { return (player_tick_t)recorded_until; }
-
-void player_capture(void) { capture(); }
-
 void player_seek(player_tick_t target) {
   player_tick_t oldest = player_history_from(), newest = (player_tick_t)recorded_until;
 
@@ -628,36 +567,20 @@ void player_seek(player_tick_t target) {
 }
 
 static player_tick_t grain_before(uint32_t grain, uint32_t index, player_tick_t end) {
-  player_tick_t entered = -1;
-  bool begun = grain == PLAYER_GRAIN_INSTRUCTION;
-
   replaying = true;
   load_state(index);
 
-  uint8_t was_row = cpc.crtc.c4, was_raster = cpc.crtc.c9;
-  uint32_t was_frame = frame;
+  run.tracked = grain;
+  run.tracking = true;
+  run.begun = grain == PLAYER_GRAIN_INSTRUCTION;
+  run.entered = -1;
 
-  while ((player_tick_t)ticks < end) {
-    if (begun && z80_instruction_complete(&cpc.cpu)) {
-      entered = (player_tick_t)ticks;
-      begun = grain == PLAYER_GRAIN_INSTRUCTION;
-    }
+  run_to(end);
 
-    tick();
-
-    begun = begun ||
-              (grain == PLAYER_GRAIN_SCANLINE &&
-               (cpc.crtc.c4 != was_row || cpc.crtc.c9 != was_raster)) ||
-              (grain == PLAYER_GRAIN_ROW && cpc.crtc.c4 != was_row) ||
-              (grain == PLAYER_GRAIN_FRAME && frame != was_frame);
-
-    was_row = cpc.crtc.c4;
-    was_raster = cpc.crtc.c9;
-    was_frame = frame;
-  }
-
+  run.tracking = false;
   replaying = false;
-  return entered;
+
+  return run.entered;
 }
 
 void player_step_back_to(uint32_t grain) {
@@ -703,5 +626,3 @@ bool player_trace_find(uint32_t address, player_tick_t before) {
 player_tick_t player_trace_tick(void) { return traced->fetch_tick; }
 uint32_t player_trace_pc(void) { return traced->pc; }
 uint32_t player_trace_value(void) { return traced->value; }
-
-uint32_t player_rgb(uint8_t colour_code) { return gate_array_rgb(colour_code); }

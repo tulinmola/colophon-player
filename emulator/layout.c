@@ -8,11 +8,15 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "cpc.h"
 #include "crtc.h"
 #include "drive.h"
 #include "floppy.h"
 #include "gate_array.h"
 #include "keyboard.h"
+#include "spectrum.h"
+#include "tape.h"
+#include "ula.h"
 #include "upd765.h"
 #include "z80.h"
 
@@ -91,7 +95,41 @@ int main(void) {
 
   printf("export const KEYBOARD_SIZE = %zu\n", sizeof(keyboard_t));
   printf("export const KEYBOARD_AT_LINES = %zu\n", offsetof(keyboard_t, lines));
-  printf("export const KEYBOARD_LINES = %d\n", KEYBOARD_LINES);
+  printf("export const KEYBOARD_MAX_LINES = %d\n", KEYBOARD_MAX_LINES);
+
+  printf("export const TAPE_SIZE = %zu\n", sizeof(tape_t));
+  printf("export const TAPE_AT_SOURCE = %zu\n", offsetof(tape_t, source));
+  printf("export const TAPE_AT_LEVEL = %zu\n", offsetof(tape_t, level));
+  printf("export const TAPE_AT_PLAYING = %zu\n", offsetof(tape_t, playing));
+
+  printf("export const ULA_SIZE = %zu\n", sizeof(ula_t));
+  printf("export const ULA_AT_FRAME_TICK = %zu\n", offsetof(ula_t, frame_tick));
+  printf("export const ULA_AT_FRAME_COUNT = %zu\n", offsetof(ula_t, frame_count));
+  printf("export const ULA_AT_LINE = %zu\n", offsetof(ula_t, line));
+  printf("export const ULA_AT_COLUMN = %zu\n", offsetof(ula_t, column));
+  printf("export const ULA_AT_BORDER = %zu\n", offsetof(ula_t, border));
+  printf("export const ULA_AT_SPEAKER = %zu\n", offsetof(ula_t, speaker));
+  printf("export const ULA_AT_MICROPHONE = %zu\n", offsetof(ula_t, microphone));
+  printf("export const ULA_TICKS_PER_LINE = %d\n", ULA_TICKS_PER_LINE);
+  printf("export const ULA_LINES_PER_FRAME = %d\n", ULA_LINES_PER_FRAME);
+  printf("export const ULA_FIRST_DISPLAY_LINE = %d\n", ULA_FIRST_DISPLAY_LINE);
+  printf("export const ULA_DISPLAY_LINES = %d\n", ULA_DISPLAY_LINES);
+  printf("export const ULA_INTERRUPT_TICKS = %d\n", ULA_INTERRUPT_TICKS);
+
+  /* What a machine is, where the page needs the number rather than the name.
+     Each is the machine's own declaration, so a machine that changes shape
+     changes these with it. */
+  printf("export const CPC_FRAMEBUFFER_WIDTH = %d\n", CPC_FRAMEBUFFER_WIDTH);
+  printf("export const CPC_FRAMEBUFFER_HEIGHT = %d\n", CPC_FRAMEBUFFER_HEIGHT);
+  printf("export const CPC_TICKS_PER_FRAME = %ld\n", (long)CPC_TICKS_PER_STANDARD_FRAME);
+  printf("export const CPC_TICKS_PER_MILLISECOND = %d\n", CPC_TICKS_PER_MILLISECOND);
+  printf("export const CPC_KEYBOARD_LINES = %d\n", CPC_KEYBOARD_LINES);
+
+  printf("export const SPECTRUM_FRAMEBUFFER_WIDTH = %d\n", SPECTRUM_FRAMEBUFFER_WIDTH);
+  printf("export const SPECTRUM_FRAMEBUFFER_HEIGHT = %d\n", SPECTRUM_FRAMEBUFFER_HEIGHT);
+  printf("export const SPECTRUM_TICKS_PER_FRAME = %d\n", SPECTRUM_TICKS_PER_FRAME);
+  printf("export const SPECTRUM_TICKS_PER_MILLISECOND = %d\n", SPECTRUM_TICKS_PER_MILLISECOND);
+  printf("export const SPECTRUM_HALF_ROWS = %d\n", SPECTRUM_HALF_ROWS);
 
   printf("export const UPD765_SIZE = %zu\n", sizeof(upd765_t));
   printf("export const UPD765_AT_PHASE = %zu\n", offsetof(upd765_t, phase));

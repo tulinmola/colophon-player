@@ -1,13 +1,13 @@
 ---
-title: The screen
+title: The CPC's screen
 description: Any region of memory read as though it were a screen, and the reason that reading can be wrong.
 order: 3
 ---
 
-`<colophon-screen>` reads a region of memory as though it were a screen. Nothing about it needs to match what the machine is displaying, and that is the point: a packed sprite sheet, a buffer being built off-picture, a font table — each gives up its shape the moment it is read with the geometry it was written in.
+`<colophon-cpc-screen>` reads a region of a CPC's memory as though it were a screen. Nothing about it needs to match what the machine is displaying, and that is the point: a packed sprite sheet, a buffer being built off-picture, a font table — each gives up its shape the moment it is read with the geometry it was written in.
 
 ```html
-<colophon-screen
+<colophon-cpc-screen
   label="HUD screen"
   reading="video"
   base="&8000"
@@ -16,7 +16,7 @@ order: 3
   rasters="2"
   mode="0"
   palette="&1F &14 &04 &0E &18 &0C &0D &16 &00 &15 &07 &0F &13 &1A &0A &0B"
-></colophon-screen>
+></colophon-cpc-screen>
 ```
 
 | Attribute | Default            | Read                                                                                                                                                                             |
@@ -40,7 +40,7 @@ Without a palette the pens are read through the Gate Array's own inks at each dr
 
 A reading is where the bytes of a picture are, and the base, the width and the height mean what it says they mean.
 
-`video` is the machine's own: the panel asks its video hardware for the addresses, and reads memory as the beam would. On a CPC that is [the board's wiring](#what-it-reads-and-what-it-assumes) — `base` is a display start, the lines of a character row are scattered into blocks two kilobytes apart, and a row's bytes wrap inside their block rather than running on into the next one. Another machine's video hardware answers in its own arrangement, and a page written against this reading does not change when it does.
+`video` is the machine's own: the panel asks its video hardware for the addresses, and reads memory as the beam would. On a CPC that is [the board's wiring](#what-it-reads-and-what-it-assumes) — `base` is a display start, the lines of a character row are scattered into blocks two kilobytes apart, and a row's bytes wrap inside their block rather than running on into the next one. Another machine's video hardware answers in its own arrangement, which is why this panel is the CPC's and is named for it.
 
 `linear` runs the bytes straight through: `width` bytes, then the next `width`, and so on. It is what an off-picture buffer is built in, and it wraps at the end of the machine's own memory rather than at the end of the processor's view of it.
 
