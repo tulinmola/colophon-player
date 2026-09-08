@@ -23,7 +23,7 @@ typedef struct {
 
 /* A machine with no deck calls none of this, and the page is told there is no
  * tape to offer. */
-void player_deck_fit(player_deck_t *deck, uint32_t ticks_per_millisecond, bool amstrad);
+void player_deck_fit(player_deck_t *deck, uint32_t ticks_per_millisecond, tzx_machine rules);
 
 /* A machine's `restore` must call this: a reader the record put back may be
  * holding another tape's bounds, and must not be let at the image. */

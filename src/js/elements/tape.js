@@ -4,29 +4,42 @@ import { MachineObserver } from "./machine_observer"
 const NAME = 24
 
 class TapeElement extends MachineObserver {
+  #bar
+  #driven
   #eject
   #head
   #name
   #picker
   #play
   #problem
-  #reel
+  #turning
 
   watch(machine) {
+    const { formats, driven } = machine.tapeDeck,
+      reel = driven
+        ? html`<label title="Whether the reel is turning, which this board decides for itself">
+            REEL <output name="reel" aria-label="Reel" aria-live="off"> </output>
+          </label>`
+        : html`<button type="button" data-action="play" title="Turn the reel">
+            <span aria-hidden="true">▶</span>
+            <span aria-hidden="true">▮▮</span>
+          </button>`
+
+    this.#driven = driven
+
     this.innerHTML = html`
       <h2>Tape</h2>
       <div class="deck">
-        <output name="name" aria-label="The tape in the deck"> </output>
+        <output name="name" aria-label="The tape in the deck" aria-live="off"> </output>
         <progress
           max="1"
           value="0"
           aria-label="How far through the tape the reader stands"
         ></progress>
-        <output name="head" title="The level at the play head"> </output>
-        <button type="button" data-action="play" title="Turn the reel">
-          <span aria-hidden="true">▶</span>
-          <span aria-hidden="true">▮▮</span>
-        </button>
+        <label title="The level at the play head">
+          HEAD <output name="head" aria-label="Head" aria-live="off"> </output>
+        </label>
+        ${reel}
         <button type="button" data-action="insert" title="Put a tape in the deck">
           <span aria-hidden="true">+</span>
         </button>
@@ -35,28 +48,28 @@ class TapeElement extends MachineObserver {
         </button>
       </div>
       <p role="status"></p>
-      <input type="file" accept=".tap,.tzx,.cdt" hidden />
+      <input type="file" hidden />
     `
 
-    this.style.setProperty("--columns", `${NAME}ch 8rem 1ch 2ch 1ch 1ch`)
+    this.style.setProperty("--columns", `${NAME}ch 8rem auto auto 1ch 1ch`)
 
     this.#name = this.querySelector('output[name="name"]')
     this.#head = this.querySelector('output[name="head"]')
-    this.#reel = this.querySelector("progress")
+    this.#turning = this.querySelector('output[name="reel"]')
+    this.#bar = this.querySelector("progress")
     this.#play = this.querySelector('[data-action="play"]')
     this.#eject = this.querySelector('[data-action="eject"]')
     this.#picker = this.querySelector('input[type="file"]')
     this.#problem = this.querySelector('p[role="status"]')
 
-    // Before the listeners, so a machine with no deck fails here once rather
-    // than on every frame it goes on running.
-    this.#render(machine)
+    this.#picker.accept = formats
 
     const { signal } = this
     this.addEventListener("click", this.onClick.bind(this), { signal })
     this.addEventListener("change", this.onChanged.bind(this), { signal })
 
     machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
+    this.#render(machine)
   }
 
   onClick(event) {
@@ -124,8 +137,7 @@ class TapeElement extends MachineObserver {
 
   #render(machine) {
     const { tape } = machine,
-      { loaded, playing } = tape,
-      turning = playing ? "Stop the reel" : "Turn the reel"
+      { loaded, playing } = tape
 
     this.toggleAttribute("loaded", loaded)
     this.toggleAttribute("playing", playing)
@@ -133,14 +145,21 @@ class TapeElement extends MachineObserver {
     writeFitted(this.#name, loaded ? tape.name : "", NAME)
     write(this.#head, bit(tape.level))
 
-    this.#reel.max = tape.length || 1
-    this.#reel.value = tape.at
+    this.#bar.max = tape.length || 1
+    this.#bar.value = tape.at
 
-    if (this.#play.title != turning) {
-      this.#play.title = turning
+    if (this.#driven) {
+      write(this.#turning, bit(playing))
+    } else {
+      const turning = playing ? "Stop the reel" : "Turn the reel"
+
+      if (this.#play.title != turning) {
+        this.#play.title = turning
+      }
+
+      this.#play.disabled = !loaded
     }
 
-    this.#play.disabled = !loaded
     this.#eject.disabled = !loaded
   }
 }

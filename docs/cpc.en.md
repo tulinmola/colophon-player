@@ -20,6 +20,7 @@ The element is named for the machine rather than for its part in a page, so that
 | `snapshot` | —         | A snapshot to start from, fetched relative to the page. Without one the machine boots from reset and arrives at its prompt.                                                                                                            |
 | `disc`     | —         | A disc image for drive A, fetched relative to the page. Giving one to a machine with no disc interface built in is what plugs one into it, with the AMSDOS ROM it brings.                                                              |
 | `disc-b`   | —         | The same for drive B, which is the connector for a two-headed drive where A is the machine's own one-headed one.                                                                                                                       |
+| `tape`     | —         | A `.cdt` or `.tzx` to put in the deck, fetched relative to the page. Nothing plays it until the machine energises its motor: [the reel is the board's](debugger/tape.en.md#who-turns-the-reel), not the reader's.                      |
 | `symbols`  | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
 | `roms`     | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                      |
 | `joystick` | —         | `cursors` puts [joystick 0 on the cursor keys](#the-joysticks), with Z, X and C for its buttons. It is read as each key arrives, so it can be set or taken off a living page without a reboot.                                         |
@@ -59,6 +60,8 @@ The module that carries the machine is fetched after the elements have reached t
 It boots its own firmware to the Ready prompt, takes what is typed at it, and runs at the speed the hardware ran — [the Gate Array holds the processor off the memory three cycles in four](../emulator/machine.en.md#timing), which is the tax that makes a CPC behave like a CPC.
 
 It reads discs, through [the same AMSDOS ROM and the same controller the hardware had](../emulator/machine.en.md#discs), so `CAT` catalogues a disc and `RUN"` loads off one. A disc named in the attributes above is in the drive before the machine has run a tick; [the drawers](debugger/disc.en.md) are where one goes in or comes out later, and a disc goes in while the machine runs, as a disc does.
+
+It reads tapes too, and the deck is the board's own: [bit 4 of the 8255's port C is the motor](debugger/tape.en.md#who-turns-the-reel), so the machine starts and stops the reel and there is nothing for a reader to press. `RUN"` reads a tape on a 464; on a 664 or a 6128 the AMSDOS ROM holds the filing system, so `|TAPE` comes first.
 
 A machine loading a snapshot with a disc in the drive keeps both. The disc goes in first and the snapshot is laid over the machine after, because building a machine empties its drives and a snapshot carries nothing about them.
 

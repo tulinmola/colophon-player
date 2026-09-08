@@ -9,7 +9,7 @@ import { INSCRIPTIONS } from "./spectrum_inscriptions"
 import { Machine } from "./machine"
 import { Ula } from "./ula"
 import { createModule } from "./module"
-import { fileNameFrom } from "./file_name_from"
+import { insertTape } from "./insert_tape"
 import { readSymbolFile } from "./read_symbol_file"
 
 const MODELS = {
@@ -19,6 +19,9 @@ const MODELS = {
 const DEFAULT_ROMS_URL = "/roms"
 
 const COLOUR_CODES = 16
+
+// A Spectrum has no motor line, so the reel is the reader's to turn.
+const DECK = { formats: ".tap,.tzx,.cdt", driven: false }
 
 // The window the emulator crops its own screenshots to, and the reason the two
 // can be compared pixel for pixel.
@@ -55,13 +58,7 @@ export class Spectrum extends Machine {
     const spectrum = new Spectrum(module, machine.ramSize)
 
     if (tapeUrl) {
-      const recorded = await fetch(tapeUrl, { signal }),
-        bytes = new Uint8Array(await recorded.arrayBuffer()),
-        name = fileNameFrom(tapeUrl)
-
-      if (!spectrum.tape.insert(bytes, name)) {
-        throw new Error(`${tapeUrl} is not a tape this machine can read: ${spectrum.tape.problem}`)
-      }
+      await insertTape(spectrum, tapeUrl, signal)
     }
 
     if (snapshotUrl) {
@@ -110,6 +107,10 @@ export class Spectrum extends Machine {
 
   get inscriptions() {
     return INSCRIPTIONS
+  }
+
+  get tapeDeck() {
+    return DECK
   }
 
   get ula() {

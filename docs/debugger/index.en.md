@@ -32,7 +32,7 @@ The debugger is not one element but a collection of them, each watching one part
 - [The drive](drive.en.md) — the motor, the head, and the lines a controller reads.
 - [The µPD765A](upd765.en.md) — the controller: the handshake, the command in flight, and what it ended with.
 - [The track](track.en.md) — the medium under the head, sector by sector.
-- [The tape](tape.en.md) — the deck a tape goes into, and the reel a reader turns.
+- [The tape](tape.en.md) — the deck a tape goes into, and who turns the reel in it.
 
 One page here answers to no element: [the record](record.en.md) is the machine's own recent past, which the controls move through and which the screen and the memory reach into to say where a byte came from.
 

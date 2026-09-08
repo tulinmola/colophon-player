@@ -25,12 +25,12 @@ static uint32_t opened;
 
 static player_deck_t *fitted;
 static uint32_t fitted_ticks_per_millisecond;
-static bool fitted_amstrad;
+static tzx_machine fitted_rules;
 
-void player_deck_fit(player_deck_t *deck, uint32_t ticks_per_millisecond, bool amstrad) {
+void player_deck_fit(player_deck_t *deck, uint32_t ticks_per_millisecond, tzx_machine rules) {
   fitted = deck;
   fitted_ticks_per_millisecond = ticks_per_millisecond;
-  fitted_amstrad = amstrad;
+  fitted_rules = rules;
   tape_problem = NULL;
   opened++;
 
@@ -48,16 +48,14 @@ void player_deck_restored(void) {
 uint8_t *player_tape_image(void) { return image; }
 uint32_t player_tape_capacity(void) { return PLAYER_TAPE_SIZE; }
 
-/* None where the standing machine has no deck, which is how a page learns
-   there is no tape to offer. */
+/* None until a machine has stood with one, which is how a page learns there
+   is no tape to offer. */
 tape_t *player_tape(void) { return fitted == NULL ? NULL : &fitted->tape; }
 
 const char *player_tape_problem(void) { return tape_problem; }
 
 /* Both are the reader's own, so a rewind carries them together. */
-uint32_t player_tape_at(void) {
-  return tape_loaded(&fitted->tape) ? fitted->reader.data_at : 0;
-}
+uint32_t player_tape_at(void) { return tape_loaded(&fitted->tape) ? fitted->reader.data_at : 0; }
 
 uint32_t player_tape_length(void) {
   return tape_loaded(&fitted->tape) ? fitted->reader.image_length : 0;
@@ -78,9 +76,7 @@ bool player_tape_insert(uint32_t length) {
   opened++;
   fitted->opened = opened;
 
-  tzx_machine rules = fitted_amstrad ? TZX_AMSTRAD : TZX_SPECTRUM;
-
-  if (!tzx_open(&fitted->reader, image, length, fitted_ticks_per_millisecond, rules,
+  if (!tzx_open(&fitted->reader, image, length, fitted_ticks_per_millisecond, fitted_rules,
                 &tape_problem)) {
     player_capture();
     return false;

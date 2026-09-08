@@ -32,7 +32,7 @@ function gamepadsAllowed() {
 }
 
 class CpcElement extends MachineElement {
-  static observedAttributes = ["disc", "disc-b", "model", "roms", "snapshot", "symbols"]
+  static observedAttributes = ["disc", "disc-b", "model", "roms", "snapshot", "symbols", "tape"]
 
   #heldByGamepads = CPC_JOYSTICK_MATRIX.map(() => new Set())
 
@@ -42,7 +42,8 @@ class CpcElement extends MachineElement {
       snapshotUrl = this.getAttribute("snapshot"),
       symbolsUrl = this.getAttribute("symbols"),
       discUrls = [this.getAttribute("disc"), this.getAttribute("disc-b")],
-      options = { signal, romsUrl, snapshotUrl, symbolsUrl, discUrls }
+      tapeUrl = this.getAttribute("tape"),
+      options = { signal, romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl }
 
     return Cpc.create(model, options)
   }

@@ -1,4 +1,5 @@
 import { SPECTRUM_48, bootStopped } from "./machine"
+import { deckOf, headerlessTap, insertTape, multiloadTzx } from "./tape"
 import { expect, test } from "@playwright/test"
 
 // LD-BYTES, which every Spectrum loader reaches in the end: IX where the
@@ -34,52 +35,10 @@ const WARM_FRAMES = 400
 // Two seconds of pilot, the sync, and ten bytes behind it.
 const LOADING_FRAMES = 200
 
-// A .tap is bare blocks, each opening with the two bytes saying how many
-// follow: the flag, the bytes themselves, and the checksum they exclusive-or
-// to. A flag of 255 makes this the headerless block a loader asks for.
-function headerlessTap(bytes) {
-  const flag = 0xff,
-    length = bytes.length + 2
-
-  let checksum = flag
-  for (const byte of bytes) {
-    checksum ^= byte
-  }
-
-  return [length & 0xff, length >> 8, flag, ...bytes, checksum]
-}
-
-// A .tzx opens with a signature and a version, and names every block by an
-// identifying byte. &10 is a block at the firmware's own timings, and &2A is
-// the mark a multiload puts between its parts.
-function multiloadTzx(parts) {
-  const image = [...[..."ZXTape!"].map(character => character.charCodeAt(0)), 0x1a, 1, 13]
-
-  for (let index = 0; index < parts.length; index++) {
-    if (index > 0) {
-      image.push(0x2a, 0, 0, 0, 0)
-    }
-
-    const block = headerlessTap(parts[index]).slice(2),
-      pause = 100
-
-    image.push(0x10, pause & 0xff, pause >> 8, block.length & 0xff, block.length >> 8, ...block)
-  }
-
-  return image
-}
-
 function loaded(element, at, length) {
   return element.evaluate(
     (host, read) => Array.from(host.machine.ram.subarray(read.from, read.from + read.length)),
     { from: at - RAM_BASE, length }
-  )
-}
-
-function insert(element, image, name = "test.tap") {
-  return element.evaluate(
-    (host, [bytes, given]) => host.machine.tape.insert(new Uint8Array(bytes), given),
-    [image, name]
   )
 }
 
@@ -118,7 +77,7 @@ test("a tape the deck turns is read into memory by the firmware's own loader", a
 
   await element.evaluate((host, frames) => host.machine.runFrames(frames), WARM_FRAMES)
 
-  expect(await insert(element, headerlessTap(RECORDED))).toBe(true)
+  expect(await insertTape(element, headerlessTap(RECORDED))).toBe(true)
 
   await callLoader(element, AT, RECORDED.length)
 
@@ -131,7 +90,7 @@ test("a loading rewound to the middle of itself plays on from there", async func
   const element = await bootStopped(page, SPECTRUM_48)
 
   await element.evaluate((host, frames) => host.machine.runFrames(frames), WARM_FRAMES)
-  await insert(element, headerlessTap(RECORDED))
+  await insertTape(element, headerlessTap(RECORDED))
   await callLoader(element, AT, RECORDED.length)
 
   await element.evaluate(host => host.machine.runFrames(60))
@@ -149,7 +108,7 @@ test("the reel turns to the end of the image and stops there", async function ({
   const element = await bootStopped(page, SPECTRUM_48)
   const image = headerlessTap(RECORDED)
 
-  await insert(element, image)
+  await insertTape(element, image)
   await element.evaluate(host => host.machine.tape.play())
   await element.evaluate((host, frames) => host.machine.runFrames(frames), LOADING_FRAMES)
 
@@ -173,27 +132,16 @@ test("the reel turns to the end of the image and stops there", async function ({
   expect(emptied.name).toBe("")
 })
 
-function deck(element) {
-  return element.evaluate(host => ({
-    loaded: host.machine.tape.loaded,
-    playing: host.machine.tape.playing,
-    name: host.machine.tape.name,
-    length: host.machine.tape.length,
-    at: host.machine.tape.at,
-    problem: host.machine.tape.problem
-  }))
-}
-
 test("an image the reader cannot play empties the deck it was put into", async function ({ page }) {
   const element = await bootStopped(page, SPECTRUM_48)
 
-  await insert(element, headerlessTap(RECORDED), "good.tap")
+  await insertTape(element, headerlessTap(RECORDED), "good.tap")
   await element.evaluate(host => host.machine.tape.play())
   await element.evaluate(host => host.machine.runFrames(20))
 
-  expect(await insert(element, [0x02, 0x00], "bad.tap")).toBe(false)
+  expect(await insertTape(element, [0x02, 0x00], "bad.tap")).toBe(false)
 
-  const refused = await deck(element)
+  const refused = await deckOf(element)
 
   expect(refused.loaded).toBe(false)
   expect(refused.playing).toBe(false)
@@ -208,7 +156,7 @@ test("an image too large for the room a tape is given is refused before anything
 }) {
   const element = await bootStopped(page, SPECTRUM_48)
 
-  await insert(element, headerlessTap(RECORDED), "good.tap")
+  await insertTape(element, headerlessTap(RECORDED), "good.tap")
   await element.evaluate(host => host.machine.tape.play())
   await element.evaluate(host => host.machine.runFrames(20))
 
@@ -222,7 +170,7 @@ test("an image too large for the room a tape is given is refused before anything
   expect(oversize.taken).toBe(false)
   expect(oversize.problem).toBeTruthy()
 
-  const held = await deck(element)
+  const held = await deckOf(element)
 
   expect(held.loaded).toBe(true)
   expect(held.playing).toBe(true)
@@ -235,20 +183,20 @@ test("an image too large for the room a tape is given is refused before anything
 test("a moment before the tape was changed stands at an empty deck", async function ({ page }) {
   const element = await bootStopped(page, SPECTRUM_48)
 
-  await insert(element, headerlessTap(RECORDED), "first.tap")
+  await insertTape(element, headerlessTap(RECORDED), "first.tap")
   await element.evaluate(host => host.machine.tape.play())
   await element.evaluate(host => host.machine.runFrames(20))
 
   const mark = await element.evaluate(host => host.machine.ticks)
 
   await element.evaluate(host => host.machine.runFrames(20))
-  await insert(element, multiloadTzx([BEHIND_THE_MARK]), "second.tzx")
+  await insertTape(element, multiloadTzx([BEHIND_THE_MARK]), "second.tzx")
   await element.evaluate(host => host.machine.tape.play())
   await element.evaluate(host => host.machine.runFrames(20))
 
   await element.evaluate((host, at) => host.machine.rewind(at), mark)
 
-  const stood = await deck(element)
+  const stood = await deckOf(element)
 
   expect(stood.loaded).toBe(false)
   expect(stood.playing).toBe(false)
@@ -267,7 +215,7 @@ test("the deck panel names the tape, turns the reel and takes it out again", asy
 
   await expect(play).toBeDisabled()
 
-  await insert(element, headerlessTap(RECORDED), "abduction.tap")
+  await insertTape(element, headerlessTap(RECORDED), "abduction.tap")
   await element.evaluate(host => host.machine.changed())
 
   await expect(panel.locator('output[name="name"]')).toHaveText("abduction.tap")
@@ -293,7 +241,7 @@ test("the deck shows the level at the play head as the reel turns", async functi
 
   const head = page.locator('colophon-tape output[name="head"]')
 
-  await insert(element, headerlessTap(RECORDED))
+  await insertTape(element, headerlessTap(RECORDED))
   await element.evaluate(host => host.machine.tape.play())
 
   // A pilot turns the level over every 2168 T-states, so it is high within a
@@ -333,7 +281,7 @@ test("a mark between two parts stops the reel until it is played again", async f
   await element.evaluate((host, frames) => host.machine.runFrames(frames), WARM_FRAMES)
 
   const image = multiloadTzx([RECORDED, BEHIND_THE_MARK])
-  expect(await insert(element, image)).toBe(true)
+  expect(await insertTape(element, image)).toBe(true)
 
   await callLoader(element, AT, RECORDED.length)
   await element.evaluate((host, frames) => host.machine.runFrames(frames), LOADING_FRAMES)
@@ -362,7 +310,7 @@ test("a tape the element names is in the deck by the time a panel watches", asyn
     },
     element = await bootStopped(page, machine)
 
-  const held = await deck(element)
+  const held = await deckOf(element)
 
   expect(held.loaded).toBe(true)
   expect(held.playing).toBe(false)

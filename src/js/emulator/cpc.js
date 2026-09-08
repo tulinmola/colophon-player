@@ -15,6 +15,7 @@ import { Machine } from "./machine"
 import { Upd765 } from "./upd765"
 import { createModule } from "./module"
 import { fileNameFrom } from "./file_name_from"
+import { insertTape } from "./insert_tape"
 import { readProblem } from "./read_problem"
 import { readSymbolFile } from "./read_symbol_file"
 
@@ -31,6 +32,9 @@ const AMSDOS_ROM_FILE = "amsdos.rom"
 const DRIVES = 2
 
 const COLOUR_CODES = 32
+
+// A CPC turns its own reel, from bit 4 of the 8255's port C.
+const DECK = { formats: ".cdt,.tzx", driven: true }
 
 // The window the emulator crops its own screenshots to, and the reason the two
 // can be compared pixel for pixel. Sixteen samples to the microsecond make a
@@ -55,7 +59,7 @@ export class Cpc extends Machine {
   #gateArray
   #video
 
-  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, discUrls, signal } = {}) {
+  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl, signal } = {}) {
     const machine = MODELS[model],
       roms = romsUrl ?? DEFAULT_ROMS_URL,
       discs = discUrls ?? [],
@@ -100,6 +104,10 @@ export class Cpc extends Machine {
       if (!cpc.insertDisc(drive, bytes, name)) {
         throw new Error(`${url} is not a disc this machine can read: ${cpc.discProblem}`)
       }
+    }
+
+    if (tapeUrl) {
+      await insertTape(cpc, tapeUrl, signal)
     }
 
     if (snapshotUrl) {
@@ -163,6 +171,10 @@ export class Cpc extends Machine {
 
   get inscriptions() {
     return INSCRIPTIONS
+  }
+
+  get tapeDeck() {
+    return DECK
   }
 
   get crtc() {

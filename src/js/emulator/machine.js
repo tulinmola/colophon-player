@@ -91,7 +91,7 @@ export class Machine extends EventTarget {
     return this.#breakpoints
   }
 
-  // Null on a board with no deck to put a tape in.
+  // Null until a machine has stood with a deck to put a tape in.
   get tape() {
     return this.#tape
   }

@@ -24,7 +24,6 @@ static struct {
   player_deck_t deck;
 } board;
 
-/* The room the host gives a machine holds this board and its deck. */
 typedef char spectrum_fits_the_host[sizeof board <= PLAYER_MACHINE_BYTES ? 1 : -1];
 
 /* The map never moves, and a store below the RAM — into the ROM, or past what
@@ -91,7 +90,7 @@ static uint8_t peek(uint16_t address) { return spectrum_peek(&board.machine, add
 void player_boot_spectrum(uint32_t ram_size) {
   spectrum_init(&board.machine, player_ram_bytes, ram_size, player_rom_bytes);
   spectrum_connect_monitor(&board.machine, player_framebuffer_bytes);
-  player_deck_fit(&board.deck, SPECTRUM_TICKS_PER_MILLISECOND, false);
+  player_deck_fit(&board.deck, SPECTRUM_TICKS_PER_MILLISECOND, TZX_SPECTRUM);
   spectrum_insert_tape(&board.machine, &board.deck.tape);
 
   const player_subject_t subject = {.run = run,

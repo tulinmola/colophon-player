@@ -1,1 +1,1 @@
-export * from "../vendor/colophon-emulator-268c204-28c91cd.layout.mjs"
+export * from "../vendor/colophon-emulator-0acb962-1ed42d0.layout.mjs"

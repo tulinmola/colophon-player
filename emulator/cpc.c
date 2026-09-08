@@ -10,12 +10,12 @@
 
 #include "cpc.h"
 #include "cpc_snapshot.h"
+#include "deck.h"
 #include "dsk.h"
 #include "gate_array.h"
 #include "player.h"
 #include "z80_bus.h"
 
-typedef char cpc_fits_the_host[sizeof(cpc_t) <= PLAYER_MACHINE_BYTES ? 1 : -1];
 typedef char
     cpc_snapshot_fits[CPC_SNAPSHOT_HEADER_SIZE + PLAYER_RAM_SIZE <= PLAYER_SNAPSHOT_SIZE ? 1 : -1];
 typedef char
@@ -32,7 +32,13 @@ typedef char
    of protected ones, which store every reading of an unstable sector. */
 #define CPC_DISC_SIZE 0x100000
 
-static cpc_t cpc;
+static struct {
+  cpc_t machine;
+  player_deck_t deck;
+} board;
+
+typedef char cpc_fits_the_host[sizeof board <= PLAYER_MACHINE_BYTES ? 1 : -1];
+
 static uint8_t amsdos[CPC_AMSDOS_SIZE];
 
 /* A floppy borrows its image where it lies, so a buffer here is the disc while
@@ -46,37 +52,38 @@ static const char *disc_problem;
 /* Where a store landed: the banking decides it, and every address the
    processor can write reaches RAM. */
 static uint32_t physical_of(uint16_t address) {
-  return (uint32_t)(cpc.write_page[address >> 14] + (address & 0x3FFF) - cpc.ram);
+  return (uint32_t)(board.machine.write_page[address >> 14] + (address & 0x3FFF) -
+                    board.machine.ram);
 }
 
 static player_moment_t moment_of(uint64_t pins, bool retraced) {
   player_moment_t moment = {0};
 
-  moment.settled = z80_instruction_complete(&cpc.cpu);
-  moment.frame_ended = cpc.monitor.frame_retraced && !retraced;
-  moment.program_counter = cpc.cpu.pc;
-  moment.row = cpc.crtc.c4;
-  moment.line = cpc.crtc.c9;
+  moment.settled = z80_instruction_complete(&board.machine.cpu);
+  moment.frame_ended = board.machine.monitor.frame_retraced && !retraced;
+  moment.program_counter = board.machine.cpu.pc;
+  moment.row = board.machine.crtc.c4;
+  moment.line = board.machine.crtc.c9;
   z80_bus_access(&moment, pins, physical_of);
 
   return moment;
 }
 
 static uint32_t run(uint32_t limit) {
-  bool retraced = cpc.monitor.frame_retraced;
+  bool retraced = board.machine.monitor.frame_retraced;
 
   for (uint32_t count = 0; count < limit; count++) {
-    bool complete = z80_instruction_complete(&cpc.cpu);
+    bool complete = z80_instruction_complete(&board.machine.cpu);
 
-    player_before(complete, cpc.crtc.c4, cpc.crtc.c9);
+    player_before(complete, board.machine.crtc.c4, board.machine.crtc.c9);
 
     if (complete) {
-      player_fetching(cpc.cpu.pc);
+      player_fetching(board.machine.cpu.pc);
     }
 
-    uint64_t pins = cpc_tick(&cpc);
+    uint64_t pins = cpc_tick(&board.machine);
     player_moment_t moment = moment_of(pins, retraced);
-    retraced = cpc.monitor.frame_retraced;
+    retraced = board.machine.monitor.frame_retraced;
 
     if (!player_after(&moment)) {
       return count + 1;
@@ -86,11 +93,12 @@ static uint32_t run(uint32_t limit) {
   return limit;
 }
 
-/* The read and write pages are pointers worked out from the ROM enables and
-   the bank register, so they are recomputed rather than trusted. */
-static void restore(void) { cpc_remap(&cpc); }
+static void restore(void) {
+  cpc_remap(&board.machine);
+  player_deck_restored();
+}
 
-static bool settled(void) { return z80_instruction_complete(&cpc.cpu); }
+static bool settled(void) { return z80_instruction_complete(&board.machine.cpu); }
 
 static void poke(uint16_t address, uint8_t value);
 static void press(uint8_t key);
@@ -98,7 +106,7 @@ static void release(uint8_t key);
 static bool load_snapshot(uint32_t length);
 static uint32_t rgb(uint8_t sample);
 
-static uint8_t peek(uint16_t address) { return cpc_peek(&cpc, address); }
+static uint8_t peek(uint16_t address) { return cpc_peek(&board.machine, address); }
 
 uint8_t *player_cpc_amsdos(void) { return amsdos; }
 
@@ -112,30 +120,32 @@ uint8_t *player_cpc_written_disc(void) { return written_disc; }
  * cpc_init empties the drives, so a disc that was in one goes back in after
  * this and not before. */
 void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
-  cpc_init(&cpc, player_ram_bytes, ram_size, player_rom_bytes);
-  cpc_set_upper_rom(&cpc, 0, player_rom_bytes + 0x4000);
+  cpc_init(&board.machine, player_ram_bytes, ram_size, player_rom_bytes);
+  cpc_set_upper_rom(&board.machine, 0, player_rom_bytes + 0x4000);
 
   if (disc_interface) {
-    cpc_fit_disc_interface(&cpc, true);
-    cpc_set_upper_rom(&cpc, 7, amsdos);
+    cpc_fit_disc_interface(&board.machine, true);
+    cpc_set_upper_rom(&board.machine, 7, amsdos);
   }
 
-  cpc_connect_monitor(&cpc, player_framebuffer_bytes);
+  cpc_connect_monitor(&board.machine, player_framebuffer_bytes);
+  player_deck_fit(&board.deck, CPC_TICKS_PER_MILLISECOND, TZX_AMSTRAD);
+  cpc_insert_tape(&board.machine, &board.deck.tape);
 
   const player_subject_t subject = {.run = run,
                                     .settled = settled,
                                     .restore = restore,
                                     .peek = peek,
-                                    .state = &cpc,
-                                    .state_bytes = sizeof cpc,
+                                    .state = &board,
+                                    .state_bytes = sizeof board,
                                     .memory_bytes = ram_size,
                                     .poke = poke,
                                     .press = press,
                                     .release = release,
                                     .load_snapshot = load_snapshot,
                                     .rgb = rgb,
-                                    .processor = &cpc.cpu,
-                                    .matrix = &cpc.keyboard,
+                                    .processor = &board.machine.cpu,
+                                    .matrix = &board.machine.keyboard,
                                     .ticks_per_frame = CPC_TICKS_PER_STANDARD_FRAME};
 
   player_stand(&subject);
@@ -144,7 +154,7 @@ void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
 static bool load_snapshot(uint32_t length) {
   const char *problem = NULL;
 
-  if (!cpc_snapshot_load(&cpc, player_snapshot_bytes, length, &problem)) {
+  if (!cpc_snapshot_load(&board.machine, player_snapshot_bytes, length, &problem)) {
     return false;
   }
 
@@ -166,14 +176,14 @@ bool player_cpc_insert_disc(uint8_t drive, uint32_t length) {
     return false;
   }
 
-  cpc_insert_disc(&cpc, drive, NULL);
+  cpc_insert_disc(&board.machine, drive, NULL);
 
   if (!dsk_read(&discs[drive], disc_images[drive], length, &disc_problem)) {
     player_capture();
     return false;
   }
 
-  cpc_insert_disc(&cpc, drive, &discs[drive]);
+  cpc_insert_disc(&board.machine, drive, &discs[drive]);
   player_capture();
   return true;
 }
@@ -181,7 +191,7 @@ bool player_cpc_insert_disc(uint8_t drive, uint32_t length) {
 /* The medium is left where it is: a moment the record can still be stood at
  * had this disc in the drive, and the pointer it holds must still find it. */
 void player_cpc_eject_disc(uint8_t drive) {
-  cpc_insert_disc(&cpc, drive, NULL);
+  cpc_insert_disc(&board.machine, drive, NULL);
   player_capture();
 }
 
@@ -190,7 +200,7 @@ const char *player_cpc_disc_problem(void) { return disc_problem; }
 /* Zero where there is no image to write, or where the room here falls short
  * of the one dsk_write measured, in which case it wrote nothing. */
 uint32_t player_cpc_save_disc(uint8_t drive) {
-  const floppy_t *disc = cpc.drives[drive].floppy;
+  const floppy_t *disc = board.machine.drives[drive].floppy;
 
   disc_problem = NULL;
 
@@ -215,49 +225,53 @@ uint32_t player_cpc_save_disc(uint8_t drive) {
 }
 
 static void poke(uint16_t address, uint8_t value) {
-  cpc_poke(&cpc, address, value);
+  cpc_poke(&board.machine, address, value);
   player_capture();
 }
 
 static void press(uint8_t key) {
-  keyboard_t before = cpc.keyboard;
+  keyboard_t before = board.machine.keyboard;
 
-  keyboard_press(&cpc.keyboard, key);
+  keyboard_press(&board.machine.keyboard, key);
 
-  if (memcmp(&before, &cpc.keyboard, sizeof before) != 0) {
+  if (memcmp(&before, &board.machine.keyboard, sizeof before) != 0) {
     player_capture();
   }
 }
 
 static void release(uint8_t key) {
-  keyboard_t before = cpc.keyboard;
+  keyboard_t before = board.machine.keyboard;
 
-  keyboard_release(&cpc.keyboard, key);
+  keyboard_release(&board.machine.keyboard, key);
 
-  if (memcmp(&before, &cpc.keyboard, sizeof before) != 0) {
+  if (memcmp(&before, &board.machine.keyboard, sizeof before) != 0) {
     player_capture();
   }
 }
 
-void player_cpc_remap(void) { cpc_remap(&cpc); }
+void player_cpc_remap(void) { cpc_remap(&board.machine); }
 
 static uint32_t rgb(uint8_t sample) { return gate_array_rgb(sample); }
 
-crtc_t *player_cpc_crtc(void) { return &cpc.crtc; }
-gate_array_t *player_cpc_gate_array(void) { return &cpc.gate_array; }
-upd765_t *player_cpc_fdc(void) { return &cpc.fdc; }
-drive_t *player_cpc_drive(uint8_t drive) { return &cpc.drives[drive]; }
+crtc_t *player_cpc_crtc(void) { return &board.machine.crtc; }
+gate_array_t *player_cpc_gate_array(void) { return &board.machine.gate_array; }
+upd765_t *player_cpc_fdc(void) { return &board.machine.fdc; }
+drive_t *player_cpc_drive(uint8_t drive) { return &board.machine.drives[drive]; }
 floppy_t *player_cpc_floppy(uint8_t drive) { return &discs[drive]; }
 
 /* The main status register as the processor polls it: the chip works it out
    from what it is doing rather than keeping it, and reading it moves
    nothing. */
-uint32_t player_cpc_fdc_status(void) { return upd765_read(&cpc.fdc, UPD765_STATUS); }
+uint32_t player_cpc_fdc_status(void) { return upd765_read(&board.machine.fdc, UPD765_STATUS); }
 
-bool player_cpc_drive_ready(uint8_t drive) { return drive_ready(&cpc.drives[drive]); }
-bool player_cpc_drive_track_zero(uint8_t drive) { return drive_track_zero(&cpc.drives[drive]); }
-bool player_cpc_drive_two_sided(uint8_t drive) { return drive_two_sided(&cpc.drives[drive]); }
+bool player_cpc_drive_ready(uint8_t drive) { return drive_ready(&board.machine.drives[drive]); }
+bool player_cpc_drive_track_zero(uint8_t drive) {
+  return drive_track_zero(&board.machine.drives[drive]);
+}
+bool player_cpc_drive_two_sided(uint8_t drive) {
+  return drive_two_sided(&board.machine.drives[drive]);
+}
 
 bool player_cpc_drive_write_protected(uint8_t drive) {
-  return drive_write_protected(&cpc.drives[drive]);
+  return drive_write_protected(&board.machine.drives[drive]);
 }

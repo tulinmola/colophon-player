@@ -1,1 +1,1 @@
-export { default as createModule } from "../vendor/colophon-emulator-268c204-28c91cd.mjs"
+export { default as createModule } from "../vendor/colophon-emulator-0acb962-1ed42d0.mjs"
