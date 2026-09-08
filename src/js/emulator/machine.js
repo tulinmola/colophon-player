@@ -1,6 +1,7 @@
 import { Breakpoints } from "./breakpoints"
 import { Keyboard } from "./keyboard"
 import { SymbolTable } from "../symbols"
+import { Tape } from "./tape"
 import { Z80 } from "./z80"
 import { readColours } from "./colours"
 
@@ -32,8 +33,12 @@ export class Machine extends EventTarget {
   #pressedAt = new Map()
   #ram
   #request = null
+  #tape
   #writes
   #z80
+
+  // How many of the machine's milliseconds are run for each of the reader's.
+  speed = 1
 
   symbols = new SymbolTable()
 
@@ -48,6 +53,7 @@ export class Machine extends EventTarget {
       keyboardPointer = module._player_keyboard(),
       framebufferPointer = module._player_framebuffer(),
       ramPointer = module._player_ram(),
+      tapePointer = module._player_tape(),
       writesStart = module._player_writes() >> 2,
       { palette, greys, cssColours } = readColours(code => module._player_rgb(code), colourCodes),
       capture = () => module._player_capture()
@@ -60,6 +66,7 @@ export class Machine extends EventTarget {
     this.#cssColours = cssColours
     this.#z80 = new Z80(module, z80Pointer, capture)
     this.#keyboard = new Keyboard(module, keyboardPointer, capture)
+    this.#tape = tapePointer == 0 ? null : new Tape(module, tapePointer, capture)
     this.#framebuffer = module.HEAPU8.subarray(
       framebufferPointer,
       framebufferPointer + framebufferSize
@@ -82,6 +89,11 @@ export class Machine extends EventTarget {
 
   get breakpoints() {
     return this.#breakpoints
+  }
+
+  // Null on a board with no deck to put a tape in.
+  get tape() {
+    return this.#tape
   }
 
   get palette() {
@@ -322,8 +334,8 @@ export class Machine extends EventTarget {
     const advancing = new Event("machine:advance")
     this.dispatchEvent(advancing)
 
-    const owed = (now - this.#last) * this.ticksPerMillisecond,
-      maximum = MAXIMUM_DEBT_MILLISECONDS * this.ticksPerMillisecond
+    const owed = (now - this.#last) * this.ticksPerMillisecond * this.speed,
+      maximum = MAXIMUM_DEBT_MILLISECONDS * this.ticksPerMillisecond * this.speed
 
     this.#debt = Math.min(this.#debt + owed, maximum)
     this.#last = now

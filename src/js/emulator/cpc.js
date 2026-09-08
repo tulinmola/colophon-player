@@ -14,6 +14,8 @@ import { INSCRIPTIONS } from "./cpc_inscriptions"
 import { Machine } from "./machine"
 import { Upd765 } from "./upd765"
 import { createModule } from "./module"
+import { fileNameFrom } from "./file_name_from"
+import { readProblem } from "./read_problem"
 import { readSymbolFile } from "./read_symbol_file"
 
 const MODELS = {
@@ -28,14 +30,6 @@ const AMSDOS_ROM_FILE = "amsdos.rom"
 
 const DRIVES = 2
 
-const TEXT = new TextDecoder()
-
-function discNameFrom(url) {
-  const { pathname } = new URL(url, document.baseURI)
-
-  return pathname.slice(pathname.lastIndexOf("/") + 1)
-}
-
 const COLOUR_CODES = 32
 
 // The window the emulator crops its own screenshots to, and the reason the two
@@ -49,18 +43,6 @@ const PICTURE = {
   width: 768,
   height: 272,
   scale: 0.5
-}
-
-function readDiscProblem(module) {
-  const heap = module.HEAPU8,
-    at = module._player_cpc_disc_problem()
-
-  let end = at
-  while (heap[end] != 0) {
-    end++
-  }
-
-  return TEXT.decode(heap.subarray(at, end))
 }
 
 export class Cpc extends Machine {
@@ -113,7 +95,7 @@ export class Cpc extends Machine {
 
       const image = await fetch(url, { signal }),
         bytes = new Uint8Array(await image.arrayBuffer()),
-        name = discNameFrom(url)
+        name = fileNameFrom(url)
 
       if (!cpc.insertDisc(drive, bytes, name)) {
         throw new Error(`${url} is not a disc this machine can read: ${cpc.discProblem}`)
@@ -208,6 +190,13 @@ export class Cpc extends Machine {
     return this.#discProblem
   }
 
+  #readDiscProblem() {
+    const module = this.module,
+      at = module._player_cpc_disc_problem()
+
+    return readProblem(module, at)
+  }
+
   discName(drive) {
     return this.#discNames[drive] ?? ""
   }
@@ -241,7 +230,7 @@ export class Cpc extends Machine {
       return true
     }
 
-    this.#discProblem = readDiscProblem(module)
+    this.#discProblem = this.#readDiscProblem()
 
     if (!this.drives[drive].floppy) {
       this.#discNames[drive] = ""
@@ -261,7 +250,7 @@ export class Cpc extends Machine {
       length = module._player_cpc_save_disc(drive)
 
     if (length == 0) {
-      this.#discProblem = readDiscProblem(module)
+      this.#discProblem = this.#readDiscProblem()
       return null
     }
 

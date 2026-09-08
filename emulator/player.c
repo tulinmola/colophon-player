@@ -445,6 +445,7 @@ void player_run_frames(uint32_t frames) {
   const player_goal_t goal = {.until = PLAYER_UNTIL_LIMIT};
 
   run_until(goal, frames * standing.ticks_per_frame);
+  finish_instruction();
 }
 
 /* The monitor sends the beam to the top-left corner as the frame sync

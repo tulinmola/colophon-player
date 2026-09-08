@@ -8,8 +8,14 @@ const GRAINS = [
   { key: "frame", name: "Frame", back: "stepBackFrame", on: "stepFrame" }
 ]
 
+const SPEEDS = [1, 2, 4, 8]
+
 function renderGrain({ key, name }) {
   return html`<li><button type="button" class="key" data-grain="${key}">${name}</button></li>`
+}
+
+function renderSpeed(multiplier) {
+  return html`<option value="${multiplier}">${multiplier}×</option>`
 }
 
 class ControlsElement extends MachineObserver {
@@ -33,6 +39,14 @@ class ControlsElement extends MachineObserver {
           <label class="toggle" title="Stop where the program itself carries a BRK">
             <input type="checkbox" name="brk" /> Break instructions
           </label>
+          <div class="fields">
+            <label title="Machine milliseconds run for each of the reader's">
+              <span>Speed</span>
+              <select name="speed">
+                ${SPEEDS.map(renderSpeed).join("")}
+              </select>
+            </label>
+          </div>
         </colophon-options>
       </header>
       <div class="transport">
@@ -95,6 +109,8 @@ class ControlsElement extends MachineObserver {
 
     if (control.name == "brk") {
       this.machine.breakInstructions = control.checked
+    } else if (control.name == "speed") {
+      this.machine.speed = Number(control.value)
     } else if (control.name == "at") {
       const at = Number(control.value)
 

@@ -4,14 +4,15 @@ import { MachineElement } from "./machine_element"
 const DEFAULT_MODEL = "spectrum48"
 
 class SpectrumElement extends MachineElement {
-  static observedAttributes = ["model", "roms", "snapshot", "symbols"]
+  static observedAttributes = ["model", "roms", "snapshot", "symbols", "tape"]
 
   build({ signal }) {
     const model = this.getAttribute("model") ?? DEFAULT_MODEL,
       romsUrl = this.getAttribute("roms"),
       snapshotUrl = this.getAttribute("snapshot"),
       symbolsUrl = this.getAttribute("symbols"),
-      options = { signal, romsUrl, snapshotUrl, symbolsUrl }
+      tapeUrl = this.getAttribute("tape"),
+      options = { signal, romsUrl, snapshotUrl, symbolsUrl, tapeUrl }
 
     return Spectrum.create(model, options)
   }

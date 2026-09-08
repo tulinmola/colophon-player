@@ -15,6 +15,7 @@
 #include "gate_array.h"
 #include "keyboard.h"
 #include "spectrum.h"
+#include "tape.h"
 #include "ula.h"
 #include "upd765.h"
 #include "z80.h"
@@ -95,6 +96,11 @@ int main(void) {
   printf("export const KEYBOARD_SIZE = %zu\n", sizeof(keyboard_t));
   printf("export const KEYBOARD_AT_LINES = %zu\n", offsetof(keyboard_t, lines));
   printf("export const KEYBOARD_MAX_LINES = %d\n", KEYBOARD_MAX_LINES);
+
+  printf("export const TAPE_SIZE = %zu\n", sizeof(tape_t));
+  printf("export const TAPE_AT_SOURCE = %zu\n", offsetof(tape_t, source));
+  printf("export const TAPE_AT_LEVEL = %zu\n", offsetof(tape_t, level));
+  printf("export const TAPE_AT_PLAYING = %zu\n", offsetof(tape_t, playing));
 
   printf("export const ULA_SIZE = %zu\n", sizeof(ula_t));
   printf("export const ULA_AT_FRAME_TICK = %zu\n", offsetof(ula_t, frame_tick));

@@ -28,6 +28,12 @@ The direction is an arrow and the grain is a word, and the grain in force is the
 
 The panel reads `Tick`, the machine's own count of T-states since it was built or last loaded from a snapshot; `Frame`, the count the [screen's heat](screen.en.md#the-heat-view) ages against; and `Behind`, how far back of the present the machine is standing, in milliseconds of its own time, or `now` when it is standing there.
 
+## Faster than it ran
+
+▶ runs the machine at the speed the hardware ran, which is the only speed that answers the question the debugger is for. `Speed`, behind the three dots at the heading's right, multiplies it: at 8× the machine runs eight of its milliseconds for each of the reader's, which is how [a tape](tape.en.md) measured in minutes is sat through.
+
+Nothing else changes. The same ticks happen in the same order and the record counts them the same way, because what is multiplied is how much of the machine's time each of the browser's frames is asked to carry, and not the machine. A program watched fast is the program.
+
 ## The mark the program carries
 
 Every other mark in this debugger is the reader's, laid on an address from outside. This one is the author's, written into the program where it was compiled: `ED FF`, two bytes a Z80 runs as a pair of idle microseconds and a debugger reads as an instruction to stop. [WinAPE](http://www.winape.net/help/debug.html) named it `BRK` and the emulators after it kept the bytes and the word both; [the disassembly](disassembly.en.md#the-instruction-with-no-datasheet) reads it back under that name.

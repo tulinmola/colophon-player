@@ -9,6 +9,7 @@ import { INSCRIPTIONS } from "./spectrum_inscriptions"
 import { Machine } from "./machine"
 import { Ula } from "./ula"
 import { createModule } from "./module"
+import { fileNameFrom } from "./file_name_from"
 import { readSymbolFile } from "./read_symbol_file"
 
 const MODELS = {
@@ -33,7 +34,7 @@ const PICTURE = {
 export class Spectrum extends Machine {
   #ula
 
-  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, signal } = {}) {
+  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, tapeUrl, signal } = {}) {
     const machine = MODELS[model],
       roms = romsUrl ?? DEFAULT_ROMS_URL,
       module = await createModule(),
@@ -52,6 +53,16 @@ export class Spectrum extends Machine {
     module._player_boot_spectrum(machine.ramSize)
 
     const spectrum = new Spectrum(module, machine.ramSize)
+
+    if (tapeUrl) {
+      const recorded = await fetch(tapeUrl, { signal }),
+        bytes = new Uint8Array(await recorded.arrayBuffer()),
+        name = fileNameFrom(tapeUrl)
+
+      if (!spectrum.tape.insert(bytes, name)) {
+        throw new Error(`${tapeUrl} is not a tape this machine can read: ${spectrum.tape.problem}`)
+      }
+    }
 
     if (snapshotUrl) {
       const saved = await fetch(snapshotUrl, { signal }),
