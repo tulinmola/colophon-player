@@ -11,8 +11,21 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: player
     steps:
+      # The machine is the sibling repository, and the firmware is fetched
+      # from it rather than committed here, so the two are laid out as they
+      # are on a working copy.
       - uses: actions/checkout@v5
+        with:
+          path: player
+
+      - uses: actions/checkout@v5
+        with:
+          repository: tulinmola/colophon-emulator
+          path: colophon-emulator
 
       - uses: actions/setup-node@v5
         with:
@@ -20,6 +33,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - run: npm ci
+      - run: npm run roms:fetch
       - run: npm run check
       - run: npm run dist
 
