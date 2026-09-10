@@ -1,24 +1,54 @@
 ---
 title: The disassembly
-description: The bytes at the program counter read back as instructions, under the program's own names where there are any.
+description: The bytes the processor runs read back as instructions, following the program counter or fixed where a reader puts them, under the program's own names where there are any.
 order: 11
 ---
 
-`<colophon-disassembly>` reads the bytes standing at the program counter back as instructions, each with its address, the bytes it is made of, and what they say.
+`<colophon-disassembly>` reads the bytes standing at the program counter back as instructions, each with its address, the bytes it is made of, and what they say. It can be set anywhere else too, and a page may hold several: one following the processor, and others fixed on the routines a reader wants to see it reach.
 
 ```html
 <colophon-disassembly lines="16"></colophon-disassembly>
+<colophon-disassembly label="Game step" base="_game_step" lines="8" fixed></colophon-disassembly>
 ```
 
-| Attribute | Default | Read                                                                                                                                        |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lines`   | `16`    | How tall the panel stands. It is a count of lines and not of instructions — [a label takes one of them](#sixteen-lines-whatever-they-hold). |
+| Attribute | Default             | Read                                                                                                                                        |
+| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lines`   | `16`                | How tall the panel stands. It is a count of lines and not of instructions — [a label takes one of them](#sixteen-lines-whatever-they-hold). |
+| `base`    | the program counter | Where the listing begins: an address such as `&022B`, or a name from [the symbol file](symbols.en.md).                                      |
+| `fixed`   | absent              | Keeps the listing where it begins, however the processor moves.                                                                             |
+| `label`   | `Disassembly`       | The panel's heading, which is what tells several of them apart.                                                                             |
 
-The three dots at the heading's right hold `lines`, and the panel is built again at the height asked for.
+The three dots at the heading's right hold `Lines`, `Base` and `Fixed`. `Lines` builds the panel again at the height asked for, beginning where `base` says. `Base` and `Fixed` move nothing but the listing, and are the reader's to change while the machine runs: the attributes say where a panel starts, and the reader takes it from there. `Base` always shows where the listing begins now, and takes a name as readily as an address; a name the machine was not given is refused where it is typed.
 
-It reads through the processor's own view of memory, so what it shows is what the processor would fetch. Where a ROM is paged in, the ROM's instructions are what appear.
+It reads through the processor's own view of memory, so what it shows is what the processor would fetch. Where a ROM is paged in, the ROM's instructions are what appear: a listing fixed on a routine in the lowest sixteen kilobytes of a CPC shows the firmware whenever the firmware is paged in over it.
 
-Nothing above the program counter is shown, and nothing can be. An instruction's length is only known by reading it from its first byte, so there is no way to walk backwards through a stream of them without already knowing where one of them starts. A disassembly that offered the bytes before the program counter would be guessing, and would be wrong at exactly the moment a reader most needed it to be right.
+## Following the processor
+
+A listing that is not fixed keeps the program counter in view. When the processor moves to an instruction the listing does not show — a step, a stop at a breakpoint, a step back, a rewind, a jump — the listing turns to it as a page is turned, and that instruction becomes the first line. While the program counter stays among the lines shown, nothing moves, so a loop that fits in the panel is stepped through without the listing moving under the reader.
+
+Of the machine's changes, only the processor's moving turns the page. A byte written into memory or an ink changed redraws the lines where they stand, so a reader who has scrolled away is not pulled back by an edit.
+
+A `base` is only where the listing begins. It holds until the processor moves somewhere the listing does not show, and then the listing follows it.
+
+## The instruction the processor stands on
+
+The line the processor stands on is marked, and only when it stands exactly on one. A stopped machine always stands between instructions — [the controls](controls.en.md#between-instructions) see to that — so there the mark is always true. A running machine is drawn at the end of each frame wherever the processor happens to be, which is almost always partway through an instruction; the program counter then points into the middle of one, names no line, and the mark is left off rather than put near.
+
+## Fixed
+
+A fixed listing stays where it was put, and the processor is marked as it passes through. That is what several panels on one page are for: one following, and others watching the routines that matter. The wheel still moves a fixed listing; nothing else does.
+
+## Scrolling
+
+The wheel moves the listing an instruction at a time, either way. A few turns of it and the processor is out of sight, so the `⌖` in the heading brings the listing back to the program counter, fixed or not, with the instruction the processor stands on as its first line.
+
+Down is certain. An instruction's length is read from its first byte, so the next begins where it ends.
+
+Up is not, because that length is only known by reading from an instruction's start, and the start is what is being looked for. So the listing reads back the way it reads forward: it starts thirty-two bytes above its first line, reads on from there, and keeps a reading that arrives exactly at the first line. Readings from different starts fall into step within a few instructions, but one that starts close may arrive by another path — `21 34 12` read from its second byte arrives as `INC (HL)` and `LD (DE),A`, where the processor runs a single `LD HL,&1234`. The reading that starts farthest back has had the most room to fall into step, and it is the one taken.
+
+Where no reading arrives, the listing steps back a single byte. Nothing above such a line can be read as instructions running into it, so whatever stands there is data, or code reached only by a jump.
+
+Neither direction is proof. Past an instruction that never goes on to the next byte, what follows is bytes, read as instructions because that is all a listing can do with them: a CPC's firmware jumpblock is a column of `RST &08`, each followed by the two bytes of an address that the firmware reads and the processor never runs, and the listing writes those as `CP &93` and `DEC (HL)`. Where a reader knows where code begins, `base` says so.
 
 ## The instruction with no datasheet
 
@@ -30,7 +60,7 @@ Where the machine has been given [a symbol file](symbols.en.md), a `Symbols` swi
 
 An operand is written as the name of the address it holds: `CALL _renderer_init` where the file has a name for it, `CALL &25C9` where it has none. Every sixteen-bit operand a Z80 instruction carries is an address, so a jump, a call and the address a register pair is loaded from are all read the same way. A byte never is one, and is left as a number.
 
-A name standing exactly at an instruction's address is written above it on a line of its own, the way a label is written in a source file; where two names share an address, both are written. Above the current instruction that line says one thing more: when no name begins there, it gives where the program counter is standing instead — `_renderer_init+&03`, the routine it is inside and how far past its first byte — which is what a reader wants at every instruction rather than at the rare one that begins a routine. An offset wears no colon and is written dim, because nothing is declared at it: it is the debugger's own arithmetic and not the program's word. Where the file can name nothing at all the line is not spent: it goes back to the listing.
+A name standing exactly at an instruction's address is written above it on a line of its own, the way a label is written in a source file; where two names share an address, both are written. Above the first instruction of the listing that line says one thing more: when no name begins there, it gives where that instruction stands instead — `_renderer_init+&03`, the routine it is inside and how far past its first byte — which is what a reader wants wherever a listing begins rather than only where a routine does. An offset wears no colon and is written dim, because nothing is declared at it: it is the debugger's own arithmetic and not the program's word. Where the file can name nothing at all the line is not spent: it goes back to the listing.
 
 ### Sixteen lines, whatever they hold
 

@@ -13,20 +13,6 @@ function renderKindOption(kind) {
   return html`<option value="${kind}">${kind}</option>`
 }
 
-function addressOf(machine, text) {
-  if (text.startsWith("&")) {
-    return parseAddress(text)
-  }
-
-  const named = machine.symbols.addressOf(text)
-
-  if (named != null) {
-    return named
-  }
-
-  return /^[0-9A-Fa-f]{1,4}$/u.test(text) ? parseAddress(text) : null
-}
-
 function span(from, until) {
   return until > from ? hex(until, { digits: 4, prefix: "&" }) : ""
 }
@@ -146,7 +132,7 @@ class BreakpointFormElement extends Element {
 
     const machine = this.machine,
       fields = form.elements,
-      at = addressOf(machine, fields.at.value.trim()),
+      at = machine.symbols.addressOf(fields.at.value.trim()),
       to = fields.to.value.trim()
 
     if (at == null) {

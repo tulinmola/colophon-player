@@ -80,7 +80,8 @@ h2 {
 }
 
 colophon-options button,
-colophon-breakpoints header button {
+colophon-breakpoints header button,
+colophon-disassembly header button {
   display: grid;
   place-items: center;
   width: 1em;
@@ -696,6 +697,10 @@ header > form {
 }
 
 colophon-disassembly {
+  input[name="base"] {
+    width: 12ch;
+  }
+
   .label {
     margin-left: var(--indent);
     white-space: nowrap;

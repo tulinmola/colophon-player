@@ -40,7 +40,7 @@ Each mark in the list carries its armed dot, its addresses, its name, its kind, 
 
 ## When one fires
 
-The machine stops itself, and every panel reads the stopped machine as after any other stop: the disassembly stands at the program counter, the registers hold the moment. The mark that fired is shown in red in this panel until the machine runs again.
+The machine stops itself, and every panel reads the stopped machine as after any other stop: a disassembly that follows the processor shows the instruction it stopped on, the registers hold the moment. The mark that fired is shown in red in this panel until the machine runs again.
 
 Stopping and resuming keep their ordinary meanings. A resumed machine steps off an execute mark before watching for it again, so Run after a trap continues the program rather than standing still on the same address forever.
 

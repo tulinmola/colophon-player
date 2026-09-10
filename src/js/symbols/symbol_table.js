@@ -55,14 +55,18 @@ export class SymbolTable {
     return { name: this.#names.get(found)[0], address: found, offset: address - found }
   }
 
-  addressOf(name) {
+  addressOf(nameOrAddress) {
+    if (nameOrAddress.startsWith("&")) {
+      return parseInt(nameOrAddress.slice(1), 16)
+    }
+
     for (const [address, names] of this.#names) {
-      if (names.includes(name) || names.includes(`_${name}`)) {
+      if (names.includes(nameOrAddress) || names.includes(`_${nameOrAddress}`)) {
         return address
       }
     }
 
-    return null
+    return /^[0-9A-Fa-f]{1,4}$/u.test(nameOrAddress) ? parseInt(nameOrAddress, 16) : null
   }
 
   all() {
