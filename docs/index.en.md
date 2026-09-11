@@ -1,5 +1,5 @@
 ---
-title: The player
+title: The player and its debugger
 description: The debugger that reads a machine while it runs, and the element that will carry one into any page.
 order: 2
 ---
