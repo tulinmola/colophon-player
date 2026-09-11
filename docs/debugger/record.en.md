@@ -38,6 +38,8 @@ Asked again from there, it walks back to the store before that one, and again to
 
 Only physical addresses are traced, the video hardware's own view of memory, which is why the offer stands over a screen and over the memory's `RAM` reading and not over the processor's own space. On a CPC a byte the processor sees at &4000 is in a bank that could only be named by walking the paging backwards; on a machine whose map never moves the two readings differ only by where its memory begins.
 
+[Step out](disassembly.en.md#stepping) asks the same question of the stack, word by word, to learn which of its words a call wrote. Those words sit at addresses in the processor's own space, so it names each one's bank by the paging as it stands now rather than as it stood when the word was written — the same bank, unless the program has paged its own stack away since.
+
 ## What it cannot answer
 
 The record starts where the machine did, and forgets from the far end as it fills; a question about a moment older than the window has no answer here. It holds what the processor stored, so a byte changed by anything else — a snapshot loaded over it, a reader's own edit — has no instruction to name and is not in the trace.

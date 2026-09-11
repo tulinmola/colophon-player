@@ -30,7 +30,9 @@ function hexByte(value) {
 export function disassemble(peek, address, nameOf = null) {
   let at = address,
     index = null,
-    displacement = null
+    displacement = null,
+    calls = false,
+    repeats = false
 
   function hexWord(value) {
     return nameOf?.(value) ?? hex(value, { digits: 4, prefix: "&" })
@@ -206,12 +208,15 @@ export function disassemble(peek, address, nameOf = null) {
       case 3:
         return assortedOperations(y)
       case 4:
+        calls = true
         return `CALL ${CC[y]},${hexWord(word())}`
       case 5:
+        calls = q == 1 && p == 0
         return q == 0 ? `PUSH ${pair(RP2, p)}` : `CALL ${hexWord(word())}`
       case 6:
         return `${ALU[y]}${hexByte(next())}`
       default:
+        calls = true
         return `RST ${hexByte(y * 8)}`
     }
   }
@@ -248,6 +253,7 @@ export function disassemble(peek, address, nameOf = null) {
       q = y & 1
 
     if (x == 2 && z <= 3 && y >= 4) {
+      repeats = y >= 6
       return BLOCK[y - 4][z]
     }
     if (x != 1) {
@@ -298,7 +304,7 @@ export function disassemble(peek, address, nameOf = null) {
   }
 
   function finish(text) {
-    return { text, length: (at - address) & 0xffff }
+    return { text, length: (at - address) & 0xffff, calls, repeats }
   }
 
   let opcode = next()

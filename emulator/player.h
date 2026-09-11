@@ -88,6 +88,7 @@ typedef struct {
   void (*release)(uint8_t key);
   bool (*load_snapshot)(uint32_t length);
   uint32_t (*rgb)(uint8_t sample); /* one sample, as 0xRRGGBB */
+  uint32_t (*physical_of)(uint16_t address); /* where a store lands, or PLAYER_NOWHERE */
   z80_t *processor;
   keyboard_t *matrix;
 } player_subject_t;

@@ -3,6 +3,8 @@ import { Keyboard } from "./keyboard"
 import { SymbolTable } from "../symbols"
 import { Tape } from "./tape"
 import { Z80 } from "./z80"
+import { disassemble } from "./z80_disassemble"
+import { hex } from "../lang"
 import { readColours } from "./colours"
 
 // A tab hidden for an hour owes an hour of emulation. The machine loses the
@@ -12,6 +14,8 @@ const MAXIMUM_DEBT_MILLISECONDS = 80
 const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write", 8: "break" }
 
 const GRAINS = { instruction: 0, scanline: 1, row: 2, frame: 3 }
+
+const STACK_WORDS_READ = 32
 
 // What the host offers whatever machine it is holding: the record it keeps,
 // the marks it stops on, the processor and the matrix every board has. A
@@ -193,6 +197,33 @@ export class Machine extends EventTarget {
     this.#stepTo("frame")
   }
 
+  stepOver() {
+    this.stop()
+
+    const pc = this.#z80.pc,
+      peek = address => this.peek(address),
+      { calls, repeats } = disassemble(peek, pc)
+
+    if (calls || repeats) {
+      this.#runPast(pc)
+    } else {
+      this.step()
+    }
+  }
+
+  stepOut() {
+    this.stop()
+
+    const enclosing = this.#enclosingCall()
+
+    if (enclosing == null) {
+      return false
+    }
+
+    this.#runPast(enclosing)
+    return true
+  }
+
   stepBack() {
     this.#stepBackTo("instruction")
   }
@@ -351,6 +382,7 @@ export class Machine extends EventTarget {
       const trap = this.readTrap()
       if (trap) {
         this.trap = trap
+        this.#breakpoints.removeIfOnce(trap.address, trap.kind)
         this.stop()
         this.#announceTrap()
         return
@@ -366,6 +398,9 @@ export class Machine extends EventTarget {
     this.stop()
     this.#module._player_step_to(GRAINS[grain])
     this.trap = this.readTrap()
+    if (this.trap) {
+      this.#breakpoints.removeIfOnce(this.trap.address, this.trap.kind)
+    }
     this.present()
     this.#announceTrap()
   }
@@ -375,6 +410,42 @@ export class Machine extends EventTarget {
     this.#module._player_step_back_to(GRAINS[grain])
     this.trap = null
     this.present()
+  }
+
+  #runPast(instruction) {
+    const peek = address => this.peek(address),
+      { length } = disassemble(peek, instruction),
+      label = `after ${hex(instruction, { digits: 4, prefix: "&" })}`
+
+    this.#breakpoints.addOnce((instruction + length) & 0xffff, label)
+    this.start()
+  }
+
+  #enclosingCall() {
+    const peek = address => this.peek(address),
+      ticks = this.ticks
+
+    for (
+      let words = 0, at = this.#z80.sp;
+      words < STACK_WORDS_READ;
+      words++, at = (at + 2) & 0xffff
+    ) {
+      const physical = this.#module._player_physical_of(at),
+        writer = this.findWrite(physical, ticks)
+
+      if (writer == null) {
+        continue
+      }
+
+      const { length, calls } = disassemble(peek, writer.pc),
+        pushed = peek(at) | (peek((at + 1) & 0xffff) << 8)
+
+      if (calls && pushed == ((writer.pc + length) & 0xffff)) {
+        return writer.pc
+      }
+    }
+
+    return null
   }
 
   #announceTrap() {

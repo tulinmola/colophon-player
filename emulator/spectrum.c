@@ -105,6 +105,7 @@ void player_boot_spectrum(uint32_t ram_size) {
                                     .release = release,
                                     .load_snapshot = load_snapshot,
                                     .rgb = rgb,
+                                    .physical_of = physical_of,
                                     .processor = &board.machine.cpu,
                                     .matrix = &board.machine.keyboard,
                                     .ticks_per_frame = SPECTRUM_TICKS_PER_FRAME};

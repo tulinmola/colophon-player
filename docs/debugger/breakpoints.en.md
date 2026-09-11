@@ -4,7 +4,7 @@ description: The marks a reader sets on the memory, and the machine that stops i
 order: 14
 ---
 
-Watching a machine run is one half of debugging; the other is arranging to be there when something happens. `<colophon-breakpoints>` holds the reader's marks: addresses at which the running machine stops itself and hands the page back, with every panel already showing the moment of interest.
+Watching a machine run is one half of debugging; the other is arranging to be there when something happens. `<colophon-breakpoints>` holds the reader's marks, and the ones [stepping](#marks-that-serve-once) lays on the reader's behalf: addresses at which the running machine stops itself and hands the page back, with every panel already showing the moment of interest.
 
 ```html
 <colophon-breakpoints lines="8"></colophon-breakpoints>
@@ -43,6 +43,12 @@ Each mark in the list carries its armed dot, its addresses, its name, its kind, 
 The machine stops itself, and every panel reads the stopped machine as after any other stop: a disassembly that follows the processor shows the instruction it stopped on, the registers hold the moment. The mark that fired is shown in red in this panel until the machine runs again.
 
 Stopping and resuming keep their ordinary meanings. A resumed machine steps off an execute mark before watching for it again, so Run after a trap continues the program rather than standing still on the same address forever.
+
+## Marks that serve once
+
+[Stepping over a call or a repeating instruction, or out of a call](disassembly.en.md#stepping), lays a mark of its own: an execute mark on the instruction the machine is to stop at, labelled `after` and the address of the instruction it waits after — `after &4000`. It is listed, armed and removed like any other, and differs in one thing: the stop it makes is its last, and it goes the moment it has made it.
+
+One still in the list was not reached: the call went elsewhere, something else stopped the machine first, or the reader disarmed it. It waits to be reached or removed like the rest, and changing it with the pencil makes it the reader's own, which stays.
 
 ## The mark this panel does not hold
 

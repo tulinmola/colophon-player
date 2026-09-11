@@ -50,6 +50,22 @@ Where no reading arrives, the listing steps back a single byte. Nothing above su
 
 Neither direction is proof. Past an instruction that never goes on to the next byte, what follows is bytes, read as instructions because that is all a listing can do with them: a CPC's firmware jumpblock is a column of `RST &08`, each followed by the two bytes of an address that the firmware reads and the processor never runs, and the listing writes those as `CP &93` and `DEC (HL)`. Where a reader knows where code begins, `base` says so.
 
+## Stepping
+
+The three keys drawn at the heading's right move the processor rather than the listing: step over, step into and step out. They stand in the order [Visual Studio Code](https://code.visualstudio.com/docs/debugtest/debugging) and [Chrome's DevTools](https://github.com/ChromeDevTools/devtools-frontend/blob/main/front_end/panels/sources/SourcesPanel.ts) both give them, and are drawn after theirs, though not copied from them — an arrow that passes over a dot, goes into it, or leaves it — so a reader who has stepped through a program anywhere else knows them on sight. They carry no words; each names itself when hovered.
+
+Into runs one instruction, as the ▶ beside the grains in [the controls](controls.en.md) does with `Instruction` lit.
+
+Over runs one instruction too, unless it is a call — `CALL`, `CALL` on a condition, or a `RST` — or one of the block instructions that repeat, `LDIR` and its kind. After one of those it lays an execute mark on the next instruction, the one the call returns to or the repeat ends at, and runs the machine. The mark is labelled with the instruction it waits after, `after &4000`; it stops the machine there and goes. A conditional call that is not taken reaches its mark at once, which is the step the reader asked for. `HALT` is stepped like any other instruction.
+
+A mark is reached the first time its instruction runs, and that need not be the time the reader meant. A call does not have to come back to the instruction after it: a CPC's firmware restarts are followed by bytes of their own, a Spectrum's calculator by a run of them, and a routine may throw its return address away. A routine that reaches the same call again from inside can arrive at the mark before the call being stepped over has returned. And another mark, or the reader, may stop the machine first. A mark not reached stays standing in [the breakpoints](breakpoints.en.md#marks-that-serve-once) and down the side of the listing, labelled with the instruction it waits after.
+
+Where a mark of the reader's already covers that instruction, over lays none and leaves the stopping to it: an armed one stops the machine there, and a disarmed one lets it run on, as the reader asked.
+
+Out finds the call the processor is inside, and does at it what over would have done. A stack cannot say which of its words is a return address — a word a routine pushed and one a call pushed look the same — but [the record](record.en.md#where-a-byte-came-from) can, because it keeps every store with the instruction that made it. So out reads up the stack from the stack pointer, thirty-two words at most, asks the record who wrote each one, and takes the first that a call or a restart wrote and that still holds the address of the instruction after it.
+
+It reaches as far as the record does. A call made longer ago than the record remembers, or before a snapshot was loaded, has no writer to find. A word the routine rewrote after its call pushed it no longer reads as the call's, and neither does the return address an interrupt pushes, which the record stamps with whatever instruction ran before it; out takes the call beyond them, one level further out. Where it finds none, the panel says `No call on record to step out of` beneath the listing until the panel is next redrawn, and the machine is left standing.
+
 ## The instruction with no datasheet
 
 One pair of bytes is read back under a name no datasheet gives it. `ED FF` is undefined on a Z80, which runs it as two idle microseconds and nothing else; [WinAPE](http://www.winape.net/help/debug.html) made it the mark a program carries to stop a debugger, and called it `BRK`. The listing writes it that way whether or not [the controls](controls.en.md#the-mark-the-program-carries) are set to stop on one, because the bytes say what they say either way.

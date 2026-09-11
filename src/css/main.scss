@@ -676,8 +676,6 @@ header > form {
   }
 
   .icon {
-    width: 1em;
-    height: 1em;
     fill: currentColor;
   }
 
@@ -696,7 +694,25 @@ header > form {
   }
 }
 
+.icon {
+  width: 1em;
+  height: 1em;
+}
+
 colophon-disassembly {
+  .icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    circle {
+      fill: currentColor;
+      stroke: none;
+    }
+  }
+
   input[name="base"] {
     width: 12ch;
   }
@@ -897,6 +913,7 @@ colophon-tape p {
   text-wrap: pretty;
 }
 
+colophon-disassembly p[role="status"],
 colophon-disc p[role="status"],
 colophon-tape p[role="status"] {
   color: $invalid;

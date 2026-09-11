@@ -480,6 +480,8 @@ void player_finish_instruction(void) { finish_instruction(); }
 
 uint8_t player_peek(uint16_t address) { return standing.peek(address); }
 
+uint32_t player_physical_of(uint16_t address) { return standing.physical_of(address); }
+
 void player_poke(uint16_t address, uint8_t value) { standing.poke(address, value); }
 
 void player_press(uint8_t key) { standing.press(key); }

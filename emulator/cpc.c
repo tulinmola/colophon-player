@@ -144,6 +144,7 @@ void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
                                     .release = release,
                                     .load_snapshot = load_snapshot,
                                     .rgb = rgb,
+                                    .physical_of = physical_of,
                                     .processor = &board.machine.cpu,
                                     .matrix = &board.machine.keyboard,
                                     .ticks_per_frame = CPC_TICKS_PER_STANDARD_FRAME};

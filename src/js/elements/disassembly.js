@@ -18,6 +18,19 @@ const ARMED = 1,
 
 const BLANK = { label: "", offset: false, address: null }
 
+const STEP_OVER = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+    <path d="M2 7.5a4 4 0 0 1 8 0M8.25 5.75 10 7.5l1.75-1.75" />
+    <circle cx="6" cy="10.25" r="1.25" />
+  </svg>`,
+  STEP_INTO = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+    <path d="M6 1v6M3.75 4.75 6 7l2.25-2.25" />
+    <circle cx="6" cy="10.25" r="1.25" />
+  </svg>`,
+  STEP_OUT = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+    <path d="M6 7.5v-6M3.75 3.75 6 1.5l2.25 2.25" />
+    <circle cx="6" cy="10.25" r="1.25" />
+  </svg>`
+
 function renderRow() {
   return html`<div class="label" hidden></div>
     <div class="instruction">
@@ -85,6 +98,7 @@ class DisassemblyElement extends MachineObserver {
   #lines
   #options
   #previousPc
+  #problem
   #rows
   #textRoom
   #top
@@ -108,7 +122,10 @@ class DisassemblyElement extends MachineObserver {
     this.innerHTML = html`
       <header>
         <h2></h2>
-        <button type="button" title="Go to the program counter">
+        <button type="button" data-action="stepOver" title="Step over">${STEP_OVER}</button>
+        <button type="button" data-action="stepInto" title="Step into">${STEP_INTO}</button>
+        <button type="button" data-action="stepOut" title="Step out">${STEP_OUT}</button>
+        <button type="button" data-action="goToProgramCounter" title="Go to the program counter">
           <span aria-hidden="true">⌖</span>
         </button>
         <colophon-options label="Disassembly options">
@@ -140,6 +157,7 @@ class DisassemblyElement extends MachineObserver {
         </colophon-options>
       </header>
       <div class="listing">${rows.join("")}</div>
+      <p role="status"></p>
     `
 
     this.#rows = collectRows(this)
@@ -147,19 +165,19 @@ class DisassemblyElement extends MachineObserver {
     const { signal } = this,
       options = this.querySelector("colophon-options"),
       listing = this.querySelector(".listing"),
-      programCounterButton = this.querySelector("header > button"),
       fields = options.form.elements
 
     this.#options = options
+    this.#problem = this.querySelector('p[role="status"]')
     this.querySelector("h2").textContent = label
     writeValue(fields.lines, String(lines))
     writeValue(fields.fixed, fixed)
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })
+    this.addEventListener("click", this.onClick.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
     this.addEventListener("input", this.onInput.bind(this), { signal })
     listing.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
-    programCounterButton.addEventListener("click", () => this.#moveTo(machine.z80.pc), { signal })
 
     machine.addEventListener("machine:changed", () => this.#render(machine), { signal })
     this.#previousPc = machine.z80.pc
@@ -193,6 +211,40 @@ class DisassemblyElement extends MachineObserver {
 
     machine.breakpoints.enable(covering.address, covering.kind, control.checked)
     machine.changed()
+  }
+
+  onClick(event) {
+    const button = event.target.closest("button")
+
+    if (!button) {
+      return
+    }
+
+    const machine = this.machine
+
+    switch (button.dataset.action) {
+      case "stepOver":
+        machine.stepOver()
+        break
+
+      case "stepInto":
+        machine.step()
+        break
+
+      case "stepOut": {
+        const steppedOut = machine.stepOut()
+
+        write(this.#problem, steppedOut ? "" : "No call on record to step out of")
+        break
+      }
+
+      case "goToProgramCounter":
+        this.#moveTo(machine.z80.pc)
+        break
+
+      default:
+        break
+    }
   }
 
   onContextMenu(event) {
@@ -293,6 +345,7 @@ class DisassemblyElement extends MachineObserver {
     }
 
     this.#previousPc = pc
+    write(this.#problem, "")
     this.#layout(naming)
 
     for (let number = 0; number < this.#lines; number++) {

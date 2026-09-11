@@ -24,6 +24,8 @@ The first key wears the machine's state as its sign: ▶ while the machine stand
 
 The direction is an arrow and the grain is a word, and the grain in force is the lit one — always on the face, and changed only by pressing it.
 
+Stepping over a call, or out of one, is [the disassembly's](disassembly.en.md#stepping) to offer: those keys read instructions, and the listing is where they are read.
+
 `Scanline` and `Row` follow the machine's own beam counters, so a line and a row are whatever the program has made them, ruptures included — and both exist for [the screen's beam view](screen.en.md#the-beam-view), whose boundary they walk down the picture.
 
 The panel reads `Tick`, the machine's own count of T-states since it was built or last loaded from a snapshot; `Frame`, the count the [screen's heat](screen.en.md#the-heat-view) ages against; and `Behind`, how far back of the present the machine is standing, in milliseconds of its own time, or `now` when it is standing there.
@@ -36,7 +38,7 @@ Nothing else changes. The same ticks happen in the same order and the record cou
 
 ## The mark the program carries
 
-Every other mark in this debugger is the reader's, laid on an address from outside. This one is the author's, written into the program where it was compiled: `ED FF`, two bytes a Z80 runs as a pair of idle microseconds and a debugger reads as an instruction to stop. [WinAPE](http://www.winape.net/help/debug.html) named it `BRK` and the emulators after it kept the bytes and the word both; [the disassembly](disassembly.en.md#the-instruction-with-no-datasheet) reads it back under that name.
+Every other mark in this debugger is laid on an address from outside, by the reader or by stepping on the reader's behalf. This one is the author's, written into the program where it was compiled: `ED FF`, two bytes a Z80 runs as a pair of idle microseconds and a debugger reads as an instruction to stop. [WinAPE](http://www.winape.net/help/debug.html) named it `BRK` and the emulators after it kept the bytes and the word both; [the disassembly](disassembly.en.md#the-instruction-with-no-datasheet) reads it back under that name.
 
 `Break instructions`, behind the three dots at the heading's right, decides whether this machine honours one. It begins unchecked, because bytes are not intentions: a snapshot may carry the pair in a table it never executes, and a machine stopping on every one of those would be reporting a coincidence.
 

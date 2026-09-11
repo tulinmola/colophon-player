@@ -34,14 +34,29 @@ export class Breakpoints {
     return null
   }
 
-  add(address, kind, { until = address, label = "" } = {}) {
-    this.#entries.set(`${address} ${kind}`, { address, until, kind, label, enabled: true })
+  add(address, kind, { until = address, label = "", once = false } = {}) {
+    this.#entries.set(`${address} ${kind}`, { address, until, kind, label, enabled: true, once })
     this.#sync()
+  }
+
+  // A mark covering the address answers for it: one laid at its address would
+  // replace it and leave with it, and one inside its range would stop a machine
+  // whose mark the reader disarmed.
+  addOnce(address, label) {
+    if (this.covering(address, "execute") == null) {
+      this.add(address, "execute", { label, once: true })
+    }
   }
 
   remove(address, kind) {
     this.#entries.delete(`${address} ${kind}`)
     this.#sync()
+  }
+
+  removeIfOnce(address, kind) {
+    if (this.get(address, kind)?.once) {
+      this.remove(address, kind)
+    }
   }
 
   enable(address, kind, enabled) {

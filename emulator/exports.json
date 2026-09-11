@@ -30,6 +30,7 @@
   "_player_keyboard",
   "_player_load_snapshot",
   "_player_peek",
+  "_player_physical_of",
   "_player_poke",
   "_player_press",
   "_player_ram",
