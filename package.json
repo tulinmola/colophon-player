@@ -1,6 +1,6 @@
 {
   "name": "colophon-player",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Colophon Player",
   "main": "./dist/colophon-player.js",
   "exports": {
