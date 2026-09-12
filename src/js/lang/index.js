@@ -4,6 +4,14 @@ function hex(value, { digits = 2, prefix = "" } = {}) {
 
 const html = String.raw
 
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+}
+
 function bit(on) {
   return on ? "1" : "."
 }
@@ -62,4 +70,4 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export { bit, download, hex, html, write, writeFitted, writeValue }
+export { bit, download, escapeHtml, hex, html, write, writeFitted, writeValue }
