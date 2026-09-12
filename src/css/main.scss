@@ -26,18 +26,57 @@ body {
   padding: 1rem;
   line-height: 1.6;
 
-  h1 {
-    font-size: 1.2em;
-    font-weight: 400;
-  }
-
   li {
     margin-bottom: 0.5rem;
     color: $dim;
   }
+}
 
-  a {
-    color: $foreground;
+.benches h1,
+colophon-bench > header h1,
+colophon-benches > header h1 {
+  font-size: 1.2em;
+  font-weight: 400;
+}
+
+.benches a,
+colophon-benches > ul a {
+  color: $foreground;
+}
+
+colophon-bench,
+colophon-benches {
+  display: block;
+}
+
+colophon-bench > header,
+colophon-benches > header {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 1rem 1rem 0;
+
+  h1 {
+    margin: 0;
+  }
+}
+
+colophon-benches {
+  > header a {
+    color: $dim;
+  }
+
+  > ul {
+    margin: 0;
+    padding: 0.5rem 1rem;
+    line-height: 1.6;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 1ch;
+    }
   }
 }
 
@@ -47,6 +86,10 @@ colophon-spectrum {
   align-items: start;
   gap: 1rem;
   padding: 1rem;
+
+  &:has(> colophon-controls) {
+    flex-wrap: wrap;
+  }
 
   &:focus {
     outline: none;
@@ -80,6 +123,9 @@ h2 {
 }
 
 colophon-options button,
+colophon-bench > header button,
+colophon-benches > header button,
+colophon-benches > ul button,
 colophon-breakpoints header button,
 colophon-disassembly header button {
   display: grid;
@@ -292,6 +338,10 @@ input.state {
     color: $foreground;
     font: inherit;
     padding: 0 0.2rem;
+
+    &:disabled {
+      color: $dim;
+    }
   }
 
   .ink {
@@ -400,6 +450,7 @@ colophon-cpc-screen canvas {
 
 colophon-actions,
 colophon-options,
+colophon-bench-form,
 colophon-breakpoint-form,
 colophon-ink-form {
   display: contents;
@@ -725,6 +776,10 @@ colophon-disassembly {
       color: $dim;
     }
   }
+}
+
+colophon-bench-form input[name="name"] {
+  width: 24ch;
 }
 
 colophon-breakpoint-form {

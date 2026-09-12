@@ -11,7 +11,7 @@ export const CPC_464 = { element: "colophon-cpc", attributes: 'model="cpc464"' }
 
 export const SPECTRUM_48 = { element: "colophon-spectrum", attributes: 'model="spectrum48"' }
 
-function markup({ element, attributes }, panels) {
+function markup(body) {
   return html`<!doctype html>
     <html lang="en" dir="ltr">
       <head>
@@ -20,24 +20,25 @@ function markup({ element, attributes }, panels) {
         <link rel="stylesheet" href="/css/index.css" />
       </head>
       <body>
-        <${element} ${attributes}>${panels}</${element}>
+        ${body}
         <script src="/js/index.js" type="module"></script>
       </body>
     </html>`
 }
 
-// Stopped, so that the test and not the clock decides when a frame is
-// presented.
-export async function bootStopped(page, machine, panels = "") {
-  await page.route(`**${BENCH}`, function (route) {
-    return route.fulfill({ contentType: "text/html", body: markup(machine, panels) })
-  })
+export async function openPage(page, body, search = "") {
+  const document = markup(body)
 
-  await page.goto(BENCH)
+  await page.route(
+    url => url.pathname == BENCH,
+    route => route.fulfill({ contentType: "text/html", body: document })
+  )
 
-  const element = page.locator(machine.element)
+  await page.goto(`${BENCH}${search}`)
+}
 
-  await element.evaluate(function (host) {
+export function whenReady(element) {
+  return element.evaluate(function (host) {
     return new Promise(function (resolve) {
       if (host.machine) {
         resolve()
@@ -47,7 +48,18 @@ export async function bootStopped(page, machine, panels = "") {
       host.addEventListener("machine:ready", () => resolve(), { once: true })
     })
   })
+}
 
+// Stopped, so that the test and not the clock decides when a frame is
+// presented.
+export async function bootStopped(page, machine, panels = "") {
+  const body = html`<${machine.element} ${machine.attributes}>${panels}</${machine.element}>`
+
+  await openPage(page, body)
+
+  const element = page.locator(machine.element)
+
+  await whenReady(element)
   await element.evaluate(host => host.machine.stop())
 
   return element
