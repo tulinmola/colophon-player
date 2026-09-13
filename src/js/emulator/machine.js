@@ -338,12 +338,6 @@ export class Machine extends EventTarget {
     this.changed()
   }
 
-  showMemory(at, space = "cpu") {
-    const centre = new CustomEvent("memory:center", { detail: { at, space } })
-
-    this.dispatchEvent(centre)
-  }
-
   changed() {
     const change = new Event("machine:changed")
     this.dispatchEvent(change)

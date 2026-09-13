@@ -1,10 +1,5 @@
-import { CPC_6128, SPECTRUM_48, bootStopped } from "./machine"
+import { CPC_6128, CPC_6128_NAMED, SPECTRUM_48, bootStopped } from "./machine"
 import { expect, test } from "@playwright/test"
-
-const CPC_6128_NAMED = {
-  element: "colophon-cpc",
-  attributes: 'model="cpc6128" symbols="/abduction.noi"'
-}
 
 const MACHINES = [
   ["a CPC", CPC_6128],

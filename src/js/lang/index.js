@@ -4,6 +4,14 @@ function hex(value, { digits = 2, prefix = "" } = {}) {
 
 const html = String.raw
 
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+}
+
 function bit(on) {
   return on ? "1" : "."
 }
@@ -15,14 +23,10 @@ function write(node, text) {
 }
 
 function writeValue(control, value) {
-  if (document.activeElement == control) {
-    return
-  }
-
   if (control.type == "checkbox") {
     control.defaultChecked = value
     control.checked = value
-  } else {
+  } else if (document.activeElement != control) {
     control.defaultValue = value
     control.value = value
   }
@@ -62,4 +66,4 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export { bit, download, hex, html, write, writeFitted, writeValue }
+export { bit, download, escapeHtml, fitText, hex, html, write, writeFitted, writeValue }

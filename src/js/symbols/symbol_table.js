@@ -60,13 +60,23 @@ export class SymbolTable {
       return parseInt(nameOrAddress.slice(1), 16)
     }
 
+    const named = this.addressNamed(nameOrAddress)
+
+    if (named != null) {
+      return named
+    }
+
+    return /^[0-9A-Fa-f]{1,4}$/u.test(nameOrAddress) ? parseInt(nameOrAddress, 16) : null
+  }
+
+  addressNamed(name) {
     for (const [address, names] of this.#names) {
-      if (names.includes(nameOrAddress) || names.includes(`_${nameOrAddress}`)) {
+      if (names.includes(name) || names.includes(`_${name}`)) {
         return address
       }
     }
 
-    return /^[0-9A-Fa-f]{1,4}$/u.test(nameOrAddress) ? parseInt(nameOrAddress, 16) : null
+    return null
   }
 
   all() {

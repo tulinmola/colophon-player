@@ -1166,8 +1166,9 @@ colophon-controls {
 }
 
 colophon-memory {
-  .fields {
-    grid-template-columns: repeat(2, auto auto);
+  input[name="at"] {
+    width: 12ch;
+    color: $foreground;
   }
 
   .dump {

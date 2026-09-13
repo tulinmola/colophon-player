@@ -3,9 +3,9 @@ import { html } from "../lang"
 
 const ZOOMS = [1, 1.5, 2, 3, 4]
 
-function renderActionZoom(zoom) {
+function renderActionZoom(zoom, chosen) {
   return html`<label class="toggle">
-    <input type="radio" name="zoom" value="${zoom}" />
+    <input type="radio" name="zoom" value="${zoom}" ${zoom == chosen ? "checked" : ""} />
     ×${zoom}
   </label>`
 }
@@ -28,7 +28,7 @@ class MonitorElement extends MachineObserver {
         <colophon-options label="Monitor options">
           <fieldset>
             <legend>Zoom</legend>
-            ${Array.from(zooms).map(renderActionZoom).join("")}
+            ${Array.from(zooms, each => renderActionZoom(each, zoom)).join("")}
           </fieldset>
           <fieldset>
             <legend>Record</legend>
@@ -51,10 +51,8 @@ class MonitorElement extends MachineObserver {
     this.#image = image
     this.#pixels = new Uint32Array(image.data.buffer)
 
-    const { signal } = this,
-      options = this.querySelector("colophon-options")
+    const { signal } = this
 
-    options.form.elements.zoom.value = String(zoom)
     this.#fitCanvas()
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })

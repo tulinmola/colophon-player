@@ -100,4 +100,4 @@ Only marks that stop the machine on reaching an instruction are shown. A watch o
 
 The right button on a row opens [the breakpoint form](breakpoints.en.md#setting-one) with the instruction's address already in it. What kind of mark it is, and how far it reaches, are the form's to answer.
 
-It also offers to show that address in [the memory](memory.en.md#moving), which is how the bytes an instruction stands on are read as bytes.
+It also offers to show that address in each [memory panel](memory.en.md#moving) in the same machine, under its label, which is how the bytes an instruction stands on are read as bytes.

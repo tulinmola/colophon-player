@@ -1,7 +1,8 @@
-import { hex, html, write, writeFitted, writeValue } from "../lang"
+import { escapeHtml, fitText, hex, html, write } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Memory } from "./memory"
 
 const DEFAULT_LINES = 16
 
@@ -13,8 +14,14 @@ const FUNNEL = html`<svg class="icon" viewBox="0 0 12 12" aria-hidden="true" foc
   <path d="M1 2h10L7 6.5V11L5 9.5V6.5Z" />
 </svg>`
 
-function renderRow() {
-  return html`<div class="symbol"><span class="at"></span><span class="name"></span></div>`
+function renderRow({ name, address }) {
+  const fitted = fitText(name, NAME),
+    whole = fitted == name ? "" : name
+
+  return html`<div class="symbol">
+    <span class="at">${hex(address, { digits: 4 })}</span>
+    <span class="name" title="${escapeHtml(whole)}">${escapeHtml(fitted)}</span>
+  </div>`
 }
 
 class SymbolsElement extends MachineObserver {
@@ -33,13 +40,13 @@ class SymbolsElement extends MachineObserver {
 
     this.style.setProperty("--columns", `${ADDRESS}ch ${NAME}ch`)
     this.style.setProperty("--gap", `${GAP}ch`)
-    const lines = this.getAttribute("lines") ?? DEFAULT_LINES
+    const lines = Number(this.getAttribute("lines") ?? DEFAULT_LINES)
     this.style.setProperty("--lines", lines)
 
-    const rows = Array.from({ length: this.#entries.length }, renderRow),
-      funnel = html`<label class="filter" title="Show only the names holding this"
-        >${FUNNEL}<input name="filter" aria-label="Filter"
-      /></label>`
+    const rows = this.#entries.map(renderRow),
+      funnel = html`<label class="filter" title="Show only the names holding this">
+        ${FUNNEL}<input name="filter" aria-label="Filter" />
+      </label>`
 
     this.innerHTML = html`
       <header>
@@ -55,6 +62,7 @@ class SymbolsElement extends MachineObserver {
                 inputmode="numeric"
                 maxlength="2"
                 pattern="[1-9][0-9]?"
+                value="${lines}"
               />
             </label>
           </div>
@@ -68,11 +76,7 @@ class SymbolsElement extends MachineObserver {
     this.#rows = Array.from(this.querySelectorAll(".symbol"))
 
     for (let index = 0; index < this.#entries.length; index++) {
-      const { name, address } = this.#entries[index],
-        row = this.#rows[index]
-
-      write(row.querySelector(".at"), hex(address, { digits: 4 }))
-      writeFitted(row.querySelector(".name"), name, NAME)
+      const { address } = this.#entries[index]
 
       if (!this.#starts.has(address)) {
         this.#starts.set(address, index)
@@ -83,7 +87,6 @@ class SymbolsElement extends MachineObserver {
       options = this.querySelector("colophon-options")
 
     this.#options = options
-    writeValue(options.form.elements.lines, String(lines))
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
@@ -104,12 +107,13 @@ class SymbolsElement extends MachineObserver {
     }
 
     const machine = this.machine,
-      { address } = this.#entries[index]
+      { address } = this.#entries[index],
+      showing = Memory.showActions(machine, address)
 
     event.preventDefault()
     Actions.create(event, [
       { label: "Add breakpoint…", execute: () => BreakpointForm.create(machine, { address }) },
-      { label: "Show in memory", execute: () => machine.showMemory(address) }
+      ...showing
     ])
   }
 
