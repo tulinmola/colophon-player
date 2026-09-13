@@ -1,5 +1,5 @@
+import { html, resetValue } from "../lang"
 import { Element } from "./element"
-import { html } from "../lang"
 
 const EDGE = 4
 
@@ -37,6 +37,13 @@ class OptionsElement extends Element {
   onBeforeToggle(event) {
     if (event.newState == "open") {
       this.#openBelow()
+      return
+    }
+
+    for (const control of this.#form.elements) {
+      if (control.type == "text") {
+        resetValue(control)
+      }
     }
   }
 

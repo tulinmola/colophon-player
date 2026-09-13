@@ -1,4 +1,4 @@
-import { escapeHtml, hex, html, write, writeValue } from "../lang"
+import { escapeHtml, hex, html, resetValue, write, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
@@ -274,7 +274,7 @@ class MemoryElement extends MachineObserver {
     }
 
     if (this.#editing == null) {
-      this.#resetAt()
+      resetValue(this.#form.elements.at)
     } else {
       this.#editing = null
       this.#input.blur()
@@ -342,7 +342,7 @@ class MemoryElement extends MachineObserver {
       this.setAttribute("base", typed)
     }
 
-    this.#resetAt()
+    resetValue(control)
   }
 
   #edit(index) {
@@ -450,20 +450,8 @@ class MemoryElement extends MachineObserver {
 
     this.#found = null
     this.#base = this.#clamp(address)
-    fields.at.defaultValue = hex(this.#base, { digits, prefix: "&" })
-
-    if (document.activeElement != fields.at) {
-      this.#resetAt()
-    }
-
+    writeValue(fields.at, hex(this.#base, { digits, prefix: "&" }))
     this.#render()
-  }
-
-  #resetAt() {
-    const at = this.#form.elements.at
-
-    at.setCustomValidity("")
-    at.value = at.defaultValue
   }
 
   #render() {

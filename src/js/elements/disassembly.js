@@ -1,4 +1,4 @@
-import { escapeHtml, hex, html, write, writeFitted, writeValue } from "../lang"
+import { escapeHtml, hex, html, resetValue, write, writeFitted, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
@@ -302,6 +302,7 @@ class DisassemblyElement extends MachineObserver {
     }
 
     this.#moveTo(address)
+    resetValue(control)
   }
 
   #moveTo(address) {

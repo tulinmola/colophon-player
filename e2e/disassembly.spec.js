@@ -191,10 +191,39 @@ test("the options move a listing to a name and fix it there", async function ({ 
   await base.fill("_game_step")
   await base.press("Enter")
   await expect(listed(page).first()).toHaveText("&022B")
+  await expect(base).toHaveValue("&022B")
 
   await page.locator("colophon-disassembly label.toggle", { hasText: "Fixed" }).click()
   await step(element)
   await expect(listed(page).first()).toHaveText("&022B")
+})
+
+test("a name refused in the options is let go when the menu closes", async function ({ page }) {
+  const element = await bootStopped(page, CPC_6128, FIXED_AT_LD_HL),
+    base = page.locator('colophon-disassembly input[name="base"]')
+
+  await placeProgram(element)
+  await page.locator("colophon-disassembly colophon-options button").click()
+  await base.fill("_nowhere")
+  await base.press("Enter")
+  await expect(base).toHaveJSProperty("validationMessage", "unknown name")
+
+  await base.press("Escape")
+  await expect(base).toHaveValue("&4004")
+  await expect(base).toHaveJSProperty("validationMessage", "")
+  await expect(listed(page).first()).toHaveText("&4004")
+})
+
+test("Escape leaves an address typed in the options uncommitted", async function ({ page }) {
+  const element = await bootStopped(page, CPC_6128, FIXED_AT_LD_HL),
+    base = page.locator('colophon-disassembly input[name="base"]')
+
+  await placeProgram(element)
+  await page.locator("colophon-disassembly colophon-options button").click()
+  await base.fill("&4001")
+  await base.press("Escape")
+  await expect(base).toHaveValue("&4004")
+  await expect(listed(page).first()).toHaveText("&4004")
 })
 
 test("step over runs a call through to the instruction after it, and any other alone", async function ({
