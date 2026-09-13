@@ -1,5 +1,5 @@
+import { html, writeValue } from "../lang"
 import { MachineObserver } from "./machine_observer"
-import { html } from "../lang"
 
 const ZOOMS = [1, 1.5, 2, 3, 4]
 
@@ -17,6 +17,7 @@ class MonitorElement extends MachineObserver {
   #image
   #picture
   #pixels
+  #zoomSwitches
 
   watch(machine) {
     const zoom = Number(this.getAttribute("zoom") ?? 1),
@@ -53,6 +54,7 @@ class MonitorElement extends MachineObserver {
 
     const { signal } = this
 
+    this.#zoomSwitches = this.querySelector("colophon-options").form.elements.zoom
     this.#fitCanvas()
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })
@@ -69,6 +71,7 @@ class MonitorElement extends MachineObserver {
     switch (name) {
       case "zoom":
         this.#fitCanvas()
+        this.#writeSwitches()
         break
 
       default:
@@ -88,6 +91,14 @@ class MonitorElement extends MachineObserver {
 
     canvas.style.width = `${width * scale * zoom}px`
     canvas.style.height = `${height * zoom}px`
+  }
+
+  #writeSwitches() {
+    const zoom = Number(this.getAttribute("zoom") ?? 1)
+
+    for (const radio of this.#zoomSwitches) {
+      writeValue(radio, Number(radio.value) == zoom)
+    }
   }
 
   #draw(machine) {

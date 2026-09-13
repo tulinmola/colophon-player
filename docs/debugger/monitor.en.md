@@ -16,7 +16,7 @@ order: 2
 
 It bears the heading `Monitor` and draws once a frame, on the machine's own event.
 
-The three dots at the heading's right offer the zoom and the recorder. The zoom the element follows where it stands: the canvas is presented at a new size and nothing is redrawn, so the menu stays open and a recording under way is not disturbed.
+The three dots at the heading's right offer the zoom and the recorder. The zoom the element follows where it stands: the canvas is presented at a new size and nothing is redrawn, so the menu stays open and a recording under way is not disturbed. The menu shows the zoom however it was set; one it does not offer marks none of its choices.
 
 ## Recording
 

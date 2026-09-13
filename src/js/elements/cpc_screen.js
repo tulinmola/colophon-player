@@ -1,4 +1,4 @@
-import { escapeHtml, hex, html } from "../lang"
+import { escapeHtml, hex, html, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { CpcScreen } from "../emulator"
@@ -223,11 +223,13 @@ class CpcScreenElement extends MachineObserver {
     switch (name) {
       case "view":
         this.#fitViews()
+        this.#writeSwitches()
         this.#draw(this.machine)
         break
 
       case "zoom":
         this.#fitPicture()
+        this.#writeSwitches()
         break
 
       default:
@@ -323,6 +325,19 @@ class CpcScreenElement extends MachineObserver {
       idle: true,
       image,
       pixels: new Uint32Array(image.data.buffer)
+    }
+  }
+
+  #writeSwitches() {
+    const chosen = this.#options.form.elements,
+      views = parseViews(this.getAttribute("view")),
+      zoom = Number(this.getAttribute("zoom") ?? 1)
+
+    writeValue(chosen.beam, views.has("beam"))
+    writeValue(chosen.heat, views.has("heat"))
+
+    for (const radio of chosen.zoom) {
+      writeValue(radio, Number(radio.value) == zoom)
     }
   }
 

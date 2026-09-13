@@ -28,7 +28,7 @@ function resetValue(control) {
 }
 
 function writeValue(control, value) {
-  if (control.type == "checkbox") {
+  if (control.type == "checkbox" || control.type == "radio") {
     control.defaultChecked = value
     control.checked = value
     return

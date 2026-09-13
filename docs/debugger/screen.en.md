@@ -52,7 +52,7 @@ Only the machine's own reading is bound by what its video hardware can address, 
 
 The three dots at the heading's right hold the zoom, the views, the mode, the geometry and the recorder. Every setting among them is the attribute above under another name: what is set there is what the element ends up carrying, and a screen tuned until it reads can be copied off the page as the markup that would declare it.
 
-The zoom and the views the panel follows where it stands — the picture is resized, a layer is laid on or taken away — so the menu stays open while they are turned. The reading, the base, the width, the height, the rasters and the mode read memory differently, so the panel is built again around them and the menu closes as it goes. `Rasters` stands among them only while the reading is `video`, and leaves the menu when another is chosen.
+The zoom and the views the panel follows where it stands — the picture is resized, a layer is laid on or taken away — so the menu stays open while they are turned. Its switches show them however they were set, from the menu or on the element; a zoom the menu does not offer marks none of its choices. The reading, the base, the width, the height, the rasters and the mode read memory differently, so the panel is built again around them and the menu closes as it goes. `Rasters` stands among them only while the reading is `video`, and leaves the menu when another is chosen.
 
 The palette is not offered there. Sixteen colour codes are a table rather than a setting, and they are declared on the page.
 
