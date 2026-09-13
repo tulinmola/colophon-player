@@ -232,8 +232,7 @@ class MemoryElement extends MachineObserver {
 
   onFocusOut(event) {
     if (event.target == this.#input) {
-      this.#commit()
-      this.#stop()
+      this.#leave()
     }
   }
 
@@ -378,6 +377,11 @@ class MemoryElement extends MachineObserver {
     this.#render()
   }
 
+  #leave() {
+    this.#commit()
+    this.#stop()
+  }
+
   #move(index) {
     const cells = this.#cells.length,
       base = this.#base
@@ -432,9 +436,15 @@ class MemoryElement extends MachineObserver {
   #follow() {
     const fields = this.#form.elements,
       declared = this.getAttribute("base") ?? "&0000",
-      address = this.machine.symbols.addressOf(declared)
+      address = this.machine.symbols.addressOf(declared),
+      space = this.getAttribute("space") ?? DEFAULT_SPACE,
+      moving = space != fields.space.value || this.#clamp(address) != this.#base
 
-    fields.space.value = this.getAttribute("space") ?? DEFAULT_SPACE
+    if (moving && this.#editing != null) {
+      this.#leave()
+    }
+
+    fields.space.value = space
 
     const { digits } = this.#space()
 

@@ -185,6 +185,49 @@ test("one digit and Enter commit a byte and close its field", async function ({ 
   expect(await element.evaluate(host => host.machine.ram[0x101])).toBe(0x07)
 })
 
+test("a dump moved under an open byte writes it where it was opened", async function ({ page }) {
+  const element = await bootStopped(
+      page,
+      CPC_6128,
+      '<colophon-memory space="ram" lines="2" width="4" base="&100"></colophon-memory>'
+    ),
+    memory = page.locator("colophon-memory")
+
+  await element.evaluate(function (host) {
+    for (let at = 0x100; at < 0x10c; at++) {
+      host.machine.writeRam(at, 0)
+    }
+    host.machine.changed()
+  })
+  await memory.locator(".bytes span").nth(1).click()
+  await page.keyboard.type("7")
+  await memory.locator(".dump").hover()
+  await page.mouse.wheel(0, 100)
+  await expect(memory).toHaveAttribute("base", "&00104")
+  await expect(memory.locator(".bytes input")).toHaveCount(0)
+  expect(
+    await element.evaluate(host => [host.machine.ram[0x101], host.machine.ram[0x105]])
+  ).toEqual([7, 0])
+})
+
+test("a wheel that moves nothing leaves an open byte open", async function ({ page }) {
+  const element = await bootStopped(
+      page,
+      CPC_6128,
+      '<colophon-memory space="ram" lines="2" width="4" base="&0"></colophon-memory>'
+    ),
+    memory = page.locator("colophon-memory")
+
+  await memory.locator(".bytes span").nth(1).click()
+  await page.keyboard.type("7")
+  await memory.locator(".dump").hover()
+  await page.mouse.wheel(0, -100)
+  await page.mouse.wheel(100, 0)
+  await page.keyboard.type("B")
+  await expect(memory).toHaveAttribute("base", "&00000")
+  expect(await element.evaluate(host => host.machine.ram[0x1])).toBe(0x7b)
+})
+
 test("typing through the last byte of the banks ends the edit there", async function ({ page }) {
   const element = await bootStopped(
       page,

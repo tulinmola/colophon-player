@@ -48,7 +48,7 @@ The dump moves to put the address in the middle of the window rather than at the
 
 ## Editing
 
-Click a byte and the cell becomes a field with that byte in it. Two accepted digits commit it and move to the byte after, so a run can be typed straight through without reaching for the mouse again; the last byte of the space has none after it, and the edit ends there, as it does at the last byte of a dump that does not scroll. Leaving the field commits what is standing in it. Escape abandons the edit and leaves the byte as it was.
+Click a byte and the cell becomes a field with that byte in it. Two accepted digits commit it and move to the byte after, so a run can be typed straight through without reaching for the mouse again; the last byte of the space has none after it, and the edit ends there, as it does at the last byte of a dump that does not scroll. Leaving the field commits what is standing in it, and so does the dump being moved under it, which writes the byte where it was opened and ends the edit. Escape abandons the edit and leaves the byte as it was.
 
 A byte written into `RAM` goes to the bank; a byte written into `CPU` goes wherever the processor would have put it.
 
