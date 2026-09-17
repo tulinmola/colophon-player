@@ -1,4 +1,7 @@
 import "./actions"
+import "./bench"
+import "./bench_form"
+import "./benches"
 import "./breakpoint_form"
 import "./breakpoints"
 import "./controls"

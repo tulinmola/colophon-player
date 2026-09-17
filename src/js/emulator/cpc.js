@@ -20,9 +20,24 @@ import { readProblem } from "./read_problem"
 import { readSymbolFile } from "./read_symbol_file"
 
 const MODELS = {
-  cpc464: { romFile: "cpc464.rom", ramSize: 0x10000, discInterface: false },
-  cpc664: { romFile: "cpc664.rom", ramSize: 0x10000, discInterface: true },
-  cpc6128: { romFile: "cpc6128.rom", ramSize: 0x20000, discInterface: true }
+  cpc464: {
+    name: "Amstrad CPC 464",
+    romFile: "cpc464.rom",
+    ramSize: 0x10000,
+    discInterface: false
+  },
+  cpc664: {
+    name: "Amstrad CPC 664",
+    romFile: "cpc664.rom",
+    ramSize: 0x10000,
+    discInterface: true
+  },
+  cpc6128: {
+    name: "Amstrad CPC 6128",
+    romFile: "cpc6128.rom",
+    ramSize: 0x20000,
+    discInterface: true
+  }
 }
 
 const DEFAULT_ROMS_URL = "/roms"
@@ -58,6 +73,10 @@ export class Cpc extends Machine {
   #fdc
   #gateArray
   #video
+
+  static get models() {
+    return Object.entries(MODELS).map(([model, { name }]) => ({ model, name }))
+  }
 
   static async create(model, { romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl, signal } = {}) {
     const machine = MODELS[model],
