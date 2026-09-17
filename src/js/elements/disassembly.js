@@ -1,7 +1,8 @@
-import { hex, html, write, writeFitted, writeValue } from "../lang"
+import { escapeHtml, hex, html, resetValue, write, writeFitted, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
+import { Memory } from "./memory"
 import { disassemble } from "../emulator"
 
 const DEFAULT_LINES = 16
@@ -121,7 +122,7 @@ class DisassemblyElement extends MachineObserver {
 
     this.innerHTML = html`
       <header>
-        <h2></h2>
+        <h2>${escapeHtml(label)}</h2>
         <button type="button" data-action="stepOver" title="Step over">${STEP_OVER}</button>
         <button type="button" data-action="stepInto" title="Step into">${STEP_INTO}</button>
         <button type="button" data-action="stepOut" title="Step out">${STEP_OUT}</button>
@@ -138,6 +139,7 @@ class DisassemblyElement extends MachineObserver {
                 inputmode="numeric"
                 maxlength="2"
                 pattern="[1-9][0-9]?"
+                value="${lines}"
               />
             </label>
             <label title="A name or an address">
@@ -151,7 +153,7 @@ class DisassemblyElement extends MachineObserver {
             </label>
           </div>
           <label class="toggle" title="Keep the listing where it stands while the processor moves">
-            <input type="checkbox" name="fixed" /> Fixed
+            <input type="checkbox" name="fixed" ${fixed ? "checked" : ""} /> Fixed
           </label>
           ${machine.symbols.size > 0 ? toggle : ""}
         </colophon-options>
@@ -164,14 +166,10 @@ class DisassemblyElement extends MachineObserver {
 
     const { signal } = this,
       options = this.querySelector("colophon-options"),
-      listing = this.querySelector(".listing"),
-      fields = options.form.elements
+      listing = this.querySelector(".listing")
 
     this.#options = options
     this.#problem = this.querySelector('p[role="status"]')
-    this.querySelector("h2").textContent = label
-    writeValue(fields.lines, String(lines))
-    writeValue(fields.fixed, fixed)
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })
@@ -255,7 +253,8 @@ class DisassemblyElement extends MachineObserver {
       return
     }
 
-    const machine = this.machine
+    const machine = this.machine,
+      showing = Memory.showActions(machine, row.address)
 
     event.preventDefault()
     Actions.create(event, [
@@ -263,7 +262,7 @@ class DisassemblyElement extends MachineObserver {
         label: "Add breakpoint…",
         execute: () => BreakpointForm.create(machine, { address: row.address })
       },
-      { label: "Show in memory", execute: () => machine.showMemory(row.address) }
+      ...showing
     ])
   }
 
@@ -303,6 +302,7 @@ class DisassemblyElement extends MachineObserver {
     }
 
     this.#moveTo(address)
+    resetValue(control)
   }
 
   #moveTo(address) {

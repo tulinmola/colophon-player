@@ -64,7 +64,7 @@ class BreakpointsElement extends MachineObserver {
       `${ARMED}ch ${ADDRESSES}ch ${NAME}ch ${KIND}ch ${EDIT}ch ${REMOVE}ch`
     )
     this.style.setProperty("--gap", `${GAP}ch`)
-    const lines = this.getAttribute("lines") ?? DEFAULT_LINES
+    const lines = Number(this.getAttribute("lines") ?? DEFAULT_LINES)
     this.style.setProperty("--lines", lines)
 
     this.innerHTML = html`
@@ -83,6 +83,7 @@ class BreakpointsElement extends MachineObserver {
                 inputmode="numeric"
                 maxlength="2"
                 pattern="[1-9][0-9]?"
+                value="${lines}"
               />
             </label>
           </div>
@@ -94,10 +95,7 @@ class BreakpointsElement extends MachineObserver {
     this.#count = this.querySelector("h2 span")
     this.#list = this.querySelector(".list")
 
-    const { signal } = this,
-      options = this.querySelector("colophon-options")
-
-    writeValue(options.form.elements.lines, String(lines))
+    const { signal } = this
 
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })

@@ -18,7 +18,7 @@ order: 11
 | `fixed`   | absent              | Keeps the listing where it begins, however the processor moves.                                                                             |
 | `label`   | `Disassembly`       | The panel's heading, which is what tells several of them apart.                                                                             |
 
-The three dots at the heading's right hold `Lines`, `Base` and `Fixed`. `Lines` builds the panel again at the height asked for, beginning where `base` says. `Base` and `Fixed` move nothing but the listing, and are the reader's to change while the machine runs: the attributes say where a panel starts, and the reader takes it from there. `Base` always shows where the listing begins now, and takes a name as readily as an address; a name the machine was not given is refused where it is typed.
+The three dots at the heading's right hold `Lines`, `Base` and `Fixed`. `Lines` builds the panel again at the height asked for, beginning where `base` says. `Base` and `Fixed` move nothing but the listing, and are the reader's to change while the machine runs: the attributes say where a panel starts, and the reader takes it from there. `Base` always shows where the listing begins now, and takes a name as readily as an address; a name the machine was not given is refused where it is typed, and let go when the menu closes.
 
 It reads through the processor's own view of memory, so what it shows is what the processor would fetch. Where a ROM is paged in, the ROM's instructions are what appear: a listing fixed on a routine in the lowest sixteen kilobytes of a CPC shows the firmware whenever the firmware is paged in over it.
 
@@ -100,4 +100,4 @@ Only marks that stop the machine on reaching an instruction are shown. A watch o
 
 The right button on a row opens [the breakpoint form](breakpoints.en.md#setting-one) with the instruction's address already in it. What kind of mark it is, and how far it reaches, are the form's to answer.
 
-It also offers to show that address in [the memory](memory.en.md#moving), which is how the bytes an instruction stands on are read as bytes.
+It also offers to show that address in each [memory panel](memory.en.md#moving) in the same machine, under its label, which is how the bytes an instruction stands on are read as bytes.

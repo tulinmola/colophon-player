@@ -1,14 +1,14 @@
-import { hex, html, write, writeValue } from "../lang"
+import { escapeHtml, hex, html, resetValue, write, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { MachineObserver } from "./machine_observer"
 
-const BYTES_PER_ROW = 16,
-  ROWS = 16,
-  WINDOW = ROWS * BYTES_PER_ROW
+const DEFAULT_LINES = 16,
+  DEFAULT_WIDTH = 16,
+  DEFAULT_SPACE = "cpu"
 
-function renderRow() {
-  const cells = Array.from({ length: BYTES_PER_ROW }, () => html`<span></span>`)
+function renderRow(width) {
+  const cells = Array.from({ length: width }, () => html`<span></span>`)
 
   return html`<div class="row">
     <span class="at"></span><span class="bytes">${cells.join(" ")}</span
@@ -23,6 +23,7 @@ function character(value) {
 function createByteInput() {
   const input = document.createElement("input")
 
+  input.name = "byte"
   input.maxLength = 2
   input.pattern = "[0-9A-Fa-f]{1,2}"
   input.setAttribute("aria-label", "Byte")
@@ -30,7 +31,15 @@ function createByteInput() {
   return input
 }
 
+function inDocumentOrder(one, other) {
+  return one.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+}
+
 class MemoryElement extends MachineObserver {
+  static observedAttributes = ["base", "label", "lines", "noscroll", "space", "width"]
+
+  static #panels = new Set()
+
   #base = 0
   #cells
   #characters
@@ -38,14 +47,69 @@ class MemoryElement extends MachineObserver {
   #editing = null
   #form
   #input = createByteInput()
-  #previous = new Uint8Array(WINDOW)
+  #label
+  #lines
+  #previous
   #rows
+  #scrollSwitch
   #shown = null
+  #width
+
+  static showActions(machine, at, space = DEFAULT_SPACE) {
+    const panels = Array.from(MemoryElement.#panels).filter(panel => panel.machine == machine)
+
+    return panels.sort(inDocumentOrder).map(function (panel) {
+      return { label: `Show in ${panel.#label}`, execute: () => panel.#center(at, space) }
+    })
+  }
 
   watch(machine) {
+    const lines = Number(this.getAttribute("lines") ?? DEFAULT_LINES),
+      width = Number(this.getAttribute("width") ?? DEFAULT_WIDTH),
+      label = this.getAttribute("label") ?? "Memory",
+      rows = Array.from({ length: lines }, () => renderRow(width))
+
+    this.#lines = lines
+    this.#width = width
+    this.#label = label
+    this.#previous = new Uint8Array(lines * width)
+    this.#shown = null
+    this.#editing = null
+
     this.innerHTML = html`
-      <h2>Memory</h2>
-      <form class="fields">
+      <header>
+        <h2>${escapeHtml(label)}</h2>
+        <colophon-options label="Memory options">
+          <div class="fields">
+            <label>
+              Lines
+              <input
+                name="lines"
+                aria-label="Lines"
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[1-9][0-9]?"
+                value="${lines}"
+              />
+            </label>
+            <label>
+              Width
+              <input
+                name="width"
+                aria-label="Width"
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[1-9][0-9]?"
+                value="${width}"
+              />
+            </label>
+          </div>
+          <label class="toggle" title="Let the wheel, and typing past the last row, move the dump">
+            <input type="checkbox" name="scroll" ${this.#scrolls ? "checked" : ""} /> Scroll
+          </label>
+        </colophon-options>
+      </header>
+      <form class="fields pairs">
         <label>
           Space
           <select name="space">
@@ -54,21 +118,29 @@ class MemoryElement extends MachineObserver {
           </select>
         </label>
         <label>
-          <abbr title="Address the dump starts at">At</abbr>
-          <span class="input-group">
-            <input name="at" aria-label="At" maxlength="5" pattern="[0-9A-Fa-f]{1,5}" />
-          </span>
+          <abbr title="The name or the address the dump starts at">At</abbr>
+          <input
+            name="at"
+            aria-label="At"
+            maxlength="64"
+            pattern="&[0-9A-Fa-f]{1,5}|[0-9A-Fa-f]{1,4}|[A-Za-z_.$][0-9A-Za-z_.$]{0,63}"
+          />
         </label>
       </form>
-      <div class="dump">${Array.from({ length: ROWS }, renderRow).join("")}</div>
+      <div class="dump">${rows.join("")}</div>
     `
 
-    this.#form = this.querySelector("form")
+    this.#form = this.querySelector(":scope > form")
     this.#rows = Array.from(this.querySelectorAll(".row"))
     this.#cells = Array.from(this.querySelectorAll(".bytes span"))
     this.#characters = Array.from(this.querySelectorAll(".text span"))
 
-    const { signal } = this
+    const { signal } = this,
+      fields = this.querySelector("colophon-options").form.elements,
+      dump = this.querySelector(".dump")
+
+    this.#scrollSwitch = fields.scroll
+
     this.addEventListener("change", this.onChanged.bind(this), { signal })
     this.addEventListener("click", this.onClick.bind(this), { signal })
     this.addEventListener("contextmenu", this.onContextMenu.bind(this), { signal })
@@ -76,15 +148,38 @@ class MemoryElement extends MachineObserver {
     this.addEventListener("input", this.onInput.bind(this), { signal })
     this.addEventListener("keydown", this.onKeyDown.bind(this), { signal })
     this.addEventListener("submit", this.onSubmit.bind(this), { signal })
-    this.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
+    dump.addEventListener("wheel", this.onWheel.bind(this), { passive: false, signal })
 
     machine.addEventListener("machine:changed", () => this.#render(), { signal })
-    machine.addEventListener(
-      "memory:center",
-      event => this.#center(event.detail.at, event.detail.space),
-      { signal }
-    )
-    this.#moveTo(0)
+    MemoryElement.#panels.add(this)
+    this.#follow()
+  }
+
+  attributeChangedCallback(name) {
+    if (this.machine == null) {
+      super.attributeChangedCallback(name)
+      return
+    }
+
+    switch (name) {
+      case "base":
+      case "space":
+        this.#follow()
+        break
+
+      case "noscroll":
+        writeValue(this.#scrollSwitch, this.#scrolls)
+        break
+
+      default:
+        super.attributeChangedCallback(name)
+        break
+    }
+  }
+
+  dispose() {
+    MemoryElement.#panels.delete(this)
+    super.dispose()
   }
 
   onClick(event) {
@@ -127,6 +222,8 @@ class MemoryElement extends MachineObserver {
     const input = this.#input,
       index = this.#editing
 
+    event.target.setCustomValidity("")
+
     if (event.target == input && input.value.length == 2 && input.checkValidity()) {
       this.#commit()
       this.#move(index + 1)
@@ -135,18 +232,39 @@ class MemoryElement extends MachineObserver {
 
   onFocusOut(event) {
     if (event.target == this.#input) {
-      this.#commit()
-      this.#stop()
+      this.#leave()
     }
   }
 
   onChanged(event) {
-    if (event.target == this.#input) {
-      this.#input.blur()
-    } else if (event.target.name == "at" && event.target.checkValidity()) {
-      this.#moveTo(parseInt(event.target.value, 16))
-    } else {
-      this.#moveTo(this.#base)
+    const control = event.target
+
+    switch (control.name) {
+      case "byte":
+        control.blur()
+        break
+
+      case "at":
+        this.#commitBase(control)
+        break
+
+      case "space":
+        this.#moveTo(this.#base, control.value)
+        break
+
+      case "scroll":
+        this.toggleAttribute("noscroll", !control.checked)
+        break
+
+      case "lines":
+      case "width":
+        if (control.checkValidity()) {
+          this.setAttribute(control.name, control.value)
+        }
+        break
+
+      default:
+        break
     }
   }
 
@@ -156,7 +274,7 @@ class MemoryElement extends MachineObserver {
     }
 
     if (this.#editing == null) {
-      this.#form.reset()
+      resetValue(this.#form.elements.at)
     } else {
       this.#editing = null
       this.#input.blur()
@@ -170,8 +288,16 @@ class MemoryElement extends MachineObserver {
   }
 
   onWheel(event) {
+    if (!this.#scrolls) {
+      return
+    }
+
     event.preventDefault()
-    this.#moveTo(this.#base + Math.sign(event.deltaY) * BYTES_PER_ROW)
+    this.#moveTo(this.#base + Math.sign(event.deltaY) * this.#width)
+  }
+
+  get #scrolls() {
+    return !this.hasAttribute("noscroll")
   }
 
   #space() {
@@ -192,6 +318,31 @@ class MemoryElement extends MachineObserver {
           read: at => ram[at],
           write: (at, value) => machine.writeRam(at, value)
         }
+  }
+
+  #commitBase(control) {
+    if (!control.checkValidity()) {
+      return
+    }
+
+    const typed = control.value,
+      symbols = this.machine.symbols,
+      address = symbols.addressOf(typed)
+
+    if (address == null) {
+      control.setCustomValidity("unknown name")
+      control.reportValidity()
+      return
+    }
+
+    if (symbols.addressNamed(typed) == null) {
+      this.#moveTo(address)
+    } else {
+      this.#turnTo("cpu")
+      this.setAttribute("base", typed)
+    }
+
+    resetValue(control)
   }
 
   #edit(index) {
@@ -226,44 +377,95 @@ class MemoryElement extends MachineObserver {
     this.#render()
   }
 
+  #leave() {
+    this.#commit()
+    this.#stop()
+  }
+
   #move(index) {
-    if (index < WINDOW) {
-      this.#edit(index)
+    const cells = this.#cells.length,
+      base = this.#base
+
+    if (index >= cells && this.#scrolls) {
+      this.#moveTo(base + this.#width)
+    }
+
+    const shifted = index - (this.#base - base)
+
+    if (shifted < cells) {
+      this.#edit(shifted)
     } else {
-      this.#moveTo(this.#base + BYTES_PER_ROW)
-      this.#edit(WINDOW - BYTES_PER_ROW)
+      this.#stop()
     }
   }
 
   #center(address, space) {
-    this.#form.elements.space.value = space
-    this.#moveTo(address - WINDOW / 2, address)
+    const width = this.#width,
+      top = address - Math.floor(this.#lines / 2) * width,
+      outOfStep = (((top - this.#base) % width) + width) % width
+
+    this.#moveTo(top - outOfStep, space)
+    this.#found = address
+    this.#render()
     this.scrollIntoView({ block: "nearest" })
     this.#edit(address - this.#base)
   }
 
-  #moveTo(address, marked = null) {
-    const { size, digits } = this.#space(),
-      last = size - WINDOW
+  #clamp(address) {
+    const { size } = this.#space()
 
-    this.#found = marked
+    return Math.min(Math.max(0, address), size - this.#cells.length)
+  }
 
-    this.#base = Math.min(Math.max(0, address), last) & ~(BYTES_PER_ROW - 1)
-    writeValue(this.#form.elements.at, hex(this.#base, { digits }))
+  #moveTo(address, space = this.#form.elements.space.value) {
+    this.#turnTo(space)
+
+    const { digits } = this.#space(),
+      base = this.#clamp(address),
+      declared = hex(base, { digits, prefix: "&" })
+
+    this.setAttribute("base", declared)
+  }
+
+  #turnTo(space) {
+    if (space != (this.getAttribute("space") ?? DEFAULT_SPACE)) {
+      this.setAttribute("space", space)
+    }
+  }
+
+  #follow() {
+    const fields = this.#form.elements,
+      declared = this.getAttribute("base") ?? "&0000",
+      address = this.machine.symbols.addressOf(declared),
+      space = this.getAttribute("space") ?? DEFAULT_SPACE,
+      moving = space != fields.space.value || this.#clamp(address) != this.#base
+
+    if (moving && this.#editing != null) {
+      this.#leave()
+    }
+
+    fields.space.value = space
+
+    const { digits } = this.#space()
+
+    this.#found = null
+    this.#base = this.#clamp(address)
+    writeValue(fields.at, hex(this.#base, { digits, prefix: "&" }))
     this.#render()
   }
 
   #render() {
     const { size, digits, read } = this.#space(),
+      width = this.#width,
       moved = this.#shown != `${this.#base} ${size}`
 
-    for (let row = 0; row < ROWS; row++) {
-      const at = this.#base + row * BYTES_PER_ROW
+    for (let row = 0; row < this.#lines; row++) {
+      const at = this.#base + row * width
 
       write(this.#rows[row].querySelector(".at"), hex(at, { digits }))
 
-      for (let column = 0; column < BYTES_PER_ROW; column++) {
-        const index = row * BYTES_PER_ROW + column,
+      for (let column = 0; column < width; column++) {
+        const index = row * width + column,
           value = read(at + column),
           node = this.#cells[index]
 
@@ -287,3 +489,5 @@ class MemoryElement extends MachineObserver {
 }
 
 MemoryElement.define("colophon-memory")
+
+export { MemoryElement as Memory }

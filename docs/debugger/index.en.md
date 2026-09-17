@@ -54,7 +54,7 @@ Every panel draws on the machine's own events rather than on a clock of its own,
 
 A panel also follows its attributes: change one on a living page and the panel rebuilds itself around the new value, letting go of anything the old value meant — a selection over it, a focus within it. The page is the session, and it stays true when edited as easily as when it was declared. An attribute is a session fact that changes at a reader's pace; a value that moves with the machine is the machine's, and never an attribute's.
 
-A value the reader can change is a form control, and the platform carries the editing. A change reaches the machine when the control says it is committed and at no other moment, so a half-typed value is never written and a value the control refuses is never written either. A control holding focus is left alone by the redraw. Escape returns a panel to what the machine holds, committing nothing.
+A value the reader can change is a form control, and the platform carries the editing. A change reaches the machine when the control says it is committed and at no other moment, so a half-typed value is never written and a value the control refuses is never written either. A field holding focus is left alone by the redraw. Escape returns a panel to what the machine holds, committing nothing.
 
 None of this is done by the panel itself, which is the reason it can be relied on: it is what a form does.
 
@@ -72,7 +72,7 @@ Red is the third voice, and it is the reader's: a breakpoint armed on an address
 
 The right button on anything a panel shows asks what may be done with it, and each panel answers for its own items with a list of actions: it knows what they are, which nothing outside it does. A byte in the memory knows it is an address; a name in the symbols knows the address it stands for.
 
-What a panel offers falls into two kinds. Some of it belongs to the machine — a breakpoint is set on the machine and stays set whether or not any panel lists it — and a panel offers those directly. The rest belongs to another panel, which alone knows how to do it, and those travel as events: a panel says what it wants done and does not care who does it, or whether anyone does. A page that has not been given the panel that would answer simply sees nothing offered, which is the honest result: there is no view there to move.
+What a panel offers falls into two kinds. Some of it belongs to the machine — a breakpoint is set on the machine and stays set whether or not any panel lists it — and a panel offers those directly. The rest belongs to another panel, which alone knows how to do it, and that panel is offered by name: one action for each such panel standing in the same machine, under its label, so that a reader sending an address to [the memory](memory.en.md#moving) chooses which dump receives it, and only that one moves. A page that has not been given the panel that would answer simply sees nothing offered, which is the honest result: there is no view there to move.
 
 What answers is not a panel either. The list of actions and the breakpoint form are [the debugger's own](../cpc.en.md#what-it-brings-with-it) rather than any panel's, so the road from a byte to a mark is open on every page, however few panels it was given.
 
@@ -84,7 +84,7 @@ A panel's options ride in its heading rather than in its body, where they would 
 
 The heading carries what must be seen. A control that acts on what a panel holds stays with what it holds — the pencil and the cross beside a mark, the `+` that makes one, which is the same control for a mark that does not exist yet; the funnel above the symbols, because a narrowed list must say it is narrowed, and the count beside the heading says it alongside. Everything else is behind the dots: what sets how a panel reads, and what a panel does with itself. A panel with nothing to offer carries no dots at all — a mark that opened on nothing would be worse than no mark, and not every panel here has something to set.
 
-What stands behind the dots is not a list of commands but the panel's own controls, written as the controls they are: a circle takes one of the choices, a square takes any of them, and a field takes a value the platform refuses if it is wrong.
+What stands behind the dots is not a list of commands but the panel's own controls, written as the controls they are: a circle takes one of the choices, a square takes any of them, and a field takes a value the platform refuses if it is wrong. A menu closed on a value half typed or refused lets it go, and the field shows what the panel holds again: Escape commits nothing, and a click elsewhere commits what the field holds, as leaving any field does.
 
 The recorder is the case that proves the rule. A recorder that is not recording is a possibility rather than a fact, so it waits behind the dots and takes no room in a heading it would sit inert in for the whole session. A recorder that is recording is a fact, so the dots themselves turn red and stay red until it stops. What must be seen is seen without opening anything, and what must be reached is one press away.
 

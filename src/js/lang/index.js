@@ -22,17 +22,32 @@ function write(node, text) {
   }
 }
 
+function resetValue(control) {
+  control.setCustomValidity("")
+  control.value = control.defaultValue
+}
+
 function writeValue(control, value) {
-  if (document.activeElement == control) {
+  if (control.type == "checkbox" || control.type == "radio") {
+    control.defaultChecked = value
+    control.checked = value
     return
   }
 
-  if (control.type == "checkbox") {
-    control.defaultChecked = value
-    control.checked = value
-  } else {
-    control.defaultValue = value
-    control.value = value
+  const focused = document.activeElement == control
+
+  // A clean field's value follows its default, and a form's reset leaves it clean;
+  // assigning the value unchanged makes it dirty, so the default cannot move it.
+  if (focused) {
+    const typed = control.value
+
+    control.value = typed
+  }
+
+  control.defaultValue = value
+
+  if (!focused) {
+    resetValue(control)
   }
 }
 
@@ -70,4 +85,4 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export { bit, download, escapeHtml, hex, html, write, writeFitted, writeValue }
+export { bit, download, escapeHtml, fitText, hex, html, resetValue, write, writeFitted, writeValue }

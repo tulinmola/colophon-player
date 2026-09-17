@@ -32,12 +32,17 @@ async function bootSpectrum() {
 // landing "at the next boundary" can be told from a landing anywhere else.
 const LONGEST_INSTRUCTION = 64
 
+// Both firmwares answer the interrupt here, once a frame or more.
+const INTERRUPT_HANDLER = 0x38
+
+// A range each firmware writes every frame: a CPC's stack and system area, a
+// Spectrum's system variables.
 const MACHINES = [
-  ["a CPC", bootCpc],
-  ["a Spectrum", bootSpectrum]
+  ["a CPC", bootCpc, [0xb100, 0xbfff]],
+  ["a Spectrum", bootSpectrum, [0x5c00, 0x5cff]]
 ]
 
-for (const [name, boot] of MACHINES) {
+for (const [name, boot, [from, until]] of MACHINES) {
   describe(`the record of ${name}`, function () {
     let machine = null
 
@@ -155,6 +160,35 @@ for (const [name, boot] of MACHINES) {
       machine.rewind(at)
 
       expect(machine.peek(0x4000)).toBe(0x5a)
+    })
+  })
+
+  describe(`a frame step on ${name}`, function () {
+    let machine = null
+
+    // A Spectrum's frame boundary falls some 160 T-states after its
+    // interrupt, so a step begun between the two meets the boundary first and
+    // never the interrupt. Each step here begins from a boundary.
+    beforeEach(async function () {
+      machine = await boot()
+      machine.runFrames(150)
+      machine.stepFrame()
+    })
+
+    it("stops on an execute breakpoint", function () {
+      machine.breakpoints.add(INTERRUPT_HANDLER, "execute")
+      machine.stepFrame()
+
+      expect(machine.trap).toEqual({ kind: "execute", address: INTERRUPT_HANDLER })
+    })
+
+    it("stops on a write watch", function () {
+      machine.breakpoints.add(from, "write", { until })
+      machine.stepFrame()
+
+      expect(machine.trap?.kind).toBe("write")
+      expect(machine.trap.address).toBeGreaterThanOrEqual(from)
+      expect(machine.trap.address).toBeLessThanOrEqual(until)
     })
   })
 }

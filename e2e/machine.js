@@ -7,6 +7,11 @@ const BENCH = "/e2e-bench.html"
 
 export const CPC_6128 = { element: "colophon-cpc", attributes: 'model="cpc6128"' }
 
+export const CPC_6128_NAMED = {
+  element: "colophon-cpc",
+  attributes: 'model="cpc6128" symbols="/abduction.noi"'
+}
+
 export const CPC_464 = { element: "colophon-cpc", attributes: 'model="cpc464"' }
 
 export const SPECTRUM_48 = { element: "colophon-spectrum", attributes: 'model="spectrum48"' }

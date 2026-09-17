@@ -57,9 +57,16 @@ test("the cursor keys are the cursor keys unless asked to be joystick 0", async 
   await expectPressed(element, [JOYSTICK_0.up, JOYSTICK_0.fire2, JOYSTICK_0.spare])
   expect(await pressed(element, CURSOR_UP)).toBe(false)
 
-  // The attribute is read as a key arrives, so taking it off reboots nothing.
+  await page.keyboard.up("ArrowUp")
+  await page.keyboard.up("KeyZ")
+  await page.keyboard.up("KeyC")
+  await element.evaluate(host => host.machine.step())
+  await expectReleased(element, [JOYSTICK_0.up, JOYSTICK_0.fire2, JOYSTICK_0.spare])
+
   await element.evaluate(host => host.removeAttribute("joystick"))
-  expect(await element.evaluate(host => host.machine.frame)).toBeGreaterThan(0)
+  await page.keyboard.down("ArrowUp")
+  await expectPressed(element, [CURSOR_UP])
+  expect(await pressed(element, JOYSTICK_0.up)).toBe(false)
 })
 
 test("losing focus lets every key go, under the same rule", async function ({ page }) {

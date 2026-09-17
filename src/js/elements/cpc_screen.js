@@ -1,8 +1,9 @@
-import { hex, html, writeValue } from "../lang"
+import { escapeHtml, hex, html, writeValue } from "../lang"
 import { Actions } from "./actions"
 import { BreakpointForm } from "./breakpoint_form"
 import { CpcScreen } from "../emulator"
 import { MachineObserver } from "./machine_observer"
+import { Memory } from "./memory"
 
 const SAMPLES_PER_BYTE = 8
 
@@ -32,16 +33,23 @@ function parseViews(text) {
 
 const ZOOMS = [1, 1.5, 2, 3, 4]
 
-function renderActionZoom(zoom) {
+function renderActionZoom(zoom, chosen) {
   return html`<label class="toggle">
-    <input type="radio" name="zoom" value="${zoom}" />
+    <input type="radio" name="zoom" value="${zoom}" ${zoom == chosen ? "checked" : ""} />
     ×${zoom}
   </label>`
 }
 
-function renderRasters() {
+function renderRasters(rasters) {
   return html`<label>
-    Rasters <input name="rasters" inputmode="numeric" maxlength="2" pattern="[1-9][0-9]?" />
+    Rasters
+    <input
+      name="rasters"
+      inputmode="numeric"
+      maxlength="2"
+      pattern="[1-9][0-9]?"
+      value="${rasters}"
+    />
   </label>`
 }
 
@@ -87,33 +95,39 @@ class CpcScreenElement extends MachineObserver {
       zooms = new Set([...ZOOMS, zoom]),
       views = parseViews(this.getAttribute("view"))
 
+    const shownBase = hex(base, { digits: 4 }),
+      label = this.getAttribute("label") ?? `Screen &${shownBase}`
+
     this.innerHTML = html`
       <header>
-        <h2></h2>
+        <h2>${escapeHtml(label)}</h2>
         <colophon-options label="Screen options">
           <fieldset>
             <legend>Zoom</legend>
-            ${Array.from(zooms).map(renderActionZoom).join("")}
+            ${Array.from(zooms, each => renderActionZoom(each, zoom)).join("")}
           </fieldset>
           <fieldset>
             <legend>View</legend>
             <label class="toggle" title="Divide the picture where the electron beam stands">
-              <input type="checkbox" name="beam" /> Beam
+              <input type="checkbox" name="beam" ${views.has("beam") ? "checked" : ""} /> Beam
             </label>
             <label class="toggle" title="Mark what was written, and how recently">
-              <input type="checkbox" name="heat" /> Heat
+              <input type="checkbox" name="heat" ${views.has("heat") ? "checked" : ""} /> Heat
             </label>
           </fieldset>
           <fieldset>
             <legend>Mode</legend>
             <label class="toggle">
-              <input type="radio" name="mode" value="0" /> Mode 0 (2 of 16)
+              <input type="radio" name="mode" value="0" ${mode == 0 ? "checked" : ""} />
+              Mode 0 (2 of 16)
             </label>
             <label class="toggle">
-              <input type="radio" name="mode" value="1" /> Mode 1 (4 of 4)
+              <input type="radio" name="mode" value="1" ${mode == 1 ? "checked" : ""} />
+              Mode 1 (4 of 4)
             </label>
             <label class="toggle">
-              <input type="radio" name="mode" value="2" /> Mode 2 (8 of 2)
+              <input type="radio" name="mode" value="2" ${mode == 2 ? "checked" : ""} />
+              Mode 2 (8 of 2)
             </label>
           </fieldset>
           <fieldset>
@@ -122,26 +136,44 @@ class CpcScreenElement extends MachineObserver {
               <label>
                 Reading
                 <select name="reading">
-                  <option value="video">Video</option>
-                  <option value="linear">Linear</option>
-                  <option value="columns">Columns</option>
+                  <option value="video" ${reading == "video" ? "selected" : ""}>Video</option>
+                  <option value="linear" ${reading == "linear" ? "selected" : ""}>Linear</option>
+                  <option value="columns" ${reading == "columns" ? "selected" : ""}>Columns</option>
                 </select>
               </label>
               <label>
                 <abbr title="The address the first byte is read from">Base</abbr>
                 <span class="input-group">
-                  <input name="base" aria-label="Base" maxlength="5" pattern="[0-9A-Fa-f]{1,5}" />
+                  <input
+                    name="base"
+                    aria-label="Base"
+                    maxlength="5"
+                    pattern="[0-9A-Fa-f]{1,5}"
+                    value="${shownBase}"
+                  />
                 </span>
               </label>
               <label>
                 Width
-                <input name="width" inputmode="numeric" maxlength="3" pattern="[1-9][0-9]{0,2}" />
+                <input
+                  name="width"
+                  inputmode="numeric"
+                  maxlength="3"
+                  pattern="[1-9][0-9]{0,2}"
+                  value="${width}"
+                />
               </label>
               <label>
                 Height
-                <input name="height" inputmode="numeric" maxlength="3" pattern="[1-9][0-9]{0,2}" />
+                <input
+                  name="height"
+                  inputmode="numeric"
+                  maxlength="3"
+                  pattern="[1-9][0-9]{0,2}"
+                  value="${height}"
+                />
               </label>
-              ${reading == "video" ? renderRasters() : ""}
+              ${reading == "video" ? renderRasters(rasters) : ""}
             </div>
           </fieldset>
           <fieldset>
@@ -154,10 +186,6 @@ class CpcScreenElement extends MachineObserver {
         <canvas></canvas>
       </div>
     `
-
-    const label = this.getAttribute("label"),
-      address = hex(base, { digits: 4, prefix: "&" })
-    this.querySelector("h2").textContent = label ?? `Screen ${address}`
 
     this.#picture = this.querySelector(".picture")
 
@@ -177,19 +205,6 @@ class CpcScreenElement extends MachineObserver {
 
     this.#options = options
 
-    const chosen = options.form.elements
-    chosen.zoom.value = String(zoom)
-    chosen.mode.value = String(mode)
-    chosen.reading.value = reading
-    writeValue(chosen.beam, views.has("beam"))
-    writeValue(chosen.heat, views.has("heat"))
-    writeValue(chosen.base, hex(base, { digits: 4 }))
-    writeValue(chosen.width, String(width))
-    writeValue(chosen.height, String(height))
-    if (chosen.rasters) {
-      writeValue(chosen.rasters, String(rasters))
-    }
-
     this.#fitPicture()
     this.#fitViews()
 
@@ -208,11 +223,13 @@ class CpcScreenElement extends MachineObserver {
     switch (name) {
       case "view":
         this.#fitViews()
+        this.#writeSwitches()
         this.#draw(this.machine)
         break
 
       case "zoom":
         this.#fitPicture()
+        this.#writeSwitches()
         break
 
       default:
@@ -251,12 +268,13 @@ class CpcScreenElement extends MachineObserver {
       line = Math.floor(((event.clientY - box.top) / box.height) * screen.lines),
       at = screen.addressAt(sample, line),
       machine = this.machine,
+      showing = Memory.showActions(machine, at, "ram"),
       items = [
         {
           label: "Add breakpoint…",
           execute: () => BreakpointForm.create(machine, { address: at })
         },
-        { label: "Show in memory", execute: () => machine.showMemory(at, "ram") }
+        ...showing
       ]
 
     if (machine.findWrite(at, machine.ticks)) {
@@ -307,6 +325,19 @@ class CpcScreenElement extends MachineObserver {
       idle: true,
       image,
       pixels: new Uint32Array(image.data.buffer)
+    }
+  }
+
+  #writeSwitches() {
+    const chosen = this.#options.form.elements,
+      views = parseViews(this.getAttribute("view")),
+      zoom = Number(this.getAttribute("zoom") ?? 1)
+
+    writeValue(chosen.beam, views.has("beam"))
+    writeValue(chosen.heat, views.has("heat"))
+
+    for (const radio of chosen.zoom) {
+      writeValue(radio, Number(radio.value) == zoom)
     }
   }
 

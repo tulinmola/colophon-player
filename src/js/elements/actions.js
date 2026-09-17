@@ -1,10 +1,12 @@
+import { escapeHtml, html } from "../lang"
 import { Element } from "./element"
-import { html } from "../lang"
 
 const EDGE = 4
 
 function renderItem(item, index) {
-  return html`<li><button type="button" data-index="${index}">${item.label}</button></li>`
+  return html`<li>
+    <button type="button" data-index="${index}">${escapeHtml(item.label)}</button>
+  </li>`
 }
 
 class ActionsElement extends Element {
