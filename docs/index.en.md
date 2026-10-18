@@ -10,6 +10,8 @@ Today that page is a debugger. It builds a machine, runs it at the speed the har
 
 There are two machines: [a CPC](cpc.en.md) and [a Spectrum](spectrum.en.md). Each has an element named for it, because a machine is a board with particular chips soldered to it and whatever builds one has to know which. The panels know only their own chip, so they watch either machine without being told which they are in.
 
+A reader's own machines are [the benches](benches.en.md): made on the page itself, and kept in the browser they were made in.
+
 ## Carrying it into a page
 
 The debugger travels as two files, each pinned to a version that cannot change under the link: a stylesheet that dresses the page, and a module that carries the machine. A whole page is those two lines and the elements arranged beneath them.

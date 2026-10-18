@@ -13,7 +13,7 @@ import { insertTape } from "./insert_tape"
 import { readSymbolFile } from "./read_symbol_file"
 
 const MODELS = {
-  spectrum48: { romFile: "spectrum48.rom", ramSize: 0xc000 }
+  spectrum48: { name: "Sinclair ZX Spectrum 48K", romFile: "spectrum48.rom", ramSize: 0xc000 }
 }
 
 const DEFAULT_ROMS_URL = "/roms"
@@ -36,6 +36,10 @@ const PICTURE = {
 
 export class Spectrum extends Machine {
   #ula
+
+  static get models() {
+    return Object.entries(MODELS).map(([model, { name }]) => ({ model, name }))
+  }
 
   static async create(model, { romsUrl, snapshotUrl, symbolsUrl, tapeUrl, signal } = {}) {
     const machine = MODELS[model],
