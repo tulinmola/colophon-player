@@ -15,6 +15,8 @@ const TRAP_KINDS = { 1: "execute", 2: "read", 4: "write", 8: "break" }
 
 const GRAINS = { instruction: 0, scanline: 1, row: 2, frame: 3 }
 
+const PROFILING_MODES = { pass: 0, call: 1, until: 2 }
+
 const STACK_WORDS_READ = 32
 
 // What the host offers whatever machine it is holding: the record it keeps,
@@ -35,6 +37,8 @@ export class Machine extends EventTarget {
   #pendingReleases = new Set()
   #presentCount = 0
   #pressedAt = new Map()
+  #profiledTicks
+  #profiling = null
   #ram
   #request = null
   #tape
@@ -59,6 +63,7 @@ export class Machine extends EventTarget {
       ramPointer = module._player_ram(),
       tapePointer = module._player_tape(),
       writesStart = module._player_writes() >> 2,
+      profiledStart = module._player_profiled_ticks() >> 2,
       { palette, greys, cssColours } = readColours(code => module._player_rgb(code), colourCodes),
       capture = () => module._player_capture()
 
@@ -77,6 +82,7 @@ export class Machine extends EventTarget {
     )
     this.#ram = module.HEAPU8.subarray(ramPointer, ramPointer + ramSize)
     this.#writes = module.HEAPU32.subarray(writesStart, writesStart + ramSize)
+    this.#profiledTicks = module.HEAPU32.subarray(profiledStart, profiledStart + 0x10000)
   }
 
   get module() {
@@ -131,6 +137,29 @@ export class Machine extends EventTarget {
   set breakInstructions(honoured) {
     this.#breakInstructions = honoured
     this.#module._player_set_break_instructions(honoured)
+  }
+
+  get profiling() {
+    return this.#profiling
+  }
+
+  // The same profiling again keeps the profiling frames already cut by it. An
+  // until with no end yet ends each where the next begins, as a pass does.
+  set profiling(profiling) {
+    const { start, mode, end } = profiling ?? {},
+      standing = this.#profiling ?? {}
+
+    if (start == standing.start && mode == standing.mode && end == standing.end) {
+      return
+    }
+
+    this.#profiling = profiling
+
+    if (profiling == null) {
+      this.#module._player_clear_profiling()
+    } else {
+      this.#module._player_set_profiling(start, PROFILING_MODES[mode], end ?? start)
+    }
   }
 
   get running() {
@@ -271,6 +300,34 @@ export class Machine extends EventTarget {
       pc: module._player_trace_pc(),
       value: module._player_trace_value()
     }
+  }
+
+  profilingCuts() {
+    const module = this.#module,
+      held = module._player_profiling_cuts_held(),
+      oldest = this.historyFrom,
+      cuts = []
+
+    for (let index = 0; index < held; index++) {
+      const tick = module._player_profiling_cut_tick(index)
+
+      if (tick >= oldest) {
+        cuts.push({
+          tick,
+          frame: module._player_profiling_cut_frame(index),
+          opens: module._player_profiling_cut_opens(index) != 0
+        })
+      }
+    }
+
+    return cuts
+  }
+
+  // The ticks are a view the next call fills again.
+  profile(from, until) {
+    this.#module._player_profile(from, until)
+
+    return { ticks: this.#profiledTicks, halted: this.#module._player_profiled_halted() }
   }
 
   capture() {

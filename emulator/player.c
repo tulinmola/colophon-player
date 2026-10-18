@@ -19,11 +19,26 @@
 
 #define PLAYER_STATES 128
 #define PLAYER_TRACE_ENTRIES (1 << 19)
+#define PLAYER_PROFILING_CUTS (32 * PLAYER_STATES)
 
 #define PLAYER_GRAIN_INSTRUCTION 0
 #define PLAYER_GRAIN_SCANLINE 1
 #define PLAYER_GRAIN_ROW 2
 #define PLAYER_GRAIN_FRAME 3
+
+/* How a profiling frame ends: where the next begins, when the call it began
+   with returns, or at the end address or the next start, whichever comes
+   first. */
+#define PLAYER_PROFILING_PASS 0
+#define PLAYER_PROFILING_CALL 1
+#define PLAYER_PROFILING_UNTIL 2
+
+/* A call has returned once the stack pointer stands above where it stood as
+   the call began, and not far above: a routine that borrows the stack pointer
+   to move memory takes it much further. Altirra's function mode allows the
+   same 15 bytes (ATCPUProfileBuilder::ScanForFrameBoundary, profiler.cpp, in
+   https://www.virtualdub.org/downloads/Altirra-4.40-src.7z). */
+#define PLAYER_PROFILING_RETURN_REACH 15
 
 typedef enum {
   PLAYER_UNTIL_LIMIT,
@@ -46,6 +61,16 @@ typedef struct {
   uint16_t pc;
   uint8_t value;
 } player_write_t;
+
+/* A cut that does not open a profiling frame ends one. Whether one is open is
+   the newest cut's to say, so a record cut back past a cut reopens or closes
+   what it did. */
+typedef struct {
+  player_tick_t tick;
+  uint32_t frame;
+  uint16_t stack_pointer;
+  bool opens;
+} player_profiling_cut_t;
 
 uint8_t player_ram_bytes[PLAYER_RAM_SIZE];
 uint8_t player_rom_bytes[PLAYER_ROM_SIZE];
@@ -71,6 +96,25 @@ static player_write_t trace[PLAYER_TRACE_ENTRIES];
 static uint32_t trace_first;
 static uint32_t trace_held;
 static const player_write_t *traced;
+
+static bool profiling;
+static uint16_t profiling_start;
+static uint8_t profiling_mode;
+static uint16_t profiling_end;
+static player_profiling_cut_t profiling_cuts[PLAYER_PROFILING_CUTS];
+static uint32_t profiling_cuts_first;
+static uint32_t profiling_cuts_held;
+
+/* What one replayed span spent: the ticks of each instruction, by the address
+   it was fetched from, and the ticks the processor stood halted. A tick the
+   machine holds the processor between two instructions is the first one's,
+   as a step counts it. */
+static bool counting;
+static uint16_t counted_pc;
+static bool counted_halted;
+static uint32_t profiled_ticks[0x10000];
+static uint32_t profiled_halted;
+static uint32_t written_before_profiling[PLAYER_RAM_SIZE];
 
 static uint64_t ticks;
 static uint64_t recorded_until;
@@ -170,8 +214,55 @@ static void keep_write(uint32_t physical, uint8_t value) {
   entry->value = value;
 }
 
-/* A store fetched at the moment itself goes too: that instruction has not
-   run, which is why the two comparisons differ. */
+static player_profiling_cut_t *profiling_cut_at(uint32_t index) {
+  return &profiling_cuts[(profiling_cuts_first + index) % PLAYER_PROFILING_CUTS];
+}
+
+static void keep_profiling_cut(bool opens, uint16_t stack_pointer) {
+  player_profiling_cut_t *entry = profiling_cut_at(profiling_cuts_held);
+
+  if (profiling_cuts_held < PLAYER_PROFILING_CUTS) {
+    profiling_cuts_held++;
+  } else {
+    profiling_cuts_first = (profiling_cuts_first + 1) % PLAYER_PROFILING_CUTS;
+  }
+
+  entry->tick = (player_tick_t)ticks;
+  entry->frame = frame;
+  entry->stack_pointer = stack_pointer;
+  entry->opens = opens;
+}
+
+/* A call begun while one is open is inside it, so only the outermost is
+   cut. */
+static void cut_profiling_frames(uint16_t program_counter, uint16_t stack_pointer) {
+  const player_profiling_cut_t *newest =
+      profiling_cuts_held > 0 ? profiling_cut_at(profiling_cuts_held - 1) : NULL;
+  const bool open = newest != NULL && newest->opens;
+  bool ends = false, begins = program_counter == profiling_start;
+
+  switch (profiling_mode) {
+    case PLAYER_PROFILING_CALL:
+      ends = open &&
+             (uint16_t)(stack_pointer - newest->stack_pointer - 1) < PLAYER_PROFILING_RETURN_REACH;
+      begins = begins && (!open || ends);
+      break;
+    case PLAYER_PROFILING_UNTIL:
+      ends = open && program_counter == profiling_end;
+      break;
+    case PLAYER_PROFILING_PASS:
+      break;
+    default:
+      break;
+  }
+
+  if (begins || ends) {
+    keep_profiling_cut(begins, stack_pointer);
+  }
+}
+
+/* A store or a cut fetched at the moment itself goes too: that instruction
+   has not run, which is why the states are compared differently. */
 static void forget_after(void) {
   player_tick_t at = (player_tick_t)ticks;
 
@@ -182,6 +273,10 @@ static void forget_after(void) {
   while (trace_held > 0 &&
          trace[(trace_first + trace_held - 1) % PLAYER_TRACE_ENTRIES].fetch_tick >= at) {
     trace_held--;
+  }
+
+  while (profiling_cuts_held > 0 && profiling_cut_at(profiling_cuts_held - 1)->tick >= at) {
+    profiling_cuts_held--;
   }
 
   next_state_due = ticks;
@@ -295,13 +390,30 @@ void player_before(bool settled, uint16_t row, uint16_t line) {
   run.frame = frame;
 }
 
-void player_fetching(uint16_t program_counter) {
+void player_fetching(uint16_t program_counter, uint16_t stack_pointer, bool halted) {
   fetch_pc = program_counter;
   fetch_tick = ticks;
+
+  if (counting && standing.settled()) {
+    counted_pc = program_counter;
+    counted_halted = halted;
+  }
+
+  if (profiling && !halted && !replaying && standing.settled()) {
+    cut_profiling_frames(program_counter, stack_pointer);
+  }
 }
 
 bool player_after(const player_moment_t *moment) {
   ticks++;
+
+  if (counting) {
+    if (counted_halted) {
+      profiled_halted++;
+    } else {
+      profiled_ticks[counted_pc]++;
+    }
+  }
 
   if (!replaying) {
     recorded_until = ticks;
@@ -411,6 +523,8 @@ void player_forget(void) {
   trace_first = 0;
   trace_held = 0;
   traced = NULL;
+  profiling_cuts_first = 0;
+  profiling_cuts_held = 0;
   ticks = 0;
   fetch_pc = 0;
   fetch_tick = 0;
@@ -437,6 +551,30 @@ void player_set_breakpoint(uint16_t from, uint16_t until, uint8_t kinds) {
 }
 
 void player_set_break_instructions(bool honoured) { break_instructions = honoured; }
+
+/* The end is read only in PLAYER_PROFILING_UNTIL. */
+void player_set_profiling(uint16_t start, uint8_t mode, uint16_t end) {
+  profiling = true;
+  profiling_start = start;
+  profiling_mode = mode;
+  profiling_end = end;
+  profiling_cuts_first = 0;
+  profiling_cuts_held = 0;
+}
+
+void player_clear_profiling(void) {
+  profiling = false;
+  profiling_cuts_first = 0;
+  profiling_cuts_held = 0;
+}
+
+uint32_t player_profiling_cuts_held(void) { return profiling_cuts_held; }
+
+player_tick_t player_profiling_cut_tick(uint32_t index) { return profiling_cut_at(index)->tick; }
+
+uint32_t player_profiling_cut_frame(uint32_t index) { return profiling_cut_at(index)->frame; }
+
+bool player_profiling_cut_opens(uint32_t index) { return profiling_cut_at(index)->opens; }
 
 uint32_t player_trap_kind(void) { return trap_kind; }
 uint32_t player_trap_address(void) { return trap_address; }
@@ -628,3 +766,29 @@ bool player_trace_find(uint32_t address, player_tick_t before) {
 player_tick_t player_trace_tick(void) { return traced->fetch_tick; }
 uint32_t player_trace_pc(void) { return traced->pc; }
 uint32_t player_trace_value(void) { return traced->value; }
+
+/* Replays the span from one moment the record holds to another, counting
+   every tick, then stands the machine back where it was. */
+void player_profile(player_tick_t from, player_tick_t until) {
+  player_tick_t standing_at = (player_tick_t)ticks;
+  uint8_t kept_trap_kind = trap_kind;
+  uint16_t kept_trap_address = trap_address;
+
+  memcpy(written_before_profiling, written, sizeof written);
+  memset(profiled_ticks, 0, sizeof profiled_ticks);
+  profiled_halted = 0;
+
+  stand_at(from);
+  replaying = true;
+  counting = true;
+  run_to(until);
+  counting = false;
+  stand_at(standing_at);
+
+  memcpy(written, written_before_profiling, sizeof written);
+  trap_kind = kept_trap_kind;
+  trap_address = kept_trap_address;
+}
+
+uint32_t *player_profiled_ticks(void) { return profiled_ticks; }
+uint32_t player_profiled_halted(void) { return profiled_halted; }

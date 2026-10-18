@@ -12,6 +12,11 @@ export const CPC_6128_NAMED = {
   attributes: 'model="cpc6128" symbols="/abduction.noi"'
 }
 
+export const CPC_6128_ABDUCTION = {
+  element: "colophon-cpc",
+  attributes: 'model="cpc6128" snapshot="/abduction.sna" symbols="/abduction.noi"'
+}
+
 export const CPC_464 = { element: "colophon-cpc", attributes: 'model="cpc464"' }
 
 export const SPECTRUM_48 = { element: "colophon-spectrum", attributes: 'model="spectrum48"' }

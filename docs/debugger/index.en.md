@@ -28,6 +28,7 @@ The debugger is not one element but a collection of them, each watching one part
 - [The memory](memory.en.md) — the bytes themselves, as the processor sees them or as the banks hold them.
 - [The symbols](symbols.en.md) — the names a program was written with, set against the addresses it runs at.
 - [The breakpoints](breakpoints.en.md) — the marks a reader sets on the memory, and the machine that stops itself on reaching one.
+- [The profile](profile.en.md) — the machine's recent past cut into the passes of the program's own loop, the calls to a routine, or the stretches between two instructions, set side by side.
 - [The discs](disc.en.md) — the two drawers, what goes into them, and what comes back out.
 - [The drive](drive.en.md) — the motor, the head, and the lines a controller reads.
 - [The µPD765A](upd765.en.md) — the controller: the handshake, the command in flight, and what it ended with.

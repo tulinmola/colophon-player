@@ -207,7 +207,7 @@ input.state {
     row-gap: 0.3rem;
   }
 
-  > label {
+  > label:not([hidden]) {
     display: contents;
   }
 
@@ -361,6 +361,7 @@ colophon-ula,
 colophon-disassembly,
 colophon-symbols,
 colophon-breakpoints,
+colophon-profile,
 colophon-upd765,
 colophon-drive,
 colophon-disc,
@@ -785,6 +786,110 @@ colophon-symbols {
     user-select: none;
 
     &::before {
+      content: "&";
+    }
+  }
+}
+
+colophon-profile {
+  > .fields {
+    grid-template-columns: auto auto auto;
+
+    select {
+      grid-column: span 2;
+      justify-self: start;
+    }
+
+    input,
+    select {
+      &:disabled {
+        color: $line;
+        cursor: default;
+      }
+    }
+  }
+
+  input[name="start"],
+  input[name="end"] {
+    width: 28ch;
+    color: $foreground;
+  }
+
+  .address {
+    color: $dim;
+  }
+
+  .strip {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 1px;
+    width: 60ch;
+    height: 4rem;
+    margin-top: 0.5rem;
+    overflow: hidden;
+    border-bottom: 1px solid $line;
+    background: repeating-linear-gradient(
+      to top,
+      transparent 0 calc(100% / var(--frames) - 1px),
+      $line 0 calc(100% / var(--frames))
+    );
+  }
+
+  .bar {
+    flex: 0 0 calc((100% + 1px) / var(--places) - 1px);
+    min-width: 1px;
+    height: calc(var(--height) * 100%);
+    padding: 0;
+    border: 0;
+    appearance: none;
+    background: currentColor;
+    color: $dim;
+    cursor: pointer;
+
+    &:hover,
+    &.current {
+      color: $foreground;
+    }
+
+    &.clipped {
+      border-top: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    &:focus-visible {
+      outline: 1px solid $dim;
+      outline-offset: 1px;
+    }
+  }
+
+  .summary {
+    margin: 0.5rem 0 0;
+    color: $dim;
+  }
+
+  .routine {
+    display: grid;
+    grid-template-columns: var(--columns);
+    gap: 0 var(--gap);
+  }
+
+  .time,
+  .share {
+    text-align: right;
+  }
+
+  .time,
+  .share,
+  .at,
+  .unnamed .name {
+    color: $dim;
+  }
+
+  .at {
+    user-select: none;
+
+    &:not(:empty)::before {
       content: "&";
     }
   }

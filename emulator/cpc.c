@@ -78,7 +78,7 @@ static uint32_t run(uint32_t limit) {
     player_before(complete, board.machine.crtc.c4, board.machine.crtc.c9);
 
     if (complete) {
-      player_fetching(board.machine.cpu.pc);
+      player_fetching(board.machine.cpu.pc, board.machine.cpu.sp, board.machine.cpu.halted);
     }
 
     uint64_t pins = cpc_tick(&board.machine);

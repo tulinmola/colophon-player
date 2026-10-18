@@ -61,7 +61,7 @@ static uint32_t run(uint32_t limit) {
     player_before(settled_now, (uint16_t)(line / 8), line);
 
     if (z80_instruction_complete(&board.machine.cpu)) {
-      player_fetching(board.machine.cpu.pc);
+      player_fetching(board.machine.cpu.pc, board.machine.cpu.sp, board.machine.cpu.halted);
     }
 
     uint64_t pins = spectrum_tick(&board.machine);

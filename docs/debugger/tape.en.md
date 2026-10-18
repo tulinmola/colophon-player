@@ -1,7 +1,7 @@
 ---
 title: The tape
 description: The deck a tape goes into, the reel one machine turns for itself and the other leaves to a reader, and what the machine hears at the head.
-order: 19
+order: 20
 ---
 
 A tape is played, not read. Nothing here hands the machine a byte: what reaches it are the edges those bytes were recorded as, and a loader measures the time between them and decides for itself what it has heard. That is why what this panel shows moving is a reel, and not a file it has opened.

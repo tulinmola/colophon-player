@@ -35,14 +35,48 @@ const LONGEST_INSTRUCTION = 64
 // Both firmwares answer the interrupt here, once a frame or more.
 const INTERRUPT_HANDLER = 0x38
 
-// A range each firmware writes every frame: a CPC's stack and system area, a
-// Spectrum's system variables.
+// EI, HALT, and a jump back to the EI: the jump runs once an interrupt, and
+// the halted processor fetches it every four T-states between them.
+const IDLE_LOOP = [0xfb, 0x76, 0x18, 0xfd],
+  IDLE_LOOP_AT = 0x9000,
+  RESUMED_AT = IDLE_LOOP_AT + 2
+
+// NOP and a jump back to it, where a Spectrum's ULA contends: the jump ends on
+// a cycle whose address the ULA weighs, so the processor is held at the NOP
+// for as many T-states as the beam asks.
+const TIGHT_LOOP = [0x00, 0x18, 0xfd],
+  TIGHT_LOOP_AT = 0x6000,
+  TIGHT_LOOP_T_STATES = 16
+
+// A loop calling a routine on a stack of its own, and the routine calling
+// itself twice more: LD SP,&9F00, LD B,3, CALL &900A, JR back to the start,
+// then DJNZ past a RET to a CALL &900A and a RET of its own.
+const NESTED_CALLS = [
+    0x31, 0x00, 0x9f, 0x06, 0x03, 0xcd, 0x0a, 0x90, 0x18, 0xf6, 0x10, 0x01, 0xc9, 0xcd, 0x0a, 0x90,
+    0xc9
+  ],
+  NESTED_CALLS_AT = 0x9000,
+  CALLING_AT = 0x9003,
+  RETURNED_TO = 0x9008,
+  CALLED_AT = 0x900a,
+  CALLED_AGAIN_AT = 0x900d,
+  STACK = 0x9f00
+
+// A call into the instruction after it, which returns there and runs again:
+// LD SP,&9F00, LD HL,&9000, PUSH HL, CALL &900A, then NOP and RET, which the
+// second time returns to the start through the word pushed.
+const RETURN_INTO_ITSELF = [0x31, 0x00, 0x9f, 0x21, 0x00, 0x90, 0xe5, 0xcd, 0x0a, 0x90, 0x00, 0xc9],
+  RETURN_INTO_ITSELF_AT = 0x9000,
+  RETURNED_INTO_AT = 0x900a
+
+// A range each firmware writes every frame — a CPC's stack and system area, a
+// Spectrum's system variables — and how many interrupts a frame it answers.
 const MACHINES = [
-  ["a CPC", bootCpc, [0xb100, 0xbfff]],
-  ["a Spectrum", bootSpectrum, [0x5c00, 0x5cff]]
+  ["a CPC", bootCpc, [0xb100, 0xbfff], 6],
+  ["a Spectrum", bootSpectrum, [0x5c00, 0x5cff], 1]
 ]
 
-for (const [name, boot, [from, until]] of MACHINES) {
+for (const [name, boot, [from, until], interrupts] of MACHINES) {
   describe(`the record of ${name}`, function () {
     let machine = null
 
@@ -160,6 +194,233 @@ for (const [name, boot, [from, until]] of MACHINES) {
       machine.rewind(at)
 
       expect(machine.peek(0x4000)).toBe(0x5a)
+    })
+  })
+
+  describe(`the profiling frames of ${name}`, function () {
+    let machine = null
+
+    function load(program, at) {
+      for (const [offset, byte] of program.entries()) {
+        machine.poke(at + offset, byte)
+      }
+
+      machine.z80.pc = at
+    }
+
+    beforeEach(async function () {
+      machine = await boot()
+      machine.runFrames(40)
+    })
+
+    it("are cut each time the start is about to run, and never while the processor is halted", function () {
+      load(IDLE_LOOP, IDLE_LOOP_AT)
+      machine.profiling = { start: RESUMED_AT, mode: "pass" }
+      machine.runFrames(10)
+
+      const count = machine.profilingCuts().length
+
+      expect(count).toBeGreaterThanOrEqual(10 * interrupts - 1)
+      expect(count).toBeLessThanOrEqual(10 * interrupts + 1)
+    })
+
+    it("are cut once an instruction, however long the processor is held before it", function () {
+      load(TIGHT_LOOP, TIGHT_LOOP_AT)
+      machine.profiling = { start: TIGHT_LOOP_AT, mode: "pass" }
+      machine.runFrames(1)
+
+      const cuts = machine.profilingCuts()
+
+      for (let index = 1; index < cuts.length; index++) {
+        expect(cuts[index].tick - cuts[index - 1].tick).toBeGreaterThanOrEqual(TIGHT_LOOP_T_STATES)
+      }
+    })
+
+    it("stand the machine on the instruction each one begins with", function () {
+      load(IDLE_LOOP, IDLE_LOOP_AT)
+      machine.profiling = { start: RESUMED_AT, mode: "pass" }
+      machine.runFrames(10)
+
+      const [, , third] = machine.profilingCuts()
+
+      machine.rewind(third.tick)
+
+      expect(machine.ticks).toBe(third.tick)
+      expect(machine.z80.pc).toBe(RESUMED_AT)
+    })
+
+    it("are cut once, however often the record replays them", function () {
+      load(IDLE_LOOP, IDLE_LOOP_AT)
+      machine.profiling = { start: RESUMED_AT, mode: "pass" }
+      machine.runFrames(10)
+
+      const before = machine.profilingCuts()
+
+      machine.rewind(before[2].tick)
+      machine.runFrames(5)
+      const after = machine.profilingCuts()
+
+      expect(after.length).toBeGreaterThan(3)
+      expect(after).toEqual(before.slice(0, after.length))
+    })
+
+    it("begin afresh when the start moves, or how they end", function () {
+      load(IDLE_LOOP, IDLE_LOOP_AT)
+      machine.profiling = { start: RESUMED_AT, mode: "pass" }
+      machine.runFrames(10)
+      machine.profiling = { start: IDLE_LOOP_AT, mode: "pass" }
+
+      expect(machine.profilingCuts()).toEqual([])
+
+      machine.runFrames(10)
+      machine.profiling = { start: IDLE_LOOP_AT, mode: "call" }
+
+      expect(machine.profilingCuts()).toEqual([])
+    })
+
+    it("as calls, run from where the outermost call begins to where it returns", function () {
+      load(NESTED_CALLS, NESTED_CALLS_AT)
+      machine.profiling = { start: CALLED_AT, mode: "call" }
+      machine.runFrames(2)
+
+      const cuts = machine.profilingCuts(),
+        [entered, returned] = cuts,
+        { ticks } = machine.profile(entered.tick, returned.tick)
+
+      expect(cuts.length).toBeGreaterThan(20)
+      expect(cuts.map(cut => cut.opens)).toEqual(cuts.map((cut, index) => index % 2 == 0))
+      expect(ticks[CALLED_AGAIN_AT]).toBeGreaterThan(0)
+      expect(ticks[RETURNED_TO]).toBe(0)
+
+      machine.rewind(entered.tick)
+      expect([machine.z80.pc, machine.z80.sp]).toEqual([CALLED_AT, STACK - 2])
+
+      machine.rewind(returned.tick)
+      expect([machine.z80.pc, machine.z80.sp]).toEqual([RETURNED_TO, STACK])
+    })
+
+    it("as calls, end and begin again on the one instruction a call returns to its own start", function () {
+      load(RETURN_INTO_ITSELF, RETURN_INTO_ITSELF_AT)
+      machine.profiling = { start: RETURNED_INTO_AT, mode: "call" }
+      machine.runFrames(1)
+
+      const cuts = machine.profilingCuts(),
+        [, returned] = cuts
+
+      expect(cuts.slice(0, 6).map(cut => cut.opens)).toEqual([true, true, false, true, true, false])
+
+      machine.rewind(returned.tick)
+      expect([machine.z80.pc, machine.z80.sp]).toEqual([RETURNED_INTO_AT, STACK - 2])
+    })
+
+    it("as calls, are open again where the record is cut back inside one", function () {
+      load(NESTED_CALLS, NESTED_CALLS_AT)
+      machine.profiling = { start: CALLED_AT, mode: "call" }
+      machine.runFrames(2)
+
+      const before = machine.profilingCuts()
+
+      machine.rewind(before[2].tick + 8)
+      machine.runFrames(1)
+      const after = machine.profilingCuts()
+
+      expect(after.length).toBeGreaterThan(3)
+      expect(after).toEqual(before.slice(0, after.length))
+    })
+
+    it("as stretches, run from where each begins to its end, and leave out what runs between", function () {
+      load(NESTED_CALLS, NESTED_CALLS_AT)
+      machine.profiling = { start: CALLING_AT, mode: "until", end: RETURNED_TO }
+      machine.runFrames(2)
+
+      const cuts = machine.profilingCuts(),
+        [begun, ended] = cuts,
+        { ticks } = machine.profile(begun.tick, ended.tick)
+
+      expect(cuts.length).toBeGreaterThan(20)
+      expect(cuts.map(cut => cut.opens)).toEqual(cuts.map((cut, index) => index % 2 == 0))
+      expect(ticks[CALLED_AT]).toBeGreaterThan(0)
+      expect(ticks[NESTED_CALLS_AT]).toBe(0)
+
+      machine.rewind(begun.tick)
+      expect(machine.z80.pc).toBe(CALLING_AT)
+
+      machine.rewind(ended.tick)
+      expect(machine.z80.pc).toBe(RETURNED_TO)
+    })
+
+    it("as stretches whose end is never reached, end where the next begins", function () {
+      load(NESTED_CALLS, NESTED_CALLS_AT)
+      machine.profiling = { start: CALLING_AT, mode: "until", end: NESTED_CALLS_AT + 1 }
+      machine.runFrames(2)
+
+      const cuts = machine.profilingCuts()
+
+      expect(cuts.length).toBeGreaterThan(20)
+      expect(cuts.every(cut => cut.opens)).toBe(true)
+    })
+
+    it("are counted tick by tick on replay, and leave the machine standing where it stood", function () {
+      load(IDLE_LOOP, IDLE_LOOP_AT)
+      machine.profiling = { start: RESUMED_AT, mode: "pass" }
+      machine.runFrames(10)
+
+      const cuts = machine.profilingCuts(),
+        [, , third, fourth] = cuts
+
+      machine.rewind(cuts[6].tick + 100)
+
+      const standing = {
+          ticks: machine.ticks,
+          pc: machine.z80.pc,
+          ram: machine.ram.slice(),
+          picture: machine.framebuffer.slice(),
+          heat: machine.writes.slice(),
+          until: machine.historyUntil,
+          cuts: machine.profilingCuts()
+        },
+        { ticks, halted } = machine.profile(third.tick, fourth.tick),
+        counted = ticks.reduce((sum, spent) => sum + spent, 0) + halted
+
+      expect(counted).toBe(fourth.tick - third.tick)
+      expect(halted).toBeGreaterThan(0)
+      expect(ticks[RESUMED_AT]).toBeGreaterThan(0)
+      expect(ticks[INTERRUPT_HANDLER]).toBeGreaterThan(0)
+      expect({
+        ticks: machine.ticks,
+        pc: machine.z80.pc,
+        ram: machine.ram.slice(),
+        picture: machine.framebuffer.slice(),
+        heat: machine.writes.slice(),
+        until: machine.historyUntil,
+        cuts: machine.profilingCuts()
+      }).toEqual(standing)
+    })
+
+    it("count each tick against the instruction a step would", function () {
+      load(TIGHT_LOOP, TIGHT_LOOP_AT)
+      machine.profiling = { start: TIGHT_LOOP_AT, mode: "pass" }
+      machine.runFrames(1)
+
+      const cuts = machine.profilingCuts(),
+        begins = cuts.at(-3).tick,
+        ends = cuts.at(-2).tick,
+        { ticks } = machine.profile(begins, ends),
+        stepped = new Map()
+
+      machine.rewind(begins)
+
+      while (machine.ticks < ends) {
+        const pc = machine.z80.pc,
+          before = machine.ticks
+
+        machine.step()
+        stepped.set(pc, (stepped.get(pc) ?? 0) + machine.ticks - before)
+      }
+
+      for (const [pc, spent] of stepped) {
+        expect(ticks[pc]).toBe(spent)
+      }
     })
   })
 

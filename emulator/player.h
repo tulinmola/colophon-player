@@ -101,10 +101,13 @@ void player_stand(const player_subject_t *subject);
 void player_before(bool settled, uint16_t row, uint16_t line);
 
 /* Where the instruction about to run begins, so the stores it makes can be
-   attributed to it. A machine held off the bus is between instructions for
-   every tick of the hold, so this is the processor's own answer and not
-   `settled`. */
-void player_fetching(uint16_t program_counter);
+   attributed to it and a profiling frame begun there cut, and where the stack
+   stands, so a call it began with is known to have returned. A machine held
+   off the bus is between instructions for every tick of the hold, so this is
+   the processor's own answer and not `settled`. A halted processor fetches
+   the same address over and over and runs none of it, which only it can
+   say. */
+void player_fetching(uint16_t program_counter, uint16_t stack_pointer, bool halted);
 
 /* After each tick. False when the record has what it asked for. */
 bool player_after(const player_moment_t *moment);
