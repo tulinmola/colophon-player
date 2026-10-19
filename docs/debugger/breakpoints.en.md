@@ -1,7 +1,7 @@
 ---
 title: The breakpoints
 description: The marks a reader sets on the memory, and the machine that stops itself on reaching one.
-order: 14
+order: 15
 ---
 
 Watching a machine run is one half of debugging; the other is arranging to be there when something happens. `<colophon-breakpoints>` holds the reader's marks, and the ones [stepping](#marks-that-serve-once) lays on the reader's behalf: addresses at which the running machine stops itself and hands the page back, with every panel already showing the moment of interest.

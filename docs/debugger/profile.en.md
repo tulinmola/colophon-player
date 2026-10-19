@@ -1,7 +1,7 @@
 ---
 title: The profile
 description: The machine's recent past cut into the passes of the program's own loop, the calls to a routine, or the stretches between two instructions, set side by side.
-order: 15
+order: 16
 ---
 
 The picture keeps one measure and the program keeps another. A game may draw every second frame, or every third when the screen is crowded, and a utility may keep no picture at all; what it keeps is a loop, and one pass of that loop is the unit its author worked in. `<colophon-profile>` cuts [the record](record.en.md) where an instruction the reader names runs, and again where what it began has ended, and sets the pieces side by side: each is a profiling frame, and each is drawn as long as it took.

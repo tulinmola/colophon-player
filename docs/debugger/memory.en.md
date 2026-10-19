@@ -1,7 +1,7 @@
 ---
 title: The memory
 description: The bytes themselves, read either as the processor sees them or as the machine's own memory holds them, in rows as wide as a reader asks.
-order: 12
+order: 13
 ---
 
 `<colophon-memory>` shows the bytes: rows of them, each with its address and the text it would make if it were text. A page may hold several, each cut to the shape of what it watches — a table, a stack, a screen's line of bytes — and each named for it.

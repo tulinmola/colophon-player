@@ -4,7 +4,7 @@ description: The matrix as the machine reads it, a line to a row and a bit to a 
 order: 10
 ---
 
-`<colophon-keyboard>` shows the matrix, whichever machine's it is: a CPC's ten lines of eight, read the long way round — the processor asks the 8255, which asks the sound chip, which reads the grid — or a Spectrum's eight half-rows of five, hanging off the upper address lines with nothing in between. A key pressed at the element, a gamepad's direction, a switch closed here: all of them arrive in the same grid, and this panel is where what arrived can be seen.
+`<colophon-keyboard>` shows the matrix, whichever machine's it is: a CPC's ten lines of eight, read the long way round — the processor asks the 8255, which asks the sound chip, which reads the grid — or a Spectrum's eight half-rows of five, hanging off the upper address lines with nothing in between. A key pressed at the element, a gamepad's direction, a thumb on [the joystick](joystick.en.md), a switch closed here: all of them arrive in the same grid, and this panel is where what arrived can be seen.
 
 ```html
 <colophon-keyboard></colophon-keyboard>

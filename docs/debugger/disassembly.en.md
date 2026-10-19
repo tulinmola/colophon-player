@@ -1,7 +1,7 @@
 ---
 title: The disassembly
 description: The bytes the processor runs read back as instructions, following the program counter or fixed where a reader puts them, under the program's own names where there are any.
-order: 11
+order: 12
 ---
 
 `<colophon-disassembly>` reads the bytes standing at the program counter back as instructions, each with its address, the bytes it is made of, and what they say. It can be set anywhere else too, and a page may hold several: one following the processor, and others fixed on the routines a reader wants to see it reach.

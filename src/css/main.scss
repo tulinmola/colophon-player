@@ -357,6 +357,7 @@ colophon-memory,
 colophon-crtc,
 colophon-gate-array,
 colophon-keyboard,
+colophon-cpc-joystick,
 colophon-ula,
 colophon-disassembly,
 colophon-symbols,
@@ -954,6 +955,70 @@ colophon-keyboard {
     position: absolute;
     width: 0;
     opacity: 0;
+  }
+}
+
+colophon-cpc-joystick {
+  .pad {
+    display: grid;
+    grid-template-columns: auto auto;
+    place-items: center;
+    gap: 1rem 1.5rem;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .stick,
+  [data-switch] {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: 50%;
+  }
+
+  .stick,
+  .fire {
+    border: 1px solid $line;
+    background: $well;
+    color: $dim;
+    cursor: pointer;
+  }
+
+  .stick {
+    grid-row: span 2;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    width: 9rem;
+  }
+
+  .stick [data-switch] {
+    width: 2.5rem;
+  }
+
+  [data-switch="up"] {
+    grid-area: 1 / 2;
+  }
+
+  [data-switch="left"] {
+    grid-area: 2 / 1;
+  }
+
+  [data-switch="right"] {
+    grid-area: 2 / 3;
+  }
+
+  [data-switch="down"] {
+    grid-area: 3 / 2;
+  }
+
+  .fire {
+    width: 4rem;
+  }
+
+  .held {
+    background: $foreground;
+    color: $background;
   }
 }
 

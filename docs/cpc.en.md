@@ -37,7 +37,7 @@ Control is a key on this machine and software reads it, so it is passed through.
 
 Two things are handled that a plain forwarding would get wrong. The browser repeats a held key and so does the firmware, so a repeat is not pressed a second time. And the firmware reads the matrix once a frame, which means a key pressed and released between two reads was never pressed at all — a release is therefore held back until a frame has been presented since the press, or the keystroke would be lost, and any shift held with it would carry into the next one. That rule is the machine's rather than the keyboard's, so a joystick's switches obey it too.
 
-Focus leaving the element lets go of every key the keyboard was holding, under the same rule. It lets go of nothing else: a gamepad has no focus to lose, and a switch closed by hand in [the keyboard panel](debugger/keyboard.en.md) is the reader's to open.
+Focus leaving the element lets go of every key the keyboard was holding, under the same rule. It lets go of nothing else: a gamepad has no focus to lose, [the touch joystick](debugger/joystick.en.md) lets go when the thumb does, and a switch closed by hand in [the keyboard panel](debugger/keyboard.en.md) is the reader's to open.
 
 ## The joysticks
 
@@ -46,6 +46,8 @@ On this machine a joystick is part of the keyboard. The firmware guide says so i
 A gamepad plugged into the browser is a joystick. The first the browser lists is joystick 0 and the second joystick 1, read by the standard layout the Gamepad specification defines: the directional pad or the left stick past half its travel for the directions, and the first three buttons for Fire 2, Fire 1 and Spare — the button under the thumb is the main one. The pads are read once an animation frame, just before the machine runs the frames it owes, and only while it runs: a stopped machine reads nothing, so a direction held when it stopped stays held for as long as it stands, and can be stepped under. Every machine on a page reads the same pads. A browser lists a pad only once a button has been pressed on it, so a pad that seems to do nothing wants a press first.
 
 `joystick="cursors"` puts joystick 0 on the keyboard: the cursor keys for the directions, Z for Fire 2, X for Fire 1 and C for Spare, which is where Caprice32 and CPCEC put them. While it is set those seven keys are the joystick and nothing else, so the machine's own cursor keys are out of reach until it is taken off again. It is joystick 0 alone that is put there; joystick 1 needs no such help, being keys already.
+
+A screen that is touched has neither keys nor a pad, and [`<colophon-cpc-joystick>`](debugger/joystick.en.md) draws joystick 0 on it instead: a stick under one thumb, Fire 2 and Fire 1 under the other.
 
 ## What it brings with it
 
