@@ -28,6 +28,14 @@ async function bootSpectrum() {
   return new Spectrum(module, 0xc000)
 }
 
+function load(machine, program, at) {
+  for (const [offset, byte] of program.entries()) {
+    machine.poke(at + offset, byte)
+  }
+
+  machine.z80.pc = at
+}
+
 // Longer than any instruction either machine runs, contention included, so a
 // landing "at the next boundary" can be told from a landing anywhere else.
 const LONGEST_INSTRUCTION = 64
@@ -68,6 +76,20 @@ const NESTED_CALLS = [
 const RETURN_INTO_ITSELF = [0x31, 0x00, 0x9f, 0x21, 0x00, 0x90, 0xe5, 0xcd, 0x0a, 0x90, 0x00, 0xc9],
   RETURN_INTO_ITSELF_AT = 0x9000,
   RETURNED_INTO_AT = 0x900a
+
+// A loop of instructions with operands of every kind, two of which read a byte
+// as data: LD IX,&9010, LD A,&42, LD A,(&9010), BIT 0,(IX+0), whose opcode
+// follows its displacement and carries no M1, and JR back to the start.
+const READING_LOOP = [
+    0xdd, 0x21, 0x10, 0x90, 0x3e, 0x42, 0x3a, 0x10, 0x90, 0xdd, 0xcb, 0x00, 0x46, 0x18, 0xf1
+  ],
+  READING_LOOP_AT = 0x9000,
+  READ_AS_DATA = 0x9010
+
+// LD A,(&9001), which reads its own operand as data too, and JR back to it.
+const READING_ITSELF = [0x3a, 0x01, 0x90, 0x18, 0xfb],
+  READING_ITSELF_AT = 0x9000,
+  READ_OF_ITSELF = 0x9001
 
 // A range each firmware writes every frame — a CPC's stack and system area, a
 // Spectrum's system variables — and how many interrupts a frame it answers.
@@ -200,21 +222,13 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
   describe(`the profiling frames of ${name}`, function () {
     let machine = null
 
-    function load(program, at) {
-      for (const [offset, byte] of program.entries()) {
-        machine.poke(at + offset, byte)
-      }
-
-      machine.z80.pc = at
-    }
-
     beforeEach(async function () {
       machine = await boot()
       machine.runFrames(40)
     })
 
     it("are cut each time the start is about to run, and never while the processor is halted", function () {
-      load(IDLE_LOOP, IDLE_LOOP_AT)
+      load(machine, IDLE_LOOP, IDLE_LOOP_AT)
       machine.profiling = { start: RESUMED_AT, mode: "pass" }
       machine.runFrames(10)
 
@@ -225,7 +239,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("are cut once an instruction, however long the processor is held before it", function () {
-      load(TIGHT_LOOP, TIGHT_LOOP_AT)
+      load(machine, TIGHT_LOOP, TIGHT_LOOP_AT)
       machine.profiling = { start: TIGHT_LOOP_AT, mode: "pass" }
       machine.runFrames(1)
 
@@ -237,7 +251,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("stand the machine on the instruction each one begins with", function () {
-      load(IDLE_LOOP, IDLE_LOOP_AT)
+      load(machine, IDLE_LOOP, IDLE_LOOP_AT)
       machine.profiling = { start: RESUMED_AT, mode: "pass" }
       machine.runFrames(10)
 
@@ -250,7 +264,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("are cut once, however often the record replays them", function () {
-      load(IDLE_LOOP, IDLE_LOOP_AT)
+      load(machine, IDLE_LOOP, IDLE_LOOP_AT)
       machine.profiling = { start: RESUMED_AT, mode: "pass" }
       machine.runFrames(10)
 
@@ -265,7 +279,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("begin afresh when the start moves, or how they end", function () {
-      load(IDLE_LOOP, IDLE_LOOP_AT)
+      load(machine, IDLE_LOOP, IDLE_LOOP_AT)
       machine.profiling = { start: RESUMED_AT, mode: "pass" }
       machine.runFrames(10)
       machine.profiling = { start: IDLE_LOOP_AT, mode: "pass" }
@@ -279,7 +293,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("as calls, run from where the outermost call begins to where it returns", function () {
-      load(NESTED_CALLS, NESTED_CALLS_AT)
+      load(machine, NESTED_CALLS, NESTED_CALLS_AT)
       machine.profiling = { start: CALLED_AT, mode: "call" }
       machine.runFrames(2)
 
@@ -300,7 +314,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("as calls, end and begin again on the one instruction a call returns to its own start", function () {
-      load(RETURN_INTO_ITSELF, RETURN_INTO_ITSELF_AT)
+      load(machine, RETURN_INTO_ITSELF, RETURN_INTO_ITSELF_AT)
       machine.profiling = { start: RETURNED_INTO_AT, mode: "call" }
       machine.runFrames(1)
 
@@ -314,7 +328,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("as calls, are open again where the record is cut back inside one", function () {
-      load(NESTED_CALLS, NESTED_CALLS_AT)
+      load(machine, NESTED_CALLS, NESTED_CALLS_AT)
       machine.profiling = { start: CALLED_AT, mode: "call" }
       machine.runFrames(2)
 
@@ -329,7 +343,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("as stretches, run from where each begins to its end, and leave out what runs between", function () {
-      load(NESTED_CALLS, NESTED_CALLS_AT)
+      load(machine, NESTED_CALLS, NESTED_CALLS_AT)
       machine.profiling = { start: CALLING_AT, mode: "until", end: RETURNED_TO }
       machine.runFrames(2)
 
@@ -350,7 +364,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("as stretches whose end is never reached, end where the next begins", function () {
-      load(NESTED_CALLS, NESTED_CALLS_AT)
+      load(machine, NESTED_CALLS, NESTED_CALLS_AT)
       machine.profiling = { start: CALLING_AT, mode: "until", end: NESTED_CALLS_AT + 1 }
       machine.runFrames(2)
 
@@ -361,7 +375,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("are counted tick by tick on replay, and leave the machine standing where it stood", function () {
-      load(IDLE_LOOP, IDLE_LOOP_AT)
+      load(machine, IDLE_LOOP, IDLE_LOOP_AT)
       machine.profiling = { start: RESUMED_AT, mode: "pass" }
       machine.runFrames(10)
 
@@ -398,7 +412,7 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
 
     it("count each tick against the instruction a step would", function () {
-      load(TIGHT_LOOP, TIGHT_LOOP_AT)
+      load(machine, TIGHT_LOOP, TIGHT_LOOP_AT)
       machine.profiling = { start: TIGHT_LOOP_AT, mode: "pass" }
       machine.runFrames(1)
 
@@ -450,6 +464,32 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
       expect(machine.trap?.kind).toBe("write")
       expect(machine.trap.address).toBeGreaterThanOrEqual(from)
       expect(machine.trap.address).toBeLessThanOrEqual(until)
+    })
+
+    it("runs past a read watch over an instruction's own bytes", function () {
+      const lastByte = READING_LOOP_AT + READING_LOOP.length - 1
+
+      load(machine, READING_LOOP, READING_LOOP_AT)
+      machine.breakpoints.add(READING_LOOP_AT, "read", { until: lastByte })
+      machine.stepFrame()
+
+      expect(machine.trap).toBeNull()
+    })
+
+    it("stops on a read watch over a byte read as data", function () {
+      load(machine, READING_LOOP, READING_LOOP_AT)
+      machine.breakpoints.add(READ_AS_DATA, "read")
+      machine.stepFrame()
+
+      expect(machine.trap).toEqual({ kind: "read", address: READ_AS_DATA })
+    })
+
+    it("stops on a read watch over an operand an instruction also reads as data", function () {
+      load(machine, READING_ITSELF, READING_ITSELF_AT)
+      machine.breakpoints.add(READ_OF_ITSELF, "read")
+      machine.stepFrame()
+
+      expect(machine.trap).toEqual({ kind: "read", address: READ_OF_ITSELF })
     })
   })
 }

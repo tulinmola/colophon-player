@@ -43,7 +43,7 @@ static player_moment_t moment_of(uint64_t pins, bool retraced) {
   moment.program_counter = board.machine.cpu.pc;
   moment.row = (uint16_t)(board.machine.ula.line / 8);
   moment.line = board.machine.ula.line;
-  z80_bus_access(&moment, pins, physical_of);
+  z80_bus_access(&moment, &board.machine.cpu, pins, physical_of);
 
   return moment;
 }

@@ -12,9 +12,10 @@
 #include "player.h"
 #include "z80.h"
 
-/* M1 keeps opcode fetches out of the read tap, and a write never carries M1,
- * so one reading serves both the stamp and the watch. */
-static inline void z80_bus_access(player_moment_t *moment, uint64_t pins,
+/* M1 keeps opcode fetches out of the read tap, and the processor keeps out the
+ * rest of an instruction's bytes, which no pin tells from data. A write never
+ * carries M1, so one reading of the pins serves the stamp and the watch. */
+static inline void z80_bus_access(player_moment_t *moment, const z80_t *cpu, uint64_t pins,
                                   uint32_t (*physical_of)(uint16_t)) {
   uint64_t memory = pins & (Z80_M1 | Z80_MREQ | Z80_RD | Z80_WR);
 
@@ -25,7 +26,7 @@ static inline void z80_bus_access(player_moment_t *moment, uint64_t pins,
     moment->address = z80_address(pins);
     moment->physical = physical_of(moment->address);
     moment->value = z80_data(pins);
-  } else if (memory == (Z80_MREQ | Z80_RD)) {
+  } else if (memory == (Z80_MREQ | Z80_RD) && !z80_reading_operand(cpu)) {
     moment->access = PLAYER_ACCESS_READ;
     moment->address = z80_address(pins);
   }

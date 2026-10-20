@@ -22,7 +22,7 @@ The three dots at the heading's right hold `lines`, and the panel is built again
 
 `read` and `write` watch the address as data: the machine stops after the instruction that touched it, because stopping in the middle of one would leave a program counter belonging to no instruction anyone can name. The instruction is allowed to finish, and the stop lands on the boundary after it.
 
-A read here means read as data — a byte copied, compared or summed. The fetch of an instruction is the machine's own step and never fires a read mark, so watching a routine for reads answers the question actually being asked: who takes this code as bytes.
+A read here means read as data — a byte copied, compared or summed. The fetch of an instruction, its operands as well as its opcode, is the machine's own step and never fires a read mark, so watching a routine for reads answers the question actually being asked: who takes this code as bytes.
 
 ## Setting one
 
