@@ -105,16 +105,72 @@ static player_profiling_cut_t profiling_cuts[PLAYER_PROFILING_CUTS];
 static uint32_t profiling_cuts_first;
 static uint32_t profiling_cuts_held;
 
-/* What one replayed span spent: the ticks of each instruction, by the address
-   it was fetched from, and the ticks the processor stood halted. A tick the
-   machine holds the processor between two instructions is the first one's,
-   as a step counts it. */
+/* How a routine in a profile was reached: the span began in it, or a call, a
+   jump to a name or an interrupt brought it in. The span itself is reached by
+   nothing. */
+#define PLAYER_REACHED_NOTHING 0
+#define PLAYER_REACHED_START 1
+#define PLAYER_REACHED_CALL 2
+#define PLAYER_REACHED_JUMP 3
+#define PLAYER_REACHED_INTERRUPT 4
+
+#define PLAYER_PROFILED_ROUTINES 4096
+#define PLAYER_OPEN_CALLS 256
+
+/* One routine as one path through the calls reached it, and the ticks spent
+   in it and in no routine it reached. The span itself is the first, so no
+   child is ever at index 0. */
+typedef struct {
+  uint32_t ticks;
+  uint32_t calls;
+  uint16_t entry;
+  uint16_t parent;
+  uint16_t first_child;
+  uint16_t next_sibling;
+  uint8_t reached;
+} player_profiled_routine_t;
+
+#define PLAYER_SPAN 0
+
+/* A call made and not yet returned from: where its return address lies and
+   what it holds, the routine that made it and the one it reached. */
+typedef struct {
+  uint16_t slot;
+  uint16_t returns_to;
+  uint16_t caller;
+  uint16_t callee;
+} player_open_call_t;
+
+/* A return address stored and waiting for the fetch that says where it led. A
+   call followed at once by an interrupt stores two. */
+typedef struct {
+  uint16_t slot;
+  uint16_t returns_to;
+  bool interrupted;
+} player_stored_return_t;
+
+/* What one replayed span spent, routine by routine. A tick the machine holds
+   the processor between two instructions is the first one's, as a step
+   counts it. */
 static bool counting;
-static uint16_t counted_pc;
-static bool counted_halted;
-static uint32_t profiled_ticks[0x10000];
-static uint32_t profiled_halted;
+static bool counted_any;
+static uint16_t running;
+static uint16_t first_stack_pointer;
+static uint16_t last_stack_pointer;
+static player_profiled_routine_t profiled_routines[PLAYER_PROFILED_ROUTINES];
+static uint32_t profiled_routines_held;
+static player_open_call_t open_calls[PLAYER_OPEN_CALLS];
+static uint32_t open_calls_held;
+static player_stored_return_t stored_returns[2];
+static uint32_t stored_returns_held;
+static bool storing_high_byte;
+static uint16_t high_byte_stored_at;
+static bool acknowledging;
 static uint32_t written_before_profiling[PLAYER_RAM_SIZE];
+
+/* Written by the page: one where a name the reader has begins, so that a jump
+   there is taken for a routine of its own. */
+static uint8_t profiled_names[0x10000];
 
 static uint64_t ticks;
 static uint64_t recorded_until;
@@ -390,13 +446,200 @@ void player_before(bool settled, uint16_t row, uint16_t line) {
   run.frame = frame;
 }
 
+static uint16_t reach(uint16_t parent, uint16_t entry, uint8_t reached) {
+  player_profiled_routine_t *routines = profiled_routines;
+
+  for (uint16_t child = routines[parent].first_child; child != 0;
+       child = routines[child].next_sibling) {
+    if (routines[child].entry == entry && routines[child].reached == reached) {
+      routines[child].calls++;
+      return child;
+    }
+  }
+
+  if (profiled_routines_held == PLAYER_PROFILED_ROUTINES) {
+    return parent;
+  }
+
+  uint16_t child = (uint16_t)profiled_routines_held++;
+
+  routines[child] = (player_profiled_routine_t){.calls = 1,
+                                                .entry = entry,
+                                                .parent = parent,
+                                                .next_sibling = routines[parent].first_child,
+                                                .reached = reached};
+  routines[parent].first_child = child;
+
+  return child;
+}
+
+/* Read across the top of memory: a stack set to &0000 stores its first word at
+   &FFFE. */
+static bool risen_past(uint16_t stack_pointer, uint16_t address) {
+  return (uint16_t)(stack_pointer - address - 1) < 0x8000;
+}
+
+static void return_to(uint32_t open) {
+  running = open_calls[open].caller;
+  open_calls_held = open;
+}
+
+static void enter(const player_stored_return_t *stored, uint16_t entry) {
+  if (open_calls_held == PLAYER_OPEN_CALLS) {
+    return;
+  }
+
+  uint16_t callee = stored->interrupted ? reach(PLAYER_SPAN, entry, PLAYER_REACHED_INTERRUPT)
+                                        : reach(running, entry, PLAYER_REACHED_CALL);
+
+  open_calls[open_calls_held++] = (player_open_call_t){.slot = stored->slot,
+                                                       .returns_to = stored->returns_to,
+                                                       .caller = running,
+                                                       .callee = callee};
+  running = callee;
+}
+
+/* A return address stored over one still open ends that call, and every call
+   made after it: they returned without being seen to. */
+static void store_return(uint16_t slot, uint16_t returns_to) {
+  for (uint32_t open = open_calls_held; open > 0; open--) {
+    if ((uint16_t)(open_calls[open - 1].slot - slot + 1) <= 2) {
+      return_to(open - 1);
+      break;
+    }
+  }
+
+  if (stored_returns_held < 2) {
+    stored_returns[stored_returns_held++] =
+        (player_stored_return_t){.slot = slot, .returns_to = returns_to, .interrupted = acknowledging};
+  }
+
+  acknowledging = false;
+}
+
+/* A routine that rewrites its return address returns somewhere else, and ends
+   the latest call whose return address the stack has risen past. */
+static void return_from_call(uint16_t program_counter, uint16_t stack_pointer) {
+  int32_t ended = -1;
+
+  for (uint32_t open = open_calls_held; open > 0; open--) {
+    const player_open_call_t *call = &open_calls[open - 1];
+
+    if (!risen_past(stack_pointer, call->slot)) {
+      continue;
+    }
+
+    if (call->returns_to == program_counter) {
+      ended = (int32_t)(open - 1);
+      break;
+    }
+
+    if (ended < 0) {
+      ended = (int32_t)(open - 1);
+    }
+  }
+
+  if (ended >= 0) {
+    return_to((uint32_t)ended);
+  }
+
+  if (open_calls_held == 0 && risen_past(stack_pointer, first_stack_pointer)) {
+    running = PLAYER_SPAN;
+  }
+}
+
+static void jump_to(uint16_t program_counter) {
+  const uint16_t outermost =
+      open_calls_held > 0 ? open_calls[open_calls_held - 1].callee : PLAYER_SPAN;
+
+  for (uint16_t routine = running; routine != PLAYER_SPAN;
+       routine = profiled_routines[routine].parent) {
+    if (profiled_routines[routine].entry == program_counter) {
+      running = routine;
+      return;
+    }
+
+    if (routine == outermost) {
+      break;
+    }
+  }
+
+  running = reach(running, program_counter, PLAYER_REACHED_JUMP);
+}
+
+/* A POP that loads the address of the instruction after it is taken for a
+   return. */
+static bool returned(uint16_t program_counter, uint16_t stack_pointer) {
+  const uint16_t below = (uint16_t)(stack_pointer - 2),
+                 word = (uint16_t)(standing.peek(below) |
+                                   standing.peek((uint16_t)(below + 1)) << 8);
+
+  return stack_pointer == (uint16_t)(last_stack_pointer + 2) && word == program_counter;
+}
+
+static void arrive(uint16_t program_counter, uint16_t stack_pointer) {
+  if (returned(program_counter, stack_pointer)) {
+    return_from_call(program_counter, stack_pointer);
+  } else if (profiled_names[program_counter] != 0) {
+    jump_to(program_counter);
+  }
+}
+
+/* An interrupt taken between two instructions is fetched in place of the
+   second, so where the first went is read from the return address it stores. */
+static void enter_stored(uint16_t program_counter) {
+  const player_stored_return_t *first = &stored_returns[0];
+
+  if (first->interrupted) {
+    arrive(first->returns_to, (uint16_t)(first->slot + 2));
+  }
+
+  for (uint32_t index = 0; index < stored_returns_held; index++) {
+    const uint16_t entry =
+        index + 1 < stored_returns_held ? stored_returns[index + 1].returns_to : program_counter;
+
+    enter(&stored_returns[index], entry);
+  }
+
+  stored_returns_held = 0;
+}
+
+static void count_fetch(uint16_t program_counter, uint16_t stack_pointer, bool halted) {
+  if (!counted_any) {
+    counted_any = true;
+    running = reach(PLAYER_SPAN, program_counter, PLAYER_REACHED_START);
+    first_stack_pointer = stack_pointer;
+  } else if (stored_returns_held > 0) {
+    enter_stored(program_counter);
+  } else if (!halted) {
+    arrive(program_counter, stack_pointer);
+  }
+
+  last_stack_pointer = stack_pointer;
+}
+
+/* A Z80's call, restart and interrupt each store the address they will return
+   to, high byte first, below the stack pointer. */
+static void count_store(const player_moment_t *moment) {
+  const uint16_t program_counter = moment->program_counter;
+
+  if (storing_high_byte && moment->address == (uint16_t)(high_byte_stored_at - 1) &&
+      moment->value == (program_counter & 0xFF)) {
+    storing_high_byte = false;
+    store_return(moment->address, program_counter);
+    return;
+  }
+
+  storing_high_byte = moment->value == program_counter >> 8;
+  high_byte_stored_at = moment->address;
+}
+
 void player_fetching(uint16_t program_counter, uint16_t stack_pointer, bool halted) {
   fetch_pc = program_counter;
   fetch_tick = ticks;
 
   if (counting && standing.settled()) {
-    counted_pc = program_counter;
-    counted_halted = halted;
+    count_fetch(program_counter, stack_pointer, halted);
   }
 
   if (profiling && !halted && !replaying && standing.settled()) {
@@ -408,10 +651,11 @@ bool player_after(const player_moment_t *moment) {
   ticks++;
 
   if (counting) {
-    if (counted_halted) {
-      profiled_halted++;
-    } else {
-      profiled_ticks[counted_pc]++;
+    profiled_routines[running].ticks++;
+    acknowledging = acknowledging || moment->interrupt_acknowledged;
+
+    if (moment->access == PLAYER_ACCESS_WRITE) {
+      count_store(moment);
     }
   }
 
@@ -767,6 +1011,8 @@ player_tick_t player_trace_tick(void) { return traced->fetch_tick; }
 uint32_t player_trace_pc(void) { return traced->pc; }
 uint32_t player_trace_value(void) { return traced->value; }
 
+uint8_t *player_profiled_names(void) { return profiled_names; }
+
 /* Replays the span from one moment the record holds to another, counting
    every tick, then stands the machine back where it was. */
 void player_profile(player_tick_t from, player_tick_t until) {
@@ -775,8 +1021,14 @@ void player_profile(player_tick_t from, player_tick_t until) {
   uint16_t kept_trap_address = trap_address;
 
   memcpy(written_before_profiling, written, sizeof written);
-  memset(profiled_ticks, 0, sizeof profiled_ticks);
-  profiled_halted = 0;
+  profiled_routines[0] = (player_profiled_routine_t){.reached = PLAYER_REACHED_NOTHING};
+  profiled_routines_held = 1;
+  open_calls_held = 0;
+  stored_returns_held = 0;
+  storing_high_byte = false;
+  acknowledging = false;
+  counted_any = false;
+  running = PLAYER_SPAN;
 
   stand_at(from);
   replaying = true;
@@ -790,5 +1042,16 @@ void player_profile(player_tick_t from, player_tick_t until) {
   trap_address = kept_trap_address;
 }
 
-uint32_t *player_profiled_ticks(void) { return profiled_ticks; }
-uint32_t player_profiled_halted(void) { return profiled_halted; }
+uint32_t player_profiled_routines_held(void) { return profiled_routines_held; }
+
+uint32_t player_profiled_routine_entry(uint32_t index) { return profiled_routines[index].entry; }
+
+uint32_t player_profiled_routine_parent(uint32_t index) { return profiled_routines[index].parent; }
+
+uint32_t player_profiled_routine_reached(uint32_t index) {
+  return profiled_routines[index].reached;
+}
+
+uint32_t player_profiled_routine_ticks(uint32_t index) { return profiled_routines[index].ticks; }
+
+uint32_t player_profiled_routine_calls(uint32_t index) { return profiled_routines[index].calls; }

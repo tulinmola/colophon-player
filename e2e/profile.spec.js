@@ -58,7 +58,7 @@ test("the profile draws a bar for each of Abduction's passes, two frames each, a
   expect(await machine.evaluate(host => host.machine.z80.pc)).toBe(0x297e)
 })
 
-test("pressing a bar lists where its profiling frame spent its time, without moving the machine off its start, and a routine there offers a breakpoint", async function ({
+test("pressing a bar lays out where its profiling frame spent its time, without moving the machine off its start, and a routine there offers a breakpoint", async function ({
   page
 }) {
   const machine = await bootStopped(
@@ -79,16 +79,56 @@ test("pressing a bar lists where its profiling frame spent its time, without mov
   await pressed.click()
   await expect(routines.first()).toBeVisible()
 
-  const waiting = routines.filter({ hasText: "_renderer_waitForSemaphore" }),
-    spent = await routines.locator(".time").allTextContents(),
+  const frame = routines.first(),
+    begun = profile.locator(".routine.start"),
+    waiting = routines.filter({ hasText: "_renderer_waitForSemaphore" }).first(),
+    spent = await routines.locator(".self").allTextContents(),
     total = spent.reduce((sum, microseconds) => sum + Number(microseconds), 0)
 
-  await expect(waiting).toHaveCount(1)
+  await expect(frame.locator(".name")).toHaveText("profiling frame")
+  await expect(frame.locator(".total")).toHaveText(length)
+  await expect(frame.locator(".share")).toHaveText("100.0%")
+  await expect(begun.locator(".name")).toHaveText("&297E")
+  await expect(waiting).toBeVisible()
   expect(Math.abs(total - Number(length))).toBeLessThan(spent.length)
   expect(await machine.evaluate(host => host.machine.ticks)).toBe(tick)
 
   await waiting.click({ button: "right" })
   await expect(page.locator("colophon-actions button").first()).toHaveText("Add breakpoint…")
+})
+
+test("a routine folds away the routines it reached, and stays folded in the next profiling frame opened", async function ({
+  page
+}) {
+  const machine = await bootStopped(
+      page,
+      CPC_6128_ABDUCTION,
+      '<colophon-profile start="&297E"></colophon-profile>'
+    ),
+    profile = page.locator("colophon-profile"),
+    bars = profile.locator(".bar"),
+    routines = profile.locator(".routine"),
+    drawing = routines.filter({ has: page.getByText("_renderer_draw", { exact: true }) }),
+    fold = drawing.locator(".fold"),
+    waiting = routines.filter({ has: page.getByText("_renderer_waitForSemaphore") })
+
+  await runPastTheMenusSettingUp(machine)
+  await bars.nth(10).click()
+  await expect(fold).toHaveAttribute("aria-expanded", "true")
+  await expect(waiting).toBeVisible()
+
+  await fold.click()
+  await expect(fold).toHaveAttribute("aria-expanded", "false")
+  await expect(waiting).toBeHidden()
+  await expect(drawing).toBeVisible()
+
+  await bars.nth(11).click()
+  await expect(bars.nth(11)).toHaveClass(/current/u)
+  await expect(fold).toHaveAttribute("aria-expanded", "false")
+  await expect(waiting).toBeHidden()
+
+  await fold.click()
+  await expect(waiting).toBeVisible()
 })
 
 test("the strip fits the longest profiling frame, or stands as many frames tall as it is told", async function ({
@@ -205,10 +245,8 @@ test("a profile of calls cuts each one from its entry to its return, and measure
   await pressed.click()
   await expect(routines.first()).toBeVisible()
 
-  const spent = await routines.locator(".time").allTextContents(),
-    total = spent.reduce((sum, microseconds) => sum + Number(microseconds), 0)
-
-  expect(Math.abs(total - Number(length))).toBeLessThan(spent.length)
+  await expect(routines.first().locator(".total")).toHaveText(length)
+  await expect(routines.nth(1).locator(".name")).toHaveText("_renderer_draw")
   expect(await machine.evaluate(host => host.machine.z80.pc)).toBe(0x2868)
 })
 
@@ -247,11 +285,8 @@ test("a profile until an end leaves out what runs from the end to the next start
   expect(Math.max(...lengths)).toBeLessThan(39936)
 
   await bars.nth(10).click()
-
-  const waiting = routines.filter({ hasText: "_renderer_waitForSemaphore" })
-
-  await expect(waiting).toHaveCount(1)
-  expect(Number(await waiting.locator(".time").textContent())).toBeLessThan(10)
+  await expect(profile.locator(".routine.start .name")).toHaveText("&297E")
+  await expect(routines.filter({ hasText: "_renderer_waitForSemaphore" })).toHaveCount(0)
 })
 
 test("only a profile that gives the start says how its profiling frames end", async function ({

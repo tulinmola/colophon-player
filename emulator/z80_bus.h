@@ -20,6 +20,8 @@ static inline void z80_bus_access(player_moment_t *moment, const z80_t *cpu, uin
   uint64_t memory = pins & (Z80_M1 | Z80_MREQ | Z80_RD | Z80_WR);
 
   moment->physical = PLAYER_NOWHERE;
+  /* M1 with IORQ, where a fetch would have MREQ (Zilog UM0080 ch. 3). */
+  moment->interrupt_acknowledged = (pins & (Z80_M1 | Z80_IORQ)) == (Z80_M1 | Z80_IORQ);
 
   if (memory == (Z80_MREQ | Z80_WR)) {
     moment->access = PLAYER_ACCESS_WRITE;

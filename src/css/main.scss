@@ -869,25 +869,86 @@ colophon-profile {
     color: $dim;
   }
 
-  .routine {
-    display: grid;
-    grid-template-columns: var(--columns);
-    gap: 0 var(--gap);
+  table {
+    border-collapse: collapse;
   }
 
-  .time,
-  .share {
+  th {
+    position: sticky;
+    top: 0;
+    background: $card;
+    font-weight: inherit;
+
+    abbr {
+      text-decoration: none;
+    }
+  }
+
+  // A cell is a line and no more: the browser's own padding would make every
+  // row taller than the box that counts them.
+  th,
+  td {
+    padding: 0 0 0 var(--gap);
     text-align: right;
-  }
-
-  .time,
-  .share,
-  .at,
-  .unnamed .name {
     color: $dim;
   }
 
+  th:first-child,
+  td:first-child {
+    padding-left: 0;
+  }
+
+  .name,
   .at {
+    text-align: left;
+  }
+
+  td.name {
+    padding-left: calc(var(--gap) + var(--indents) * var(--indent));
+    color: $foreground;
+  }
+
+  .unnamed td.name {
+    color: $dim;
+  }
+
+  .fold {
+    all: unset;
+    display: inline-block;
+    width: var(--fold);
+    color: $dim;
+    cursor: pointer;
+
+    &::before {
+      content: "▸";
+    }
+
+    &[aria-expanded="true"]::before {
+      content: "▾";
+    }
+
+    &:hover {
+      color: $foreground;
+    }
+
+    &:focus-visible {
+      outline: 1px solid $dim;
+    }
+  }
+
+  .leaf .fold {
+    visibility: hidden;
+  }
+
+  .jump .name::before {
+    content: "→";
+    display: inline-block;
+    width: var(--indent);
+    margin-left: calc(-1 * var(--indent));
+    color: $dim;
+  }
+
+  td.at {
     user-select: none;
 
     &:not(:empty)::before {

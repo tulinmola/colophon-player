@@ -9,23 +9,32 @@ const DEFAULT_LINES = 16
 const MODES = ["pass", "call", "until"],
   DEFAULT_MODE = "pass"
 
-const MICROSECONDS = 7,
-  SHARE = 6,
-  NAME = 28,
-  ADDRESS = 5,
-  GAP = 1
+const NAME = 30,
+  GAP = 1,
+  INDENT = 1,
+  FOLD = 1,
+  MOST_INDENTS = 15
+
+const COLUMNS = [
+  { key: "total", label: html`Total <abbr title="microseconds">µs</abbr>`, width: 8 },
+  { key: "share", label: "%", width: 6 },
+  { key: "self", label: html`Self <abbr title="microseconds">µs</abbr>`, width: 8 },
+  { key: "calls", label: "Calls", width: 5 },
+  { key: "name", label: "Routine", width: NAME },
+  { key: "at", label: "At", width: 5 }
+]
 
 function quantity(number, noun) {
   return `${number} ${noun}${number == 1 ? "" : "s"}`
 }
 
-function microsecondsOf({ ticks }, ticksPerMicrosecond) {
+function microsecondsOf(ticks, ticksPerMicrosecond) {
   return Math.round(ticks / ticksPerMicrosecond)
 }
 
 function describe(mode, profilingFrame, ticksPerMicrosecond) {
   const { frame, frames } = profilingFrame,
-    microseconds = microsecondsOf(profilingFrame, ticksPerMicrosecond)
+    microseconds = microsecondsOf(profilingFrame.ticks, ticksPerMicrosecond)
 
   return mode == "pass"
     ? `From frame ${frame} · ${quantity(frames, "frame")} · ${microseconds} µs`
@@ -42,7 +51,7 @@ function lengthsOf(mode, profilingFrames, ticksPerMicrosecond) {
   }
 
   const lengths = profilingFrames.map(profilingFrame =>
-      microsecondsOf(profilingFrame, ticksPerMicrosecond)
+      microsecondsOf(profilingFrame.ticks, ticksPerMicrosecond)
     ),
     shortest = Math.min(...lengths),
     longest = Math.max(...lengths)
@@ -84,35 +93,37 @@ function renderModeOption(mode) {
   return html`<option value="${mode}">${mode}</option>`
 }
 
-function routinesOf(symbols, { ticks, halted }) {
-  const routines = new Map()
+function rowsOf(span) {
+  const rows = []
 
-  for (let address = 0; address < ticks.length; address++) {
-    const spent = ticks[address]
+  function visit(routine, key, depth) {
+    rows.push({ routine, key, depth })
 
-    if (spent == 0) {
-      continue
+    for (const child of routine.children) {
+      visit(child, `${key} ${child.reached} ${child.entry}`, depth + 1)
     }
-
-    const standing = symbols.nearest(address),
-      key = standing ? standing.address : `page ${address >> 8}`
-    let routine = routines.get(key)
-
-    if (!routine) {
-      routine = standing
-        ? { key, name: standing.name, address: standing.address, ticks: 0 }
-        : { key, name: `${hex(address >> 8, { prefix: "&" })}xx`, address: null, ticks: 0 }
-      routines.set(key, routine)
-    }
-
-    routine.ticks += spent
   }
 
-  if (halted > 0) {
-    routines.set("halted", { key: "halted", name: "halted", address: null, ticks: halted })
+  visit(span, "span", 0)
+
+  return rows
+}
+
+function labelOf(symbols, { entry, reached, calls }) {
+  if (reached == null) {
+    return { name: "profiling frame", named: false, at: "", calls: "" }
   }
 
-  return Array.from(routines.values()).sort((one, other) => other.ticks - one.ticks)
+  const [name] = symbols.namesAt(entry),
+    address = hex(entry, { digits: 4 }),
+    interrupt = reached == "interrupt"
+
+  return {
+    name: name ?? (interrupt ? "interrupt" : `&${address}`),
+    named: name != null,
+    at: name != null || interrupt ? address : "",
+    calls: reached == "start" ? "" : String(calls)
+  }
 }
 
 function createBar(tick) {
@@ -120,21 +131,47 @@ function createBar(tick) {
 
   bar.type = "button"
   bar.className = "bar"
+  bar.dataset.action = "rewind"
   bar.dataset.tick = String(tick)
 
   return bar
 }
 
-function createRow() {
-  const row = document.createElement("div")
+// A column holds the gap its cells' padding puts before them, which the first
+// does without.
+function renderColumn({ width }, index) {
+  return html`<col style="width: ${index == 0 ? width : width + GAP}ch" />`
+}
 
-  row.className = "routine"
-  row.innerHTML = html`<span class="time"></span><span class="share"></span
-    ><span class="name"></span><span class="at"></span>`
+function renderHeading({ key, label }) {
+  return html`<th scope="col" class="${key}">${label}</th>`
+}
 
-  const [time, share, name, at] = row.children
+function renderCell({ key }) {
+  return html`<td class="${key}"></td>`
+}
 
-  return { row, time, share, name, at }
+function createRow({ entry, reached }, key, indents) {
+  const row = document.createElement("tr")
+
+  row.className = reached == null ? "routine" : `routine ${reached}`
+  row.dataset.key = key
+  row.style.setProperty("--indents", indents)
+
+  if (entry != null) {
+    row.dataset.address = String(entry)
+  }
+
+  row.innerHTML = COLUMNS.map(renderCell).join("")
+
+  const [total, share, self, calls, name, at] = row.children
+
+  name.innerHTML = html`<button type="button" class="fold" data-action="fold"></button
+    ><span></span>`
+
+  const [fold, label] = name.children
+
+  return { row, total, share, self, calls, fold, label, at }
 }
 
 class ProfileElement extends MachineObserver {
@@ -146,7 +183,9 @@ class ProfileElement extends MachineObserver {
   #endLabel
   #form
   #replayed
-  #list
+  #body
+  #folded = new Set()
+  #rows = []
   #routines = new Map()
   #places = 0
   #startAddress
@@ -158,8 +197,9 @@ class ProfileElement extends MachineObserver {
 
     const lines = Number(this.getAttribute("lines") ?? DEFAULT_LINES)
 
-    this.style.setProperty("--columns", `${MICROSECONDS}ch ${SHARE}ch ${NAME}ch ${ADDRESS}ch`)
     this.style.setProperty("--gap", `${GAP}ch`)
+    this.style.setProperty("--indent", `${INDENT}ch`)
+    this.style.setProperty("--fold", `${FOLD}ch`)
     this.style.setProperty("--lines", lines)
 
     this.innerHTML = html`
@@ -222,7 +262,19 @@ class ProfileElement extends MachineObserver {
       </form>
       <div class="strip" role="group" aria-label="Profiling frames"></div>
       <p class="summary"></p>
-      <div class="list"></div>
+      <div class="list">
+        <table>
+          <colgroup>
+            ${COLUMNS.map(renderColumn).join("")}
+          </colgroup>
+          <thead>
+            <tr>
+              ${COLUMNS.map(renderHeading).join("")}
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     `
 
     const [startAddress, endAddress] = this.querySelectorAll(".address")
@@ -233,7 +285,7 @@ class ProfileElement extends MachineObserver {
     this.#endLabel = this.#form.elements.end.closest("label")
     this.#strip = this.querySelector(".strip")
     this.#summary = this.querySelector(".summary")
-    this.#list = this.querySelector(".list")
+    this.#body = this.querySelector("tbody")
     this.#bars.clear()
     this.#routines.clear()
     this.#replayed = null
@@ -310,10 +362,23 @@ class ProfileElement extends MachineObserver {
   }
 
   onClick(event) {
-    const bar = event.target.closest(".bar")
+    const button = event.target.closest("button")
 
-    if (bar) {
-      this.machine.rewind(Number(bar.dataset.tick))
+    if (!button) {
+      return
+    }
+
+    switch (button.dataset.action) {
+      case "rewind":
+        this.machine.rewind(Number(button.dataset.tick))
+        break
+
+      case "fold":
+        this.#fold(button.closest(".routine").dataset.key)
+        break
+
+      default:
+        break
     }
   }
 
@@ -434,38 +499,87 @@ class ProfileElement extends MachineObserver {
     this.#replayed = replayed
 
     const ticksPerMicrosecond = machine.ticksPerMillisecond / 1000,
+      { symbols } = machine,
       seen = new Set(),
-      spent = profilingFrame
+      span = profilingFrame
         ? machine.profile(profilingFrame.tick, profilingFrame.tick + profilingFrame.ticks)
         : null,
-      routines = spent ? routinesOf(machine.symbols, spent) : []
+      rows = span ? rowsOf(span) : []
 
-    for (const { key, name, address, ticks } of routines) {
+    for (const { routine, key, depth } of rows) {
+      const { ticks, totalTicks } = routine,
+        { name, named, at, calls } = labelOf(symbols, routine),
+        indents = Math.min(depth, MOST_INDENTS),
+        total = microsecondsOf(totalTicks, ticksPerMicrosecond),
+        share = (totalTicks / span.totalTicks) * 100,
+        own = microsecondsOf(ticks, ticksPerMicrosecond)
       let found = this.#routines.get(key)
 
       if (!found) {
-        found = createRow()
-        found.row.classList.toggle("unnamed", address == null)
-
-        if (address != null) {
-          found.row.dataset.address = String(address)
-        }
-
+        found = createRow(routine, key, indents)
         this.#routines.set(key, found)
       }
 
       seen.add(key)
-      this.#list.append(found.row)
-      write(found.time, String(Math.round(ticks / ticksPerMicrosecond)))
-      write(found.share, `${((ticks / profilingFrame.ticks) * 100).toFixed(1)}%`)
-      writeFitted(found.name, name, NAME)
-      write(found.at, address == null ? "" : hex(address, { digits: 4 }))
+      this.#body.append(found.row)
+      found.row.classList.toggle("unnamed", !named)
+      found.row.classList.toggle("leaf", routine.children.length == 0)
+      write(found.total, String(total))
+      write(found.share, `${share.toFixed(1)}%`)
+      write(found.self, String(own))
+      write(found.calls, calls)
+      writeFitted(found.label, name, NAME - FOLD - indents * INDENT)
+      write(found.at, at)
+
+      if (found.fold.getAttribute("aria-label") != name) {
+        found.fold.setAttribute("aria-label", name)
+      }
     }
 
     for (const [key, found] of this.#routines) {
       if (!seen.has(key)) {
         found.row.remove()
         this.#routines.delete(key)
+      }
+    }
+
+    this.#rows = rows
+    this.#showFolded()
+  }
+
+  #fold(key) {
+    if (this.#folded.has(key)) {
+      this.#folded.delete(key)
+    } else {
+      this.#folded.add(key)
+    }
+
+    this.#showFolded()
+  }
+
+  #showFolded() {
+    let foldedAt = Infinity
+
+    for (const { key, depth } of this.#rows) {
+      if (depth <= foldedAt) {
+        foldedAt = Infinity
+      }
+
+      const { row, fold } = this.#routines.get(key),
+        hidden = depth > foldedAt,
+        folded = this.#folded.has(key),
+        expanded = String(!folded)
+
+      if (row.hidden != hidden) {
+        row.hidden = hidden
+      }
+
+      if (fold.getAttribute("aria-expanded") != expanded) {
+        fold.setAttribute("aria-expanded", expanded)
+      }
+
+      if (!hidden && folded) {
+        foldedAt = depth
       }
     }
   }

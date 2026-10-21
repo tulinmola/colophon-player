@@ -28,6 +28,12 @@ async function bootSpectrum() {
   return new Spectrum(module, 0xc000)
 }
 
+// An interrupt taken during the span stands beside the routine it began in,
+// and may be the longer of the two.
+function begunIn(span) {
+  return span.children.find(child => child.reached == "start")
+}
+
 function load(machine, program, at) {
   for (const [offset, byte] of program.entries()) {
     machine.poke(at + offset, byte)
@@ -67,7 +73,6 @@ const NESTED_CALLS = [
   CALLING_AT = 0x9003,
   RETURNED_TO = 0x9008,
   CALLED_AT = 0x900a,
-  CALLED_AGAIN_AT = 0x900d,
   STACK = 0x9f00
 
 // A call into the instruction after it, which returns there and runs again:
@@ -76,6 +81,29 @@ const NESTED_CALLS = [
 const RETURN_INTO_ITSELF = [0x31, 0x00, 0x9f, 0x21, 0x00, 0x90, 0xe5, 0xcd, 0x0a, 0x90, 0x00, 0xc9],
   RETURN_INTO_ITSELF_AT = 0x9000,
   RETURNED_INTO_AT = 0x900a
+
+// A loop calling a routine that jumps to a named one, which waits for an
+// interrupt and returns for both, where a Spectrum's ULA contends and on a
+// stack whose first word is stored across the top of memory: LD SP,&0000,
+// CALL &600A, JR back to the start, then JP &6010, and EI, HALT, RET.
+const JUMPING_CALL = [
+    0x31, 0x00, 0x00, 0xcd, 0x0a, 0x60, 0x18, 0xf8, 0x00, 0x00, 0xc3, 0x10, 0x60, 0x00, 0x00, 0x00,
+    0xfb, 0x76, 0xc9
+  ],
+  JUMPING_CALL_AT = 0x6000,
+  JUMPING_AT = 0x600a,
+  JUMPED_TO = 0x6010
+
+// A loop calling a routine that runs on into a named RET, so that some of the
+// interrupts land between the two: EI, LD SP,&9F00, CALL &900B, JR back to the
+// call, then NOP and RET.
+const CALL_INTO_A_NAME = [
+    0xfb, 0x31, 0x00, 0x9f, 0xcd, 0x0b, 0x90, 0x18, 0xfb, 0x00, 0x00, 0x00, 0xc9
+  ],
+  CALL_INTO_A_NAME_AT = 0x9000,
+  CALLING_INTO_AT = 0x9004,
+  CALLED_INTO = 0x900b,
+  RAN_INTO = 0x900c
 
 // A loop of instructions with operands of every kind, two of which read a byte
 // as data: LD IX,&9010, LD A,&42, LD A,(&9010), BIT 0,(IX+0), whose opcode
@@ -299,12 +327,22 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
 
       const cuts = machine.profilingCuts(),
         [entered, returned] = cuts,
-        { ticks } = machine.profile(entered.tick, returned.tick)
+        span = machine.profile(entered.tick, returned.tick),
+        called = begunIn(span),
+        [again] = called.children,
+        [deepest] = again.children
 
       expect(cuts.length).toBeGreaterThan(20)
       expect(cuts.map(cut => cut.opens)).toEqual(cuts.map((cut, index) => index % 2 == 0))
-      expect(ticks[CALLED_AGAIN_AT]).toBeGreaterThan(0)
-      expect(ticks[RETURNED_TO]).toBe(0)
+      expect(called.entry).toBe(CALLED_AT)
+      expect([again.reached, again.entry, deepest.reached, deepest.entry]).toEqual([
+        "call",
+        CALLED_AT,
+        "call",
+        CALLED_AT
+      ])
+      expect(deepest.children).toEqual([])
+      expect(span.ticks).toBe(0)
 
       machine.rewind(entered.tick)
       expect([machine.z80.pc, machine.z80.sp]).toEqual([CALLED_AT, STACK - 2])
@@ -349,12 +387,16 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
 
       const cuts = machine.profilingCuts(),
         [begun, ended] = cuts,
-        { ticks } = machine.profile(begun.tick, ended.tick)
+        span = machine.profile(begun.tick, ended.tick),
+        stretch = begunIn(span)
 
       expect(cuts.length).toBeGreaterThan(20)
       expect(cuts.map(cut => cut.opens)).toEqual(cuts.map((cut, index) => index % 2 == 0))
-      expect(ticks[CALLED_AT]).toBeGreaterThan(0)
-      expect(ticks[NESTED_CALLS_AT]).toBe(0)
+      expect(stretch.entry).toBe(CALLING_AT)
+      expect(stretch.children.map(child => [child.reached, child.entry])).toEqual([
+        ["call", CALLED_AT]
+      ])
+      expect(span.ticks).toBe(0)
 
       machine.rewind(begun.tick)
       expect(machine.z80.pc).toBe(CALLING_AT)
@@ -393,13 +435,12 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
           until: machine.historyUntil,
           cuts: machine.profilingCuts()
         },
-        { ticks, halted } = machine.profile(third.tick, fourth.tick),
-        counted = ticks.reduce((sum, spent) => sum + spent, 0) + halted
+        span = machine.profile(third.tick, fourth.tick),
+        interrupt = span.children.find(child => child.reached == "interrupt")
 
-      expect(counted).toBe(fourth.tick - third.tick)
-      expect(halted).toBeGreaterThan(0)
-      expect(ticks[RESUMED_AT]).toBeGreaterThan(0)
-      expect(ticks[INTERRUPT_HANDLER]).toBeGreaterThan(0)
+      expect(span.totalTicks).toBe(fourth.tick - third.tick)
+      expect(begunIn(span).entry).toBe(RESUMED_AT)
+      expect([interrupt.entry, interrupt.calls]).toEqual([INTERRUPT_HANDLER, 1])
       expect({
         ticks: machine.ticks,
         pc: machine.z80.pc,
@@ -411,30 +452,95 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
       }).toEqual(standing)
     })
 
-    it("count each tick against the instruction a step would", function () {
-      load(machine, TIGHT_LOOP, TIGHT_LOOP_AT)
-      machine.profiling = { start: TIGHT_LOOP_AT, mode: "pass" }
-      machine.runFrames(1)
+    it("set a call under its caller, a jump to a name under the routine it leaves, and an interrupt under the span", function () {
+      load(machine, JUMPING_CALL, JUMPING_CALL_AT)
+      machine.symbols.add([{ name: "waiting", address: JUMPED_TO }])
+      machine.profiling = { start: JUMPING_CALL_AT, mode: "pass" }
+      machine.runFrames(4)
+
+      const cuts = machine.profilingCuts(),
+        span = machine.profile(cuts.at(-3).tick, cuts.at(-2).tick),
+        begun = begunIn(span),
+        interrupt = span.children.find(child => child.reached == "interrupt"),
+        [called] = begun.children,
+        [jumped] = called.children
+
+      expect(span.children).toHaveLength(2)
+      expect(begun.entry).toBe(JUMPING_CALL_AT)
+      expect([called.reached, called.entry, called.calls]).toEqual(["call", JUMPING_AT, 1])
+      expect([jumped.reached, jumped.entry, jumped.calls]).toEqual(["jump", JUMPED_TO, 1])
+      expect(jumped.children).toEqual([])
+      expect([interrupt.entry, interrupt.calls]).toEqual([INTERRUPT_HANDLER, 1])
+    })
+
+    it("see a routine run on into a name, whatever interrupt is taken on the way", function () {
+      load(machine, CALL_INTO_A_NAME, CALL_INTO_A_NAME_AT)
+      machine.symbols.add([{ name: "returning", address: RAN_INTO }])
+      machine.profiling = { start: CALLING_INTO_AT, mode: "pass" }
+      machine.runFrames(10)
+
+      const cuts = machine.profilingCuts(),
+        span = machine.profile(cuts[0].tick, cuts.at(-1).tick),
+        [called] = begunIn(span).children,
+        [ranInto] = called.children,
+        taken = span.children.filter(child => child.reached == "interrupt")
+
+      expect(taken.length).toBe(1)
+      expect(taken[0].calls).toBeGreaterThan(0)
+      expect([called.entry, called.calls]).toEqual([CALLED_INTO, cuts.length - 1])
+      expect([ranInto.reached, ranInto.entry, ranInto.calls]).toEqual([
+        "jump",
+        RAN_INTO,
+        cuts.length - 1
+      ])
+    })
+
+    it("count each tick against the routine a step would", function () {
+      load(machine, JUMPING_CALL, JUMPING_CALL_AT)
+      machine.symbols.add([{ name: "waiting", address: JUMPED_TO }])
+      machine.profiling = { start: JUMPING_CALL_AT, mode: "pass" }
+      machine.runFrames(4)
 
       const cuts = machine.profilingCuts(),
         begins = cuts.at(-3).tick,
         ends = cuts.at(-2).tick,
-        { ticks } = machine.profile(begins, ends),
-        stepped = new Map()
+        span = machine.profile(begins, ends),
+        begun = begunIn(span),
+        [called] = begun.children,
+        [jumped] = called.children,
+        interrupt = span.children.find(child => child.reached == "interrupt"),
+        stepped = { begun: 0, called: 0, jumped: 0, interrupt: 0 }
+
+      function routineAt(pc) {
+        if (pc >= JUMPING_CALL_AT && pc < JUMPING_AT) {
+          return "begun"
+        }
+
+        if (pc >= JUMPING_AT && pc < JUMPED_TO) {
+          return "called"
+        }
+
+        return pc >= JUMPED_TO && pc < JUMPING_CALL_AT + JUMPING_CALL.length
+          ? "jumped"
+          : "interrupt"
+      }
 
       machine.rewind(begins)
 
       while (machine.ticks < ends) {
-        const pc = machine.z80.pc,
+        const routine = routineAt(machine.z80.pc),
           before = machine.ticks
 
         machine.step()
-        stepped.set(pc, (stepped.get(pc) ?? 0) + machine.ticks - before)
+        stepped[routine] += machine.ticks - before
       }
 
-      for (const [pc, spent] of stepped) {
-        expect(ticks[pc]).toBe(spent)
-      }
+      expect({
+        begun: begun.ticks,
+        called: called.ticks,
+        jumped: jumped.ticks,
+        interrupt: interrupt.totalTicks
+      }).toEqual(stepped)
     })
   })
 

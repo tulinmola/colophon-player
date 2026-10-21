@@ -17,6 +17,8 @@ const GRAINS = { instruction: 0, scanline: 1, row: 2, frame: 3 }
 
 const PROFILING_MODES = { pass: 0, call: 1, until: 2 }
 
+const REACHED = { 1: "start", 2: "call", 3: "jump", 4: "interrupt" }
+
 const STACK_WORDS_READ = 32
 
 // What the host offers whatever machine it is holding: the record it keeps,
@@ -37,7 +39,7 @@ export class Machine extends EventTarget {
   #pendingReleases = new Set()
   #presentCount = 0
   #pressedAt = new Map()
-  #profiledTicks
+  #profiledNames
   #profiling = null
   #ram
   #request = null
@@ -63,7 +65,7 @@ export class Machine extends EventTarget {
       ramPointer = module._player_ram(),
       tapePointer = module._player_tape(),
       writesStart = module._player_writes() >> 2,
-      profiledStart = module._player_profiled_ticks() >> 2,
+      profiledNamesPointer = module._player_profiled_names(),
       { palette, greys, cssColours } = readColours(code => module._player_rgb(code), colourCodes),
       capture = () => module._player_capture()
 
@@ -82,7 +84,10 @@ export class Machine extends EventTarget {
     )
     this.#ram = module.HEAPU8.subarray(ramPointer, ramPointer + ramSize)
     this.#writes = module.HEAPU32.subarray(writesStart, writesStart + ramSize)
-    this.#profiledTicks = module.HEAPU32.subarray(profiledStart, profiledStart + 0x10000)
+    this.#profiledNames = module.HEAPU8.subarray(
+      profiledNamesPointer,
+      profiledNamesPointer + 0x10000
+    )
   }
 
   get module() {
@@ -323,11 +328,48 @@ export class Machine extends EventTarget {
     return cuts
   }
 
-  // The ticks are a view the next call fills again.
   profile(from, until) {
-    this.#module._player_profile(from, until)
+    const module = this.#module,
+      names = this.#profiledNames
 
-    return { ticks: this.#profiledTicks, halted: this.#module._player_profiled_halted() }
+    names.fill(0)
+
+    for (const { address } of this.symbols.all()) {
+      names[address] = 1
+    }
+
+    module._player_profile(from, until)
+
+    const held = module._player_profiled_routines_held(),
+      spanTicks = module._player_profiled_routine_ticks(0),
+      routines = [{ ticks: spanTicks, totalTicks: spanTicks, children: [] }]
+
+    for (let index = 1; index < held; index++) {
+      const ticks = module._player_profiled_routine_ticks(index)
+
+      routines.push({
+        entry: module._player_profiled_routine_entry(index),
+        reached: REACHED[module._player_profiled_routine_reached(index)],
+        calls: module._player_profiled_routine_calls(index),
+        ticks,
+        totalTicks: ticks,
+        children: []
+      })
+    }
+
+    for (let index = held - 1; index > 0; index--) {
+      const routine = routines[index],
+        parent = routines[module._player_profiled_routine_parent(index)]
+
+      parent.totalTicks += routine.totalTicks
+      parent.children.push(routine)
+    }
+
+    for (const routine of routines) {
+      routine.children.sort((one, other) => other.totalTicks - one.totalTicks)
+    }
+
+    return routines[0]
   }
 
   capture() {

@@ -51,6 +51,7 @@ typedef struct {
   /* The edge, not the level: a machine answering with the level counts every
      tick of a sync as a frame. */
   bool frame_ended;
+  bool interrupt_acknowledged;
   uint16_t program_counter;
 
   /* Only ever compared with what they were, so a machine that counts absolute
