@@ -1,7 +1,7 @@
 ---
 title: The record
 description: The last few seconds of the machine, kept as whole machines and the stores between them, and what a debugger can ask of them.
-order: 5
+order: 6
 ---
 
 A machine that has gone wrong went wrong a moment ago, and by the time anyone notices, the moment has been overwritten by the ones after it. The record keeps those moments, so that the question can be asked late and still answered.

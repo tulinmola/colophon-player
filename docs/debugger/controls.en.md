@@ -1,7 +1,7 @@
 ---
 title: The controls
 description: Running the machine, stopping it, and moving it either way by a grain — always leaving it between instructions.
-order: 4
+order: 5
 ---
 
 `<colophon-controls>` is where the machine is moved through its own time, in both directions.
@@ -34,7 +34,7 @@ The panel reads `Tick`, the machine's own count of T-states since it was built o
 
 ▶ runs the machine at the speed the hardware ran, which is the only speed that answers the question the debugger is for. `Speed`, behind the three dots at the heading's right, multiplies it: at 8× the machine runs eight of its milliseconds for each of the reader's, which is how [a tape](tape.en.md) measured in minutes is sat through.
 
-Nothing else changes. The same ticks happen in the same order and the record counts them the same way, because what is multiplied is how much of the machine's time each of the browser's frames is asked to carry, and not the machine. A program watched fast is the program.
+Nothing else changes. The same ticks happen in the same order and the record counts them the same way, because what is multiplied is how much of the machine's time each of the browser's frames is asked to carry, and not the machine. A program watched fast is the program. It is not heard, though: sound made eight times as fast is heard three octaves up, and that is not the program's, so [the amplifier](amplifier.en.md) is silent at any speed but 1×.
 
 ## The mark the program carries
 

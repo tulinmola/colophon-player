@@ -37,6 +37,9 @@ export default defineConfig(function ({ mode }) {
   }
 
   return {
+    // The package is served from wherever a page installs it, so what it
+    // fetches beside itself is found from the module and not the site's root.
+    base: mode == "dist" ? "./" : "/",
     publicDir: mode != "dist",
     root: "./src",
     envDir: "../",

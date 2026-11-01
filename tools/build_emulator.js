@@ -1,4 +1,3 @@
-import { execFileSync, spawnSync } from "node:child_process"
 import {
   existsSync,
   mkdirSync,
@@ -9,6 +8,7 @@ import {
   writeFileSync
 } from "node:fs"
 import { createHash } from "node:crypto"
+import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { resolve } from "node:path"
 import { tmpdir } from "node:os"
@@ -18,7 +18,9 @@ const ROOT = resolve(fileURLToPath(import.meta.url), "../.."),
   VENDOR_DIR = resolve(ROOT, "src/js/vendor"),
   HOST_DIR = resolve(ROOT, "emulator"),
   EXPORTS = resolve(HOST_DIR, "exports.json"),
-  LAYOUT = resolve(HOST_DIR, "layout.c")
+  LAYOUT = resolve(HOST_DIR, "layout.c"),
+  // The machine, and what every host compiles beside it.
+  COMPILED = ["src", "lib"]
 
 // The record and a file for each machine. Read from the directory so a
 // machine added and left out of a list cannot be missing from the module.
@@ -59,19 +61,26 @@ function hostDigest() {
 
 function emulatorVersion() {
   const commit = git("rev-parse", "--short", "HEAD"),
-    // A build from uncommitted sources must not answer to a commit's name.
-    clean = spawnSync("git", ["-C", EMULATOR_DIR, "diff", "--quiet", "HEAD", "--", "src"]).status,
-    machine = clean == 0 ? commit : `${commit}-dirty`
+    // A build from uncommitted sources must not answer to a commit's name, and
+    // a file never added is as uncommitted as one edited.
+    clean = git("status", "--porcelain", "--", ...COMPILED) == "",
+    machine = clean ? commit : `${commit}-dirty`
 
   return `${machine}-${hostDigest()}`
 }
 
-function machineSources() {
-  const directory = resolve(EMULATOR_DIR, "src")
+function emulatorSources() {
+  return COMPILED.flatMap(function (directory) {
+    const path = resolve(EMULATOR_DIR, directory)
 
-  return readdirSync(directory)
-    .filter(name => name.endsWith(".c"))
-    .map(name => resolve(directory, name))
+    return readdirSync(path)
+      .filter(name => name.endsWith(".c"))
+      .map(name => resolve(path, name))
+  })
+}
+
+function emulatorIncludes() {
+  return COMPILED.flatMap(directory => ["-I", resolve(EMULATOR_DIR, directory)])
 }
 
 // Built for WebAssembly and run under node: a struct's offsets belong to the
@@ -112,10 +121,9 @@ mkdirSync(VENDOR_DIR, { recursive: true })
 execFileSync(
   "emcc",
   [
-    ...machineSources(),
+    ...emulatorSources(),
     ...hostSources(),
-    "-I",
-    resolve(EMULATOR_DIR, "src"),
+    ...emulatorIncludes(),
     "-std=c99",
     "-Wall",
     "-Wextra",
@@ -144,7 +152,7 @@ execFileSync(
     "-s",
     `EXPORTED_FUNCTIONS=@${EXPORTS}`,
     "-s",
-    "EXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32",
+    "EXPORTED_RUNTIME_METHODS=HEAPU8,HEAPU32,HEAPF32",
     "-o",
     resolve(VENDOR_DIR, `${basename}.mjs`)
   ],

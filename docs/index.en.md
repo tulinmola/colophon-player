@@ -33,6 +33,7 @@ The debugger travels as two files, each pinned to a version that cannot change u
     <colophon-cpc model="cpc6128" snapshot="game.sna">
       <colophon-controls></colophon-controls>
       <colophon-monitor zoom="1.5"></colophon-monitor>
+      <colophon-amplifier></colophon-amplifier>
       <div class="panels">
         <colophon-z80></colophon-z80>
         <colophon-disassembly></colophon-disassembly>

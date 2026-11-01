@@ -15,6 +15,49 @@ $changed: #ffb454;
 $thumb: thumb($foreground);
 $thumb-changed: thumb($changed);
 
+@mixin fader {
+  appearance: none;
+  background: none;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 1px;
+    background: $line;
+  }
+
+  &::-moz-range-track {
+    height: 1px;
+    background: $line;
+  }
+
+  &::-webkit-slider-thumb {
+    width: 11px;
+    height: 1.1rem;
+    margin-top: -0.55rem;
+    appearance: none;
+    background: $thumb;
+    border: 0;
+  }
+
+  &::-moz-range-thumb {
+    width: 11px;
+    height: 1.1rem;
+    background: $thumb;
+    border: 0;
+    border-radius: 0;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $dim;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+}
+
 body {
   background: $background;
   color: $foreground;
@@ -353,6 +396,7 @@ form {
 
 colophon-z80,
 colophon-controls,
+colophon-amplifier,
 colophon-memory,
 colophon-crtc,
 colophon-gate-array,
@@ -1341,44 +1385,11 @@ colophon-controls {
   }
 
   input[type="range"] {
+    @include fader;
+
     flex: 1;
     min-width: 28ch;
     height: var(--key);
-    appearance: none;
-    background: none;
-    cursor: pointer;
-
-    &::-webkit-slider-runnable-track {
-      height: 1px;
-      background: $line;
-    }
-
-    &::-moz-range-track {
-      height: 1px;
-      background: $line;
-    }
-
-    &::-webkit-slider-thumb {
-      width: 11px;
-      height: 1.1rem;
-      margin-top: -0.55rem;
-      appearance: none;
-      background: $thumb;
-      border: 0;
-    }
-
-    &::-moz-range-thumb {
-      width: 11px;
-      height: 1.1rem;
-      background: $thumb;
-      border: 0;
-      border-radius: 0;
-    }
-
-    &:focus-visible {
-      outline: 1px solid $dim;
-      outline-offset: 2px;
-    }
   }
 
   &[rewound] {
@@ -1450,5 +1461,60 @@ colophon-memory {
 
   .changed {
     color: $changed;
+  }
+}
+
+colophon-amplifier {
+  --fader: 20ch;
+
+  .levels {
+    display: grid;
+    grid-template-columns: auto var(--fader) auto;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+  }
+
+  label {
+    display: contents;
+  }
+
+  span {
+    color: $dim;
+  }
+
+  output {
+    min-width: 5ch;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    @include fader;
+
+    width: 100%;
+    height: 1.7rem;
+    margin: 0;
+  }
+
+  meter {
+    grid-column: 2 / -1;
+    width: var(--fader);
+    height: 0.4rem;
+    appearance: none;
+    background: $well;
+    border: 1px solid $line;
+
+    &::-webkit-meter-bar {
+      height: 100%;
+      background: none;
+      border: 0;
+    }
+
+    &::-webkit-meter-optimum-value {
+      background: $foreground;
+    }
+
+    &::-moz-meter-bar {
+      background: $foreground;
+    }
   }
 }

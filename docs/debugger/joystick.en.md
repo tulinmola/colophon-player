@@ -1,7 +1,7 @@
 ---
 title: The CPC's joystick
 description: Joystick 0 drawn under the thumbs, for a screen that is touched and has neither keys nor a pad.
-order: 11
+order: 12
 ---
 
 `<colophon-cpc-joystick>` puts a CPC's joystick under the reader's thumbs. A telephone has no cursor keys and no gamepad, only glass, and this is the stick and the buttons drawn on it: a thumb on the circle steers, a thumb on a button fires.

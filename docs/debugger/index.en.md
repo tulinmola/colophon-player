@@ -17,6 +17,7 @@ The debugger is not one element but a collection of them, each watching one part
 ## The panels
 
 - [The monitor](monitor.en.md) — the picture as a tube would present it.
+- [The amplifier](amplifier.en.md) — what the machine's sound is plugged into: the volume, and a meter for each channel.
 - [The CPC's screen](screen.en.md) — any region of a CPC's memory read as though it were a screen.
 - [The controls](controls.en.md) — run, stop, and moving the machine either way by a grain, under the rule they all obey.
 - [The Z80](z80.en.md) — the processor's registers, flags and interrupt state.

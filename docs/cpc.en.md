@@ -67,7 +67,15 @@ It reads tapes too, and the deck is the board's own: [bit 4 of the 8255's port C
 
 A machine loading a snapshot with a disc in the drive keeps both. The disc goes in first and the snapshot is laid over the machine after, because building a machine empties its drives and a snapshot carries nothing about them.
 
-What it cannot do yet is set out chip by chip [where the machine is built](../emulator/machine.en.md). The two that a reader of these panels meets first: the sound chip keeps its registers and makes no sound, though the keyboard is read through it regardless, which is why typing works; and [what a version 1 snapshot cannot carry](../emulator/machine.en.md#snapshots) decides how exactly a machine can be picked up again.
+It sounds, through its stereo socket, as [the next section](#the-sound) sets out.
+
+What it cannot do yet is set out chip by chip [where the machine is built](../emulator/machine.en.md). The one a reader of these panels meets first: [what a version 1 snapshot cannot carry](../emulator/machine.en.md#snapshots) decides how exactly a machine can be picked up again.
+
+## The sound
+
+What is heard is the stereo socket at the back of the case: the sound chip's three channels joined as the board's resistors join them, A with B on the left and C with B on the right, [as the emulator builds it](../emulator/machine.en.md#sound-and-the-keyboard). The socket has no capacitor and carries its direct current, which whatever was plugged into it blocked. The machine's own loudspeaker, behind a filter and an amplifier of its own, is not what is heard.
+
+It is heard through [`<colophon-amplifier>`](debugger/amplifier.en.md), placed inside the machine like any panel; without one the machine is silent. When the machine is heard at all — from the reader's first key or press on it, while it runs at the speed the hardware ran — is set out there.
 
 ## The firmware
 

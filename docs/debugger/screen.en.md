@@ -1,7 +1,7 @@
 ---
 title: The CPC's screen
 description: Any region of memory read as though it were a screen, and the reason that reading can be wrong.
-order: 3
+order: 4
 ---
 
 `<colophon-cpc-screen>` reads a region of a CPC's memory as though it were a screen. Nothing about it needs to match what the machine is displaying, and that is the point: a packed sprite sheet, a buffer being built off-picture, a font table — each gives up its shape the moment it is read with the geometry it was written in.

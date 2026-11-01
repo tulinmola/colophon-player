@@ -1,7 +1,7 @@
 ---
 title: The CRTC
 description: The 6845 counting out the frame — the counters it keeps and the registers that tell it how.
-order: 7
+order: 8
 ---
 
 `<colophon-crtc>` shows the 6845 that decides where the picture is: the three counters it is keeping right now, and the register file that tells it what to count to.

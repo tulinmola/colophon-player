@@ -16,6 +16,9 @@
 #include <string.h>
 
 #include "player.h"
+#include "resampler.h"
+
+typedef char player_sound_fits[PLAYER_SOUND_CHANNELS <= RESAMPLER_CHANNELS ? 1 : -1];
 
 #define PLAYER_STATES 128
 #define PLAYER_TRACE_ENTRIES (1 << 19)
@@ -179,6 +182,20 @@ static uint64_t fetch_tick;
 
 static bool replaying; /* running to reach a moment already recorded_until */
 static bool rewound;   /* standing somewhere the record has run past */
+
+/* Room for the longest run a page hears between two calls to player_hear: the
+   80ms it may owe and a frame past them, at a device's 192kHz and more. What
+   comes past the end is dropped. */
+#define PLAYER_SOUND_FRAMES 32768
+
+/* Only the ticks the record runs live are heard: a moment run again to be
+   stood at has sounded once already. The resampler is the host's, never the
+   machine's, so no state carries it and a run heard begins afresh. */
+static bool listening;
+static resampler_t resampler;
+static uint32_t ticks_unheard; /* heard, and not yet run through the resampler */
+static float sound_samples[PLAYER_SOUND_FRAMES * PLAYER_SOUND_CHANNELS];
+static uint32_t sound_frames;
 
 /* One byte an address, in the processor's own space. */
 #define PLAYER_TRAP_NONE 0
@@ -428,6 +445,10 @@ static bool crossed(uint32_t grain, const player_moment_t *moment) {
 
 void player_stand(const player_subject_t *subject) {
   standing = *subject;
+  listening = false;
+  /* Made here and only restarted after, because making its kernel takes
+     longer than a frame; the rate is set by whoever listens. */
+  resampler_init(&resampler, (int)subject->sound_channels, 1.0);
   player_forget();
 }
 
@@ -647,8 +668,37 @@ void player_fetching(uint16_t program_counter, uint16_t stack_pointer, bool halt
   }
 }
 
+static void run_sound(uint32_t clocks) {
+  float *room = sound_samples + (size_t)sound_frames * standing.sound_channels;
+
+  sound_frames +=
+      (uint32_t)resampler_run(&resampler, clocks, room, PLAYER_SOUND_FRAMES - (size_t)sound_frames);
+}
+
+/* A level is laid down at the tick it changed on, and the ticks between two
+   changes are run through at once. */
+static void hear(bool moved) {
+  if (moved) {
+    int32_t levels[PLAYER_SOUND_CHANNELS];
+
+    standing.sound(levels);
+    run_sound(ticks_unheard);
+    ticks_unheard = 0;
+
+    for (uint32_t channel = 0; channel < standing.sound_channels; channel++) {
+      resampler_change(&resampler, (int)channel, levels[channel]);
+    }
+  }
+
+  ticks_unheard++;
+}
+
 bool player_after(const player_moment_t *moment) {
   ticks++;
+
+  if (listening && !replaying) {
+    hear(moment->sound_moved);
+  }
 
   if (counting) {
     profiled_routines[running].ticks++;
@@ -948,6 +998,9 @@ void player_seek(player_tick_t target) {
 
   trap_kind = PLAYER_TRAP_NONE;
   rewound = true;
+  /* What follows a seek did not follow what was heard before it, so a page
+     that would hear it begins again. */
+  listening = false;
 }
 
 static player_tick_t grain_before(uint32_t grain, uint32_t index, player_tick_t end) {
@@ -1043,6 +1096,47 @@ void player_profile(player_tick_t from, player_tick_t until) {
 }
 
 uint32_t player_profiled_routines_held(void) { return profiled_routines_held; }
+
+/* `rate` samples a second for every live tick from now on, beginning where
+   the machine stands and at the levels it sounds there. */
+void player_listen(double rate) {
+  int32_t levels[PLAYER_SOUND_CHANNELS];
+
+  resampler_restart(&resampler);
+  resampler_set_ratio(&resampler, rate / standing.ticks_per_second);
+  standing.sound(levels);
+
+  for (uint32_t channel = 0; channel < standing.sound_channels; channel++) {
+    resampler_start_at(&resampler, (int)channel, levels[channel]);
+  }
+
+  ticks_unheard = 0;
+  sound_frames = 0;
+  listening = true;
+}
+
+void player_stop_listening(void) { listening = false; }
+
+/* A rate nudged while listening, by a page keeping its sound card fed. */
+void player_set_listening_rate(double rate) {
+  resampler_set_ratio(&resampler, rate / standing.ticks_per_second);
+}
+
+/* How many frames have been heard since the last call, finishing what the
+   ticks heard so far can finish. They stand at player_sound, channels
+   interleaved, until the next run writes over them. */
+uint32_t player_hear(void) {
+  run_sound(ticks_unheard);
+  ticks_unheard = 0;
+
+  const uint32_t frames = sound_frames;
+  sound_frames = 0;
+
+  return frames;
+}
+
+float *player_sound(void) { return sound_samples; }
+uint32_t player_sound_channels(void) { return standing.sound_channels; }
 
 uint32_t player_profiled_routine_entry(uint32_t index) { return profiled_routines[index].entry; }
 

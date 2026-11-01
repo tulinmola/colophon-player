@@ -17,7 +17,14 @@ async function closestWith(element, property) {
 }
 
 export class MachineObserver extends Element {
+  #host = null
   #machine = null
+
+  // The element holding the machine, which is where a reader's keys and
+  // presses on it arrive.
+  get host() {
+    return this.#host
+  }
 
   get machine() {
     return this.#machine
@@ -30,6 +37,8 @@ export class MachineObserver extends Element {
     if (signal.aborted) {
       return
     }
+
+    this.#host = host
 
     if (host.machine) {
       this.#watch(host.machine)
@@ -44,6 +53,7 @@ export class MachineObserver extends Element {
   }
 
   dispose() {
+    this.#host = null
     this.#machine = null
   }
 

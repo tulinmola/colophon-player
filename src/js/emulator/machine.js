@@ -43,6 +43,7 @@ export class Machine extends EventTarget {
   #profiling = null
   #ram
   #request = null
+  #soundStart
   #tape
   #writes
   #z80
@@ -88,6 +89,7 @@ export class Machine extends EventTarget {
       profiledNamesPointer,
       profiledNamesPointer + 0x10000
     )
+    this.#soundStart = module._player_sound() >> 2
   }
 
   get module() {
@@ -185,6 +187,10 @@ export class Machine extends EventTarget {
 
   get historyUntil() {
     return this.#module._player_history_until()
+  }
+
+  get soundChannels() {
+    return this.#module._player_sound_channels()
   }
 
   start() {
@@ -378,6 +384,27 @@ export class Machine extends EventTarget {
 
   runFrames(frames) {
     this.#module._player_run_frames(frames)
+  }
+
+  listen(rate) {
+    this.#module._player_listen(rate)
+  }
+
+  stopListening() {
+    this.#module._player_stop_listening()
+  }
+
+  setListeningRate(rate) {
+    this.#module._player_set_listening_rate(rate)
+  }
+
+  // A view onto the module's memory, channels interleaved, which the next run
+  // writes over.
+  hear() {
+    const frames = this.#module._player_hear(),
+      start = this.#soundStart
+
+    return this.#module.HEAPF32.subarray(start, start + frames * this.soundChannels)
   }
 
   peek(address) {

@@ -42,9 +42,15 @@ The release rule is the CPC's, and for the same reason: the firmware reads the m
 
 It boots its firmware, shows the copyright line Sinclair put in it, takes what is typed at it and runs BASIC. It runs at the speed the hardware ran, which on this machine means [the ULA stopping the processor's clock rather than asserting a wait line](../emulator/machine.en.md#the-zx-spectrum) — so what an instruction costs depends on where in the frame it began, and the debugger's tick count is the machine's own.
 
-Every panel but the ones that watch a CPC's own chips answers here: [the controls](debugger/controls.en.md), [the monitor](debugger/monitor.en.md), [the ULA](debugger/ula.en.md), [the Z80](debugger/z80.en.md), [the disassembly](debugger/disassembly.en.md), [the memory](debugger/memory.en.md), [the keyboard](debugger/keyboard.en.md), [the tape](debugger/tape.en.md), [the breakpoints](debugger/breakpoints.en.md) and [the profile](debugger/profile.en.md). The memory panel's physical space begins where the machine's RAM begins, which on this board is `&4000`: nothing answers below it, so physical zero is the first byte the processor can write.
+Every panel but the ones that watch a CPC's own chips answers here: [the controls](debugger/controls.en.md), [the monitor](debugger/monitor.en.md), [the amplifier](debugger/amplifier.en.md), [the ULA](debugger/ula.en.md), [the Z80](debugger/z80.en.md), [the disassembly](debugger/disassembly.en.md), [the memory](debugger/memory.en.md), [the keyboard](debugger/keyboard.en.md), [the tape](debugger/tape.en.md), [the breakpoints](debugger/breakpoints.en.md) and [the profile](debugger/profile.en.md). The memory panel's physical space begins where the machine's RAM begins, which on this board is `&4000`: nothing answers below it, so physical zero is the first byte the processor can write.
 
-It loads from tape — `.tap` and `.tzx`, and the `.cdt` that is a `.tzx` under another name — and [the deck](debugger/tape.en.md) is the reader's to turn, because this machine has no motor line to turn it with. What it cannot do yet: nothing sounds, as nothing sounds on the CPC. [The screen](debugger/screen.en.md) is the CPC's alone, because reading a region of memory as a picture means reading it in that machine's own arrangement, and a Spectrum's is not the CPC's.
+It loads from tape — `.tap` and `.tzx`, and the `.cdt` that is a `.tzx` under another name — and [the deck](debugger/tape.en.md) is the reader's to turn, because this machine has no motor line to turn it with. It sounds, through its loudspeaker, as [the next section](#the-sound) sets out. [The screen](debugger/screen.en.md) is the CPC's alone, because reading a region of memory as a picture means reading it in that machine's own arrangement, and a Spectrum's is not the CPC's.
+
+## The sound
+
+What is heard is the loudspeaker inside the case, in both ears: the voltage that bits 4 and 3 of the last write to the ULA leave across it, [as the emulator builds it](../emulator/machine.en.md#the-zx-spectrum). A playing tape reached the same speaker on the hardware and does not reach it here, so a tape loads in silence.
+
+It is heard through [`<colophon-amplifier>`](debugger/amplifier.en.md), in both ears, on the same terms as a CPC: without one the machine is silent.
 
 ## The firmware
 

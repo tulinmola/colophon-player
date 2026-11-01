@@ -19,6 +19,10 @@ typedef char spectrum_raster_fits
     [SPECTRUM_FRAMEBUFFER_WIDTH * SPECTRUM_FRAMEBUFFER_HEIGHT <= PLAYER_FRAMEBUFFER_SIZE ? 1 : -1];
 typedef char spectrum_snapshot_fits[SPECTRUM_SNAPSHOT_SIZE <= PLAYER_SNAPSHOT_SIZE ? 1 : -1];
 
+/* One loudspeaker. */
+#define SPECTRUM_SOUND_CHANNELS 1
+typedef char spectrum_sound_fits[SPECTRUM_SOUND_CHANNELS <= PLAYER_SOUND_CHANNELS ? 1 : -1];
+
 static struct {
   spectrum_t machine;
   player_deck_t deck;
@@ -34,12 +38,27 @@ static uint32_t physical_of(uint16_t address) {
   return address >= SPECTRUM_RAM_BASE && offset < board.machine.ram_size ? offset : PLAYER_NOWHERE;
 }
 
+/* The two bits of the ULA's last port write the speaker hangs on, as the last
+   tick left them. */
+static uint32_t last_bits;
+
+static bool sound_moved(void) {
+  const ula_t *ula = &board.machine.ula;
+  const uint32_t bits = (uint32_t)ula->speaker << 1 | (uint32_t)ula->microphone;
+  const bool moved = bits != last_bits;
+
+  last_bits = bits;
+
+  return moved;
+}
+
 /* Eight lines to a character row. */
 static player_moment_t moment_of(uint64_t pins, bool retraced) {
   player_moment_t moment = {0};
 
   moment.settled = spectrum_instruction_complete(&board.machine);
   moment.frame_ended = board.machine.monitor.frame_retraced && !retraced;
+  moment.sound_moved = sound_moved();
   moment.program_counter = board.machine.cpu.pc;
   moment.row = (uint16_t)(board.machine.ula.line / 8);
   moment.line = board.machine.ula.line;
@@ -86,6 +105,10 @@ static uint32_t rgb(uint8_t sample);
 
 static uint8_t peek(uint16_t address) { return spectrum_peek(&board.machine, address); }
 
+static void sound(int32_t levels[PLAYER_SOUND_CHANNELS]) {
+  levels[0] = spectrum_sound_speaker(&board.machine);
+}
+
 /* One image of 16K answering from 0x0000, and no interface to fit. */
 void player_boot_spectrum(uint32_t ram_size) {
   spectrum_init(&board.machine, player_ram_bytes, ram_size, player_rom_bytes);
@@ -97,6 +120,7 @@ void player_boot_spectrum(uint32_t ram_size) {
                                     .settled = settled,
                                     .restore = player_deck_restored,
                                     .peek = peek,
+                                    .sound = sound,
                                     .state = &board,
                                     .state_bytes = sizeof board,
                                     .memory_bytes = ram_size,
@@ -108,7 +132,9 @@ void player_boot_spectrum(uint32_t ram_size) {
                                     .physical_of = physical_of,
                                     .processor = &board.machine.cpu,
                                     .matrix = &board.machine.keyboard,
-                                    .ticks_per_frame = SPECTRUM_TICKS_PER_FRAME};
+                                    .ticks_per_frame = SPECTRUM_TICKS_PER_FRAME,
+                                    .ticks_per_second = SPECTRUM_TICKS_PER_MILLISECOND * 1000,
+                                    .sound_channels = SPECTRUM_SOUND_CHANNELS};
 
   player_stand(&subject);
 }

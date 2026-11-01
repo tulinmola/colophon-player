@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "ay38910.h"
 #include "cpc.h"
 #include "cpc_snapshot.h"
 #include "deck.h"
@@ -31,6 +32,10 @@ typedef char
 /* A CPC's own discs are a fifth of this. The rest is for the extended images
    of protected ones, which store every reading of an unstable sector. */
 #define CPC_DISC_SIZE 0x100000
+
+/* The stereo socket's two sides. */
+#define CPC_SOUND_CHANNELS 2
+typedef char cpc_sound_fits[CPC_SOUND_CHANNELS <= PLAYER_SOUND_CHANNELS ? 1 : -1];
 
 static struct {
   cpc_t machine;
@@ -56,11 +61,27 @@ static uint32_t physical_of(uint16_t address) {
                     board.machine.ram);
 }
 
+/* The sound chip's outputs as the last tick left them, a byte each: the
+   socket moves with them and with nothing else. */
+static uint32_t last_outputs;
+
+static bool sound_moved(void) {
+  const uint8_t *output = board.machine.psg.output;
+  const uint32_t outputs =
+      (uint32_t)output[0] | (uint32_t)output[1] << 8 | (uint32_t)output[2] << 16;
+  const bool moved = outputs != last_outputs;
+
+  last_outputs = outputs;
+
+  return moved;
+}
+
 static player_moment_t moment_of(uint64_t pins, bool retraced) {
   player_moment_t moment = {0};
 
   moment.settled = z80_instruction_complete(&board.machine.cpu);
   moment.frame_ended = board.machine.monitor.frame_retraced && !retraced;
+  moment.sound_moved = sound_moved();
   moment.program_counter = board.machine.cpu.pc;
   moment.row = board.machine.crtc.c4;
   moment.line = board.machine.crtc.c9;
@@ -108,6 +129,14 @@ static uint32_t rgb(uint8_t sample);
 
 static uint8_t peek(uint16_t address) { return cpc_peek(&board.machine, address); }
 
+static void sound(int32_t levels[PLAYER_SOUND_CHANNELS]) {
+  uint16_t left = 0, right = 0;
+
+  cpc_sound_socket(&board.machine, &left, &right);
+  levels[0] = left;
+  levels[1] = right;
+}
+
 uint8_t *player_cpc_amsdos(void) { return amsdos; }
 
 uint8_t *player_cpc_disc(uint8_t drive) { return disc_images[drive]; }
@@ -136,6 +165,7 @@ void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
                                     .settled = settled,
                                     .restore = restore,
                                     .peek = peek,
+                                    .sound = sound,
                                     .state = &board,
                                     .state_bytes = sizeof board,
                                     .memory_bytes = ram_size,
@@ -147,7 +177,9 @@ void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
                                     .physical_of = physical_of,
                                     .processor = &board.machine.cpu,
                                     .matrix = &board.machine.keyboard,
-                                    .ticks_per_frame = CPC_TICKS_PER_STANDARD_FRAME};
+                                    .ticks_per_frame = CPC_TICKS_PER_STANDARD_FRAME,
+                                    .ticks_per_second = CPC_TICKS_PER_MILLISECOND * 1000,
+                                    .sound_channels = CPC_SOUND_CHANNELS};
 
   player_stand(&subject);
 }

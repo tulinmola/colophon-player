@@ -1,4 +1,5 @@
 import "./actions"
+import "./amplifier"
 import "./breakpoint_form"
 import "./breakpoints"
 import "./controls"

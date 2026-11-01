@@ -119,6 +119,93 @@ const READING_ITSELF = [0x3a, 0x01, 0x90, 0x18, 0xfb],
   READING_ITSELF_AT = 0x9000,
   READ_OF_ITSELF = 0x9001
 
+// The 8255's port A carries a byte to the sound chip and two bits of its port
+// C say what the chip does with it: select a register, then write it, with
+// the inactive function between (cpctech's psg.html). DI, the 8255 set to
+// drive ports A and C, each write as six OUT (C),C, and JR to itself.
+function writingTheSoundChip(writes) {
+  const out = [0xed, 0x49],
+    program = [0xf3, 0x01, 0x82, 0xf7, ...out]
+
+  for (const [register, value] of writes) {
+    const steps = [
+      [0xf4, register],
+      [0xf6, 0xc0],
+      [0xf6, 0x00],
+      [0xf4, value],
+      [0xf6, 0x80],
+      [0xf6, 0x00]
+    ]
+
+    for (const [port, data] of steps) {
+      program.push(0x01, data, port, ...out)
+    }
+  }
+
+  program.push(0x18, 0xfe)
+  return program
+}
+
+// Channel A at period 142, its tone alone mixed in, at full volume: the 6128
+// manual's international A, 62500 / 142 Hz.
+const SOUNDING_A = writingTheSoundChip([
+    [0, 142],
+    [1, 0],
+    [7, 0x3e],
+    [8, 15]
+  ]),
+  SOUNDING_A_AT = 0x9000,
+  SOUNDING_A_HERTZ = 62500 / 142
+
+// DI, then the speaker's bit set and cleared by OUT (&FE),A, each followed by
+// LD B,64 and a DJNZ to itself, and JR back: 1713 T-states a cycle, in RAM
+// the ULA does not contend, though it holds the port writes a little while
+// it reads the screen.
+const BEEPING = [
+    0xf3, 0x3e, 0x10, 0xd3, 0xfe, 0x06, 0x40, 0x10, 0xfe, 0xaf, 0xd3, 0xfe, 0x06, 0x40, 0x10, 0xfe,
+    0x18, 0xef
+  ],
+  BEEPING_AT = 0x9000,
+  BEEPING_HERTZ = 3500000 / 1713
+
+// DI, the speaker's bit set, and JR to itself.
+const SPEAKER_UP = [0xf3, 0x3e, 0x10, 0xd3, 0xfe, 0x18, 0xfe],
+  SPEAKER_UP_AT = 0x9000
+
+const HEARD_RATE = 48000
+
+// Ten frames at a time, well inside the room the host gives a run between two
+// hearings.
+function hearFrames(machine, frames) {
+  const heard = []
+
+  for (let run = 0; run < frames; run += 10) {
+    machine.runFrames(10)
+    heard.push(...machine.hear())
+  }
+
+  return heard
+}
+
+function channelOf(heard, channels, channel) {
+  return heard.filter((sample, index) => index % channels == channel)
+}
+
+// Counted as the times it rises through the middle of its swing, over the
+// time the samples cover.
+function pitchOf(samples) {
+  const middle = (Math.min(...samples) + Math.max(...samples)) / 2
+
+  let rises = 0
+  for (let index = 1; index < samples.length; index++) {
+    if (samples[index - 1] < middle && samples[index] >= middle) {
+      rises++
+    }
+  }
+
+  return rises / (samples.length / HEARD_RATE)
+}
+
 // A range each firmware writes every frame — a CPC's stack and system area, a
 // Spectrum's system variables — and how many interrupts a frame it answers.
 const MACHINES = [
@@ -599,3 +686,90 @@ for (const [name, boot, [from, until], interrupts] of MACHINES) {
     })
   })
 }
+
+describe("what the record hears", function () {
+  it("hears a CPC's channel A on the left of its socket, at its period's pitch", async function () {
+    const cpc = await bootCpc()
+
+    load(cpc, SOUNDING_A, SOUNDING_A_AT)
+    cpc.listen(HEARD_RATE)
+
+    const heard = hearFrames(cpc, 50),
+      left = channelOf(heard, 2, 0),
+      right = channelOf(heard, 2, 1)
+
+    expect(cpc.soundChannels).toBe(2)
+    expect(left.length).toBeGreaterThan(HEARD_RATE * 0.99)
+    expect(pitchOf(left) / SOUNDING_A_HERTZ).toBeCloseTo(1, 2)
+    expect(Math.max(...right)).toBe(0)
+  })
+
+  it("hears a Spectrum's speaker at the pitch its loop moves it", async function () {
+    const spectrum = await bootSpectrum()
+
+    load(spectrum, BEEPING, BEEPING_AT)
+    spectrum.listen(HEARD_RATE)
+
+    const heard = hearFrames(spectrum, 50)
+
+    expect(spectrum.soundChannels).toBe(1)
+    expect(pitchOf(heard) / BEEPING_HERTZ).toBeCloseTo(1, 2)
+  })
+
+  it("begins at the level the machine stands sounding, with no step up to it", async function () {
+    const spectrum = await bootSpectrum()
+
+    load(spectrum, SPEAKER_UP, SPEAKER_UP_AT)
+    spectrum.runFrames(2)
+    spectrum.listen(HEARD_RATE)
+
+    const heard = hearFrames(spectrum, 10),
+      [first] = heard
+
+    expect(first).toBeGreaterThan(0)
+    expect(heard.every(sample => sample == first)).toBe(true)
+  })
+
+  it("hears a span once, and never again as it is run to profile it", async function () {
+    const spectrum = await bootSpectrum()
+
+    load(spectrum, BEEPING, BEEPING_AT)
+    spectrum.listen(HEARD_RATE)
+
+    expect(hearFrames(spectrum, 20).length).toBeGreaterThan(0)
+
+    spectrum.profile(spectrum.historyFrom, spectrum.historyUntil)
+
+    expect(spectrum.hear().length).toBe(0)
+  })
+
+  it("stops listening at a seek, whose sequel is not what was heard", async function () {
+    const spectrum = await bootSpectrum()
+
+    load(spectrum, BEEPING, BEEPING_AT)
+    spectrum.listen(HEARD_RATE)
+
+    const from = spectrum.ticks
+
+    hearFrames(spectrum, 20)
+    spectrum.rewind(from + spectrum.ticksPerFrame * 5)
+
+    expect(spectrum.hear().length).toBe(0)
+
+    spectrum.runFrames(10)
+
+    expect(spectrum.hear().length).toBe(0)
+  })
+
+  it("hears nothing once no one listens", async function () {
+    const spectrum = await bootSpectrum()
+
+    load(spectrum, BEEPING, BEEPING_AT)
+    spectrum.listen(HEARD_RATE)
+    hearFrames(spectrum, 10)
+    spectrum.stopListening()
+    spectrum.runFrames(10)
+
+    expect(spectrum.hear().length).toBe(0)
+  })
+})

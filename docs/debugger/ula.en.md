@@ -1,7 +1,7 @@
 ---
 title: The ULA
 description: The one chip a Spectrum keeps its video department in, counting out the frame and holding the border.
-order: 8
+order: 9
 ---
 
 `<colophon-ula>` shows the Ferranti uncommitted logic array, which on a Spectrum is the whole board but the processor and the memory. It counts out the frame, reads the screen, turns bytes into pixels, raises the interrupt, holds the border colour and drives the speaker — so where a CPC's video wants [two panels](crtc.en.md), this machine wants one.
@@ -18,7 +18,7 @@ It bears the heading `ULA Ferranti 5C102E` and redraws whenever the machine says
 
 Both are editable, so a frame can be stood at a chosen T-state and a border set from the panel. Writing the frame T-state moves the beam with it: the chip's line and column are worked out from it rather than kept beside it, so they cannot be set to disagree.
 
-`Line` and `Column` are where the beam stands, `Frame` is frames since reset — `FLASH` swaps ink and paper on its bit 4 — and `EAR` and `MIC` are the two bits of that same port write that reach the sockets. `EAR` is what the speaker follows; `MIC` is what the machine writes to tape, and [it goes nowhere here](../../emulator/machine.en.md#the-zx-spectrum).
+`Line` and `Column` are where the beam stands, `Frame` is frames since reset — `FLASH` swaps ink and paper on its bit 4 — and `EAR` and `MIC` are the two bits of that same port write that reach the sockets. `EAR` is what the speaker follows. `MIC` alone is not heard, but beside `EAR` it lifts the speaker a little, [as the board does](../../emulator/machine.en.md#the-zx-spectrum); it is also what the machine writes to tape, and that goes nowhere here.
 
 ## What it cannot show
 

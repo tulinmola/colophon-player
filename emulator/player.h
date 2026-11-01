@@ -23,6 +23,8 @@
 #define PLAYER_SNAPSHOT_SIZE (256 + PLAYER_RAM_SIZE)
 #define PLAYER_FRAMEBUFFER_SIZE (1024 * 312)
 #define PLAYER_MACHINE_BYTES 2048
+/* A CPC's stereo socket. */
+#define PLAYER_SOUND_CHANNELS 2
 
 extern uint8_t player_ram_bytes[PLAYER_RAM_SIZE];
 extern uint8_t player_rom_bytes[PLAYER_ROM_SIZE];
@@ -52,6 +54,9 @@ typedef struct {
      tick of a sync as a frame. */
   bool frame_ended;
   bool interrupt_acknowledged;
+  /* Whatever the machine sounds from moved on this tick, which a machine says
+     more cheaply than its levels can be asked for. */
+  bool sound_moved;
   uint16_t program_counter;
 
   /* Only ever compared with what they were, so a machine that counts absolute
@@ -76,11 +81,17 @@ typedef struct {
      machine derives nothing from them. */
   void (*restore)(void);
   uint8_t (*peek)(uint16_t address);
+  /* The levels the last tick left the machine sounding at, a channel each, in
+     tenths of a millivolt. Asked as a page begins to listen, and while it
+     listens after each tick that moved them. */
+  void (*sound)(int32_t levels[PLAYER_SOUND_CHANNELS]);
 
   void *state; /* copied whole, and never read into */
   uint32_t state_bytes;
   uint32_t memory_bytes; /* how much of the shared RAM this machine uses */
   uint32_t ticks_per_frame;
+  uint32_t ticks_per_second;
+  uint32_t sound_channels;
 
   /* What a page asks of a machine, and only that machine can answer. */
 
