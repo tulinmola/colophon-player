@@ -59,7 +59,10 @@ export class Cpc extends Machine {
   #gateArray
   #video
 
-  static async create(model, { romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl, signal } = {}) {
+  static async create(
+    model,
+    { crtcType, romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl, signal } = {}
+  ) {
     const machine = MODELS[model],
       roms = romsUrl ?? DEFAULT_ROMS_URL,
       discs = discUrls ?? [],
@@ -86,7 +89,7 @@ export class Cpc extends Machine {
       module.HEAPU8.set(amsdos, module._player_cpc_amsdos())
     }
 
-    module._player_boot_cpc(machine.ramSize, discInterface)
+    module._player_boot_cpc(machine.ramSize, discInterface, crtcType)
 
     const cpc = new Cpc(module, machine.ramSize, discInterface)
 

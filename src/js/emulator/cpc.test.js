@@ -23,6 +23,14 @@ const AT_CYLINDERS = 0x30,
 
 const FIRST_SECTOR = 0xc1
 
+const SNAPSHOT_HEADER = 0x100,
+  SNAPSHOT_AT_VERSION = 0x10,
+  SNAPSHOT_AT_CRTC_REGISTERS = 0x43,
+  SNAPSHOT_AT_DUMP_KILOBYTES = 0x6b
+
+const CRTC_TYPES = 5,
+  CRTC_WRITTEN_REGISTERS = 16
+
 // As floppy.h counts them: the medium's width, one revolution, and the gap,
 // sync and index mark a track opens with.
 const FLOPPY_CYLINDERS = 102,
@@ -80,12 +88,25 @@ function discImage({ cylinders = 1 } = {}) {
   return image
 }
 
-// Never ticked, so it needs no firmware: what is under test is the road an
-// image travels, not anything that runs off one.
-async function bootMachine() {
+// A version 1 snapshot of 64K with every CRTC register a program writes set to &FF,
+// laid out as "Snapshot file format" (Kevin Thacker's cpctech) sets it out:
+// https://cpctech.cpcwiki.de/docs/snapshot.html
+function snapshotWritingEveryRegister() {
+  const image = new Uint8Array(SNAPSHOT_HEADER + 0x10000)
+
+  image.set(ascii("MV - SNA"), 0)
+  image[SNAPSHOT_AT_VERSION] = 1
+  image[SNAPSHOT_AT_DUMP_KILOBYTES] = 64
+  image.fill(0xff, SNAPSHOT_AT_CRTC_REGISTERS, SNAPSHOT_AT_CRTC_REGISTERS + CRTC_WRITTEN_REGISTERS)
+
+  return image
+}
+
+// Never ticked, so it needs no firmware.
+async function bootMachine(crtcType = 0) {
   const module = await createModule()
 
-  module._player_boot_cpc(RAM_SIZE, true)
+  module._player_boot_cpc(RAM_SIZE, true, crtcType)
 
   return new Cpc(module, RAM_SIZE, true)
 }
@@ -354,5 +375,27 @@ describe("a key let go before the machine ran", function () {
     cpc.present()
 
     expect(cpc.keyboard.pressed(joystick.down)).toBe(true)
+  })
+})
+
+describe("the CRTC a machine is built with", function () {
+  // A snapshot's registers go in through the chip's own bus, so what it keeps
+  // of them is what the chip keeps of a write.
+  it("is the type it was booted as, and keeps of a register what the chip would", async function () {
+    const snapshot = snapshotWritingEveryRegister()
+
+    for (let type = 0; type < CRTC_TYPES; type++) {
+      const restored = await bootMachine(type),
+        edited = await bootMachine(type)
+
+      expect(restored.loadSnapshot(snapshot)).toBeTruthy()
+
+      for (let number = 0; number < CRTC_WRITTEN_REGISTERS; number++) {
+        edited.crtc.putRegister(number, 0xff)
+      }
+
+      expect(edited.crtc.type).toBe(type)
+      expect(Array.from(edited.crtc.registers)).toEqual(Array.from(restored.crtc.registers))
+    }
   })
 })

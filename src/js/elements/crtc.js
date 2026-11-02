@@ -1,4 +1,4 @@
-import { hex, html, writeValue } from "../lang"
+import { hex, html, write, writeValue } from "../lang"
 import { MachineObserver } from "./machine_observer"
 
 // aria-label is what keeps the sigil from being read out as part of the name.
@@ -9,10 +9,6 @@ function renderByte(label, meaning, name) {
       <input name="${name}" aria-label="${label}" maxlength="2" pattern="[0-9A-Fa-f]{1,2}" />
     </span>
   </label>`
-}
-
-function renderCounter(number, meaning) {
-  return renderByte(`C${number}`, meaning, `c${number}`)
 }
 
 function renderRegister(number, meaning) {
@@ -29,17 +25,26 @@ function renderLightPen(number, meaning) {
 }
 
 class CrtcElement extends MachineObserver {
+  #counterNames
   #form
 
   watch(machine) {
     this.innerHTML = html`
-      <h2>CRTC 6845</h2>
+      <h2><abbr title="Cathode Ray Tube Controller">CRTC</abbr> <span></span></h2>
       <form>
         <div class="fields counters">
           ${[
-            renderCounter(0, "Horizontal character counter"),
-            renderCounter(9, "Scanline within the character row, driving RA"),
-            renderCounter(4, "Character row counter")
+            renderByte("C0", "Horizontal character counter", "c0"),
+            renderByte("C9", "Vertical line counter", "c9"),
+            renderByte("C4", "Vertical character counter", "c4"),
+            renderByte("C3l", "Horizontal sync counter", "c3l"),
+            renderByte("C3h", "Vertical sync counter", "c3h"),
+            renderByte("C5", "Vertical total adjust counter", "c5"),
+            renderByte(
+              "C9.IVM",
+              "Scanline counter for the display in Interlace Video Mode",
+              "c9Ivm"
+            )
           ].join("")}
         </div>
         <div class="fields registers">
@@ -67,7 +72,17 @@ class CrtcElement extends MachineObserver {
       </form>
     `
 
+    const crtc = machine.crtc,
+      chipName = this.querySelector("h2 span")
+
+    write(chipName, `${crtc.type} ${crtc.part}`)
+
+    this.#counterNames = crtc.counterNames
     this.#form = this.querySelector("form")
+
+    for (const input of this.#form.querySelectorAll(".counters input")) {
+      input.closest("label").hidden = !this.#counterNames.includes(input.name)
+    }
 
     const { signal } = this
     this.addEventListener("focusin", this.onFocusIn.bind(this), { signal })
@@ -114,9 +129,9 @@ class CrtcElement extends MachineObserver {
       field = this.#form.elements,
       registers = crtc.registers
 
-    writeValue(field.c0, hex(crtc.c0))
-    writeValue(field.c9, hex(crtc.c9))
-    writeValue(field.c4, hex(crtc.c4))
+    for (const name of this.#counterNames) {
+      writeValue(field[name], hex(crtc[name]))
+    }
 
     for (let number = 0; number < registers.length; number++) {
       writeValue(field[`r${number}`], hex(registers[number]))

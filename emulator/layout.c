@@ -74,11 +74,16 @@ int main(void) {
   printf("export const Z80_FLAG_C = %d\n", Z80_FLAG_C);
 
   printf("export const CRTC_SIZE = %zu\n", sizeof(crtc_t));
+  printf("export const CRTC_AT_TYPE = %zu\n", offsetof(crtc_t, type));
   printf("export const CRTC_AT_REGISTERS = %zu\n", offsetof(crtc_t, registers));
   printf("export const CRTC_REGISTERS = %zu\n", sizeof(((crtc_t *)0)->registers));
   printf("export const CRTC_AT_C0 = %zu\n", offsetof(crtc_t, c0));
   printf("export const CRTC_AT_C4 = %zu\n", offsetof(crtc_t, c4));
   printf("export const CRTC_AT_C9 = %zu\n", offsetof(crtc_t, c9));
+  printf("export const CRTC_AT_C9_IVM = %zu\n", offsetof(crtc_t, c9_ivm));
+  printf("export const CRTC_AT_C5 = %zu\n", offsetof(crtc_t, c5));
+  printf("export const CRTC_AT_C3L = %zu\n", offsetof(crtc_t, c3l));
+  printf("export const CRTC_AT_C3H = %zu\n", offsetof(crtc_t, c3h));
   printf("export const CRTC_AT_VMA_ = %zu\n", offsetof(crtc_t, vma_));
 
   printf("export const GATE_ARRAY_SIZE = %zu\n", sizeof(gate_array_t));

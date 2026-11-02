@@ -148,8 +148,8 @@ uint8_t *player_cpc_written_disc(void) { return written_disc; }
  *
  * cpc_init empties the drives, so a disc that was in one goes back in after
  * this and not before. */
-void player_boot_cpc(uint32_t ram_size, bool disc_interface) {
-  cpc_init(&board.machine, player_ram_bytes, ram_size, player_rom_bytes);
+void player_boot_cpc(uint32_t ram_size, bool disc_interface, uint8_t crtc_type) {
+  cpc_init(&board.machine, player_ram_bytes, ram_size, player_rom_bytes, crtc_type);
   cpc_set_upper_rom(&board.machine, 0, player_rom_bytes + 0x4000);
 
   if (disc_interface) {

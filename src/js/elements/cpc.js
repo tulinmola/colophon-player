@@ -2,7 +2,8 @@ import { CPC_JOYSTICK_MATRIX, CPC_KEY_MATRIX, Cpc } from "../emulator"
 import { MachineElement } from "./machine_element"
 import { readGamepad } from "../input/gamepad"
 
-const DEFAULT_MODEL = "cpc6128"
+const DEFAULT_MODEL = "cpc6128",
+  DEFAULT_CRTC_TYPE = 0
 
 // Z, X and C are where Caprice32 (src/keyboard.cpp,
 // https://github.com/ColinPitrat/caprice32) and CPCEC (cpcec-os.h,
@@ -32,18 +33,28 @@ function gamepadsAllowed() {
 }
 
 class CpcElement extends MachineElement {
-  static observedAttributes = ["disc", "disc-b", "model", "roms", "snapshot", "symbols", "tape"]
+  static observedAttributes = [
+    "crtc-type",
+    "disc",
+    "disc-b",
+    "model",
+    "roms",
+    "snapshot",
+    "symbols",
+    "tape"
+  ]
 
   #heldByGamepads = CPC_JOYSTICK_MATRIX.map(() => new Set())
 
   build({ signal }) {
     const model = this.getAttribute("model") ?? DEFAULT_MODEL,
+      crtcType = Number(this.getAttribute("crtc-type") ?? DEFAULT_CRTC_TYPE),
       romsUrl = this.getAttribute("roms"),
       snapshotUrl = this.getAttribute("snapshot"),
       symbolsUrl = this.getAttribute("symbols"),
       discUrls = [this.getAttribute("disc"), this.getAttribute("disc-b")],
       tapeUrl = this.getAttribute("tape"),
-      options = { signal, romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl }
+      options = { signal, crtcType, romsUrl, snapshotUrl, symbolsUrl, discUrls, tapeUrl }
 
     return Cpc.create(model, options)
   }

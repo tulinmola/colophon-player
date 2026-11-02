@@ -14,7 +14,7 @@ async function bootCpc() {
   const module = await createModule()
 
   module.HEAPU8.set(firmware("cpc6128.rom"), module._player_rom())
-  module._player_boot_cpc(0x20000, false)
+  module._player_boot_cpc(0x20000, false, 0)
 
   return new Cpc(module, 0x20000, false)
 }
