@@ -1,4 +1,10 @@
+import { Amplifier } from "../sound"
 import { Element } from "./element"
+import { SoundNotice } from "./sound_notice"
+
+function volumeOf(element) {
+  return Number(element.getAttribute("volume") ?? 0)
+}
 
 // The element that builds a machine and holds it for every panel placed
 // inside. A machine of its own says which attributes name it, how to build
@@ -6,31 +12,46 @@ import { Element } from "./element"
 // focus, the reboot, the keys held and let go — is the same whatever board
 // is standing.
 export class MachineElement extends Element {
+  static observedAttributes = ["muted", "volume"]
+
+  #amplifier = null
   #heldByKeyboard = new Map()
   #machine = null
+  #notice = null
+
+  // Null while no machine stands, and wherever the page cannot play sound.
+  get amplifier() {
+    return this.#amplifier
+  }
 
   get machine() {
     return this.#machine
   }
 
-  // Reconnection resumes a machine across a move; the observed attributes
-  // name the machine itself, so a change discards it and boots the successor.
-  // The announcement lets every observer rebuild around whatever now stands.
+  // There is no amplifier while the machine is being built, which reads the
+  // sound's attributes as it makes one, nor on a page that cannot play sound.
   attributeChangedCallback(name) {
     if (!this.standing) {
       return
     }
 
-    this.releaseAll()
+    switch (name) {
+      case "muted":
+        if (this.#amplifier) {
+          this.#amplifier.muted = this.hasAttribute("muted")
+        }
+        break
 
-    const machine = this.#machine
-    this.#machine = null
-    machine?.stop()
+      case "volume":
+        if (this.#amplifier) {
+          this.#amplifier.volume = volumeOf(this)
+        }
+        break
 
-    super.attributeChangedCallback(name)
-
-    const rebooted = new Event("machine:reboot")
-    this.dispatchEvent(rebooted)
+      default:
+        this.#reboot(name)
+        break
+    }
   }
 
   async init() {
@@ -47,6 +68,7 @@ export class MachineElement extends Element {
     this.addEventListener("blur", this.onBlur.bind(this), { signal })
 
     if (this.#machine) {
+      this.#makeAmplifier(this.#machine)
       this.watch(this.#machine)
       this.#machine.start()
       return
@@ -68,6 +90,10 @@ export class MachineElement extends Element {
   dispose() {
     this.#machine?.stop()
     this.releaseAll()
+    this.#amplifier?.close()
+    this.#amplifier = null
+    this.#notice?.remove()
+    this.#notice = null
   }
 
   onKeyDown(event) {
@@ -156,6 +182,7 @@ export class MachineElement extends Element {
 
   fit(machine) {
     this.#machine = machine
+    this.#makeAmplifier(machine)
     this.watch(machine)
 
     const ready = new Event("machine:ready")
@@ -167,4 +194,40 @@ export class MachineElement extends Element {
   // Listeners a machine of its own wants on the element's current signal.
   // Reconnection gives the element a new one, so this runs again then.
   watch() {}
+
+  // Before the observers are told of the machine, so that they find it.
+  #makeAmplifier(machine) {
+    if (!Amplifier.supported) {
+      return
+    }
+
+    const { signal } = this,
+      muted = this.hasAttribute("muted"),
+      volume = volumeOf(this),
+      amplifier = new Amplifier(machine, { signal, muted, volume }),
+      notice = SoundNotice.create(),
+      onChanged = () => notice.togglePopover(amplifier.waitingForPress)
+
+    amplifier.addEventListener("amplifier:changed", onChanged, { signal })
+    onChanged()
+    this.#amplifier = amplifier
+    this.#notice = notice
+  }
+
+  // Reconnection resumes a machine across a move; every other observed
+  // attribute names the machine itself, so a change discards it and boots the
+  // successor. The announcement lets every observer rebuild around whatever
+  // now stands.
+  #reboot(name) {
+    this.releaseAll()
+
+    const machine = this.#machine
+    this.#machine = null
+    machine?.stop()
+
+    super.attributeChangedCallback(name)
+
+    const rebooted = new Event("machine:reboot")
+    this.dispatchEvent(rebooted)
+  }
 }

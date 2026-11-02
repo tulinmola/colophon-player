@@ -4,7 +4,14 @@ import { MachineElement } from "./machine_element"
 const DEFAULT_MODEL = "spectrum48"
 
 class SpectrumElement extends MachineElement {
-  static observedAttributes = ["model", "roms", "snapshot", "symbols", "tape"]
+  static observedAttributes = [
+    ...MachineElement.observedAttributes,
+    "model",
+    "roms",
+    "snapshot",
+    "symbols",
+    "tape"
+  ]
 
   build({ signal }) {
     const model = this.getAttribute("model") ?? DEFAULT_MODEL,

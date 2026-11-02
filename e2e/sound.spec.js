@@ -1,7 +1,8 @@
 import { CPC_6128, SPECTRUM_48, bootStopped } from "./machine"
 import { expect, test } from "@playwright/test"
 
-const AMPLIFIER = "<colophon-amplifier></colophon-amplifier>"
+const VOLUME = "<colophon-volume></colophon-volume>",
+  NOTICE = "colophon-sound-notice"
 
 // Long enough for several frames to be delivered, were any being made.
 const QUIET_MILLISECONDS = 300
@@ -12,6 +13,34 @@ const FLOOR_DECIBELS = -60
 // A gain eased toward nothing approaches it rather than reaching it: 120dB
 // down is silence.
 const SILENCE = 1e-6
+
+// Playwright's own calls into the page count as presses in Chromium, so here
+// only the test's own input does.
+function pressedByInputOnly() {
+  let pressed = false
+
+  function press() {
+    pressed = true
+  }
+
+  addEventListener("keydown", press, { capture: true })
+  addEventListener("pointerdown", press, { capture: true })
+  Object.defineProperty(navigator, "userActivation", { get: () => ({ hasBeenActive: pressed }) })
+}
+
+// A notice shown and hidden again at once leaves nothing to find afterwards.
+function countNoticesShown() {
+  window.noticesShown = 0
+  document.addEventListener(
+    "beforetoggle",
+    function (event) {
+      if (event.newState == "open") {
+        window.noticesShown++
+      }
+    },
+    { capture: true }
+  )
+}
 
 // What the page hands the worklet is counted on its way out, since the
 // worklet itself is on a thread the test cannot reach.
@@ -92,7 +121,12 @@ async function expectQuiet(page) {
   expect(await deliveries(page)).toBe(before)
 }
 
-async function bootRunning(page, machine, panels = AMPLIFIER) {
+function withAttributes(machine, attributes) {
+  return { ...machine, attributes: `${machine.attributes} ${attributes}` }
+}
+
+async function bootRunning(page, machine, panels = VOLUME) {
+  await page.addInitScript(pressedByInputOnly)
   await page.addInitScript(countDeliveries)
 
   const element = await bootStopped(page, machine, panels)
@@ -104,7 +138,7 @@ async function bootRunning(page, machine, panels = AMPLIFIER) {
 
 function meterReadings(page) {
   return page
-    .locator("colophon-amplifier meter")
+    .locator("colophon-volume meter")
     .evaluateAll(meters => meters.map(meter => meter.value))
 }
 
@@ -130,18 +164,19 @@ function beep(element) {
   )
 }
 
-test("the amplifier's volume starts from its attribute", async function ({ page }) {
+test("a machine's volume starts from its attribute, and the volume panel shows it", async function ({
+  page
+}) {
   await page.addInitScript(tapAmplifiers)
 
   const element = await bootRunning(
       page,
-      SPECTRUM_48,
-      `<colophon-amplifier volume="${FLOOR_DECIBELS}"></colophon-amplifier>`
+      withAttributes(SPECTRUM_48, `volume="${FLOOR_DECIBELS}"`)
     ),
-    amplifier = page.locator("colophon-amplifier")
+    panel = page.locator("colophon-volume")
 
-  await expect(amplifier.locator('input[name="volume"]')).toHaveValue(String(FLOOR_DECIBELS))
-  await expect(amplifier.locator("output")).toHaveText("Off")
+  await expect(panel.getByRole("slider", { name: "Volume" })).toHaveValue(String(FLOOR_DECIBELS))
+  await expect(panel.locator("output")).toHaveText("Off")
 
   await beep(element)
   await element.click()
@@ -151,14 +186,14 @@ test("the amplifier's volume starts from its attribute", async function ({ page 
   expect((await page.evaluate(lastOf, "heard")).peak).toBeLessThan(SILENCE)
 })
 
-test("the amplifier's volume set on the element shows on the fader and reaches the speakers", async function ({
+test("a machine's volume set on its element shows on the volume panel and reaches the speakers", async function ({
   page
 }) {
   await page.addInitScript(tapAmplifiers)
 
   const element = await bootRunning(page, SPECTRUM_48),
-    amplifier = page.locator("colophon-amplifier"),
-    fader = amplifier.locator('input[name="volume"]')
+    panel = page.locator("colophon-volume"),
+    fader = panel.locator('input[name="volume"]')
 
   await beep(element)
   await element.click()
@@ -167,20 +202,20 @@ test("the amplifier's volume set on the element shows on the fader and reaches t
 
   const asItSounds = (await page.evaluate(lastOf, "heard")).peak
 
-  await amplifier.evaluate(panel => panel.setAttribute("volume", "6"))
+  await element.evaluate(host => host.setAttribute("volume", "6"))
   await expect(fader).toHaveValue("6")
-  await expect(amplifier.locator("output")).toHaveText("+6dB")
+  await expect(panel.locator("output")).toHaveText("+6dB")
   await page.waitForTimeout(QUIET_MILLISECONDS)
 
   // Six decibels up is twice the swing.
   expect((await page.evaluate(lastOf, "heard")).peak / asItSounds).toBeCloseTo(2, 0)
 
-  await amplifier.evaluate(
-    (panel, decibels) => panel.setAttribute("volume", String(decibels)),
+  await element.evaluate(
+    (host, decibels) => host.setAttribute("volume", String(decibels)),
     FLOOR_DECIBELS
   )
   await expect(fader).toHaveValue(String(FLOOR_DECIBELS))
-  await expect(amplifier.locator("output")).toHaveText("Off")
+  await expect(panel.locator("output")).toHaveText("Off")
   await page.waitForTimeout(QUIET_MILLISECONDS)
 
   expect((await page.evaluate(lastOf, "heard")).peak).toBeLessThan(SILENCE)
@@ -189,10 +224,10 @@ test("the amplifier's volume set on the element shows on the fader and reaches t
 })
 
 for (const machine of [CPC_6128, SPECTRUM_48]) {
-  test(`a ${machine.element} with an amplifier is heard from the first press on it`, async function ({
+  test(`a ${machine.element} is heard from the first press on it, with no panel placed in it`, async function ({
     page
   }) {
-    const element = await bootRunning(page, machine)
+    const element = await bootRunning(page, machine, "")
 
     await expectQuiet(page)
     await element.click()
@@ -200,25 +235,138 @@ for (const machine of [CPC_6128, SPECTRUM_48]) {
   })
 }
 
-test("a machine with no amplifier is not heard", async function ({ page }) {
+test("a page not yet pressed is told so, and heard from the first click anywhere on it", async function ({
+  page
+}) {
+  await bootRunning(page, CPC_6128, "")
+
+  const notice = page.locator(NOTICE),
+    { height } = page.viewportSize(),
+    beside = { x: 5, y: height - 5 }
+
+  await expect(notice).toBeVisible()
+  await expect(notice).toHaveText("Press a key or click to hear the machine.")
+  await expectQuiet(page)
+
+  expect(
+    await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y).closest("colophon-cpc"),
+      beside
+    )
+  ).toBeNull()
+  await page.mouse.click(beside.x, beside.y)
+
+  await expect(notice).toBeHidden()
+  await expectDelivering(page)
+})
+
+test("a page not yet pressed is heard from the first key pressed on it", async function ({ page }) {
+  await bootRunning(page, SPECTRUM_48, "")
+
+  const notice = page.locator(NOTICE)
+
+  await expect(notice).toBeVisible()
+  await page.keyboard.press("Enter")
+
+  await expect(notice).toBeHidden()
+  await expectDelivering(page)
+})
+
+test("a machine built on a page pressed already is heard with no press, and tells nothing", async function ({
+  page
+}) {
+  await page.addInitScript(pressedByInputOnly)
+  await page.addInitScript(countDeliveries)
+  await page.addInitScript(countNoticesShown)
+
+  const element = await bootStopped(page, withAttributes(CPC_6128, "muted"))
+
+  await element.click()
+  await page.evaluate(function ({ element: name, attributes }) {
+    document.body.insertAdjacentHTML("beforeend", `<${name} ${attributes}></${name}>`)
+  }, SPECTRUM_48)
+
+  await expectDelivering(page)
+  expect(await page.evaluate(() => window.noticesShown)).toBe(0)
+})
+
+test("a muted machine makes no sound and asks for no press, and is heard once it is not", async function ({
+  page
+}) {
+  await page.addInitScript(tapAmplifiers)
+
+  const element = await bootRunning(page, withAttributes(CPC_6128, "muted")),
+    panel = page.locator("colophon-volume")
+
+  await expect(page.locator(NOTICE)).toBeHidden()
+  await expect(panel.locator("output")).toHaveText("Muted")
+  await expect(panel.locator('input[name="volume"]')).toBeDisabled()
+
+  await element.click()
+  await expectQuiet(page)
+  expect(await page.evaluate(() => window.played.length)).toBe(0)
+
+  await element.evaluate(host => host.removeAttribute("muted"))
+  await expect(panel.locator("output")).toHaveText("0dB")
+  await expectDelivering(page)
+
+  await element.evaluate(host => host.setAttribute("muted", ""))
+  await expect(panel.locator("output")).toHaveText("Muted")
+  await expectQuiet(page)
+})
+
+test("a machine rebooted on a page not yet pressed lays one notice", async function ({ page }) {
   const element = await bootRunning(page, CPC_6128, "")
+
+  await expect(page.locator(NOTICE)).toBeVisible()
+  await element.evaluate(function (host) {
+    return new Promise(function (resolve) {
+      host.addEventListener("machine:ready", () => resolve(), { once: true })
+      host.setAttribute("model", "cpc464")
+    })
+  })
+
+  await expect(page.locator(NOTICE)).toHaveCount(1)
+  await expect(page.locator(NOTICE)).toBeVisible()
+})
+
+test("a page that cannot play sound runs its machine silent, with no notice and the fader at its foot", async function ({
+  page
+}) {
+  await page.addInitScript(() => delete window.AudioWorkletNode)
+
+  const element = await bootRunning(page, CPC_6128),
+    panel = page.locator("colophon-volume")
+
+  await expect(page.locator(NOTICE)).toHaveCount(0)
+  await expect(panel.locator('input[name="volume"]')).toBeDisabled()
+  await expect(panel.locator('input[name="volume"]')).toHaveValue(String(FLOOR_DECIBELS))
+  await expect(panel.locator('input[name="volume"]')).toHaveAttribute("aria-valuetext", "Off")
+  await expect(panel.locator("output")).toHaveText("Off")
 
   await element.click()
   await expectQuiet(page)
 })
 
-test("the amplifier meters each channel the machine sounds", async function ({ page }) {
-  await bootStopped(page, CPC_6128, AMPLIFIER)
+test("two volume panels in one machine show the same volume", async function ({ page }) {
+  await bootStopped(page, CPC_6128, VOLUME + VOLUME)
 
-  await expect(page.locator("colophon-amplifier label span")).toHaveText([
-    "Volume",
-    "Left",
-    "Right"
-  ])
+  const faders = page.locator('colophon-volume input[name="volume"]')
 
-  await bootStopped(page, SPECTRUM_48, AMPLIFIER)
+  await faders.first().fill("-12")
 
-  await expect(page.locator("colophon-amplifier label span")).toHaveText(["Volume", "Mono"])
+  await expect(faders.last()).toHaveValue("-12")
+  await expect(page.locator("colophon-volume output").last()).toHaveText("−12dB")
+})
+
+test("the volume panel meters each channel the machine sounds", async function ({ page }) {
+  await bootStopped(page, CPC_6128, VOLUME)
+
+  await expect(page.locator("colophon-volume label span")).toHaveText(["Left", "Right"])
+
+  await bootStopped(page, SPECTRUM_48, VOLUME)
+
+  await expect(page.locator("colophon-volume label span")).toHaveText(["Mono"])
 })
 
 test("the machine falls silent when it stops, and is heard again when it runs", async function ({
@@ -318,23 +466,23 @@ test("the volume turned off silences the speakers and leaves the meters reading"
   await page.addInitScript(tapAmplifiers)
 
   const element = await bootRunning(page, SPECTRUM_48),
-    amplifier = page.locator("colophon-amplifier"),
-    fader = amplifier.locator('input[name="volume"]')
+    panel = page.locator("colophon-volume"),
+    fader = panel.locator('input[name="volume"]')
 
   await beep(element)
   await element.click()
   await expectDelivering(page)
 
   await fader.fill(String(FLOOR_DECIBELS))
-  await expect(amplifier).toHaveAttribute("volume", String(FLOOR_DECIBELS))
-  await expect(amplifier.locator("output")).toHaveText("Off")
+  await expect(element).toHaveAttribute("volume", String(FLOOR_DECIBELS))
+  await expect(panel.locator("output")).toHaveText("Off")
   await page.waitForTimeout(QUIET_MILLISECONDS)
 
   expect((await page.evaluate(lastOf, "heard")).peak).toBeLessThan(SILENCE)
   expect((await meterReadings(page))[0]).toBeGreaterThan(-12)
 
   await fader.fill("-12")
-  await expect(amplifier.locator("output")).toHaveText("−12dB")
+  await expect(panel.locator("output")).toHaveText("−12dB")
   await page.waitForTimeout(QUIET_MILLISECONDS)
 
   expect((await page.evaluate(lastOf, "heard")).peak).toBeGreaterThan(0)

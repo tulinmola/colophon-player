@@ -1,10 +1,10 @@
 ---
 title: The CPC
-description: The element that builds an Amstrad CPC, holds it for every panel watching it, and carries the keyboard and the joysticks.
+description: The element that builds an Amstrad CPC, holds it for every panel watching it, and carries the keyboard, the joysticks and the sound.
 order: 1
 ---
 
-`<colophon-cpc>` builds a machine and holds it. It is the only element here that owns anything: the panels placed inside it find it by looking upward, and not one of them knows how to make one. It carries the keyboard and the joysticks as well, because a machine that cannot be typed at is a machine standing at its prompt forever.
+`<colophon-cpc>` builds a machine and holds it. It is the only element here that owns anything: the panels placed inside it find it by looking upward, and not one of them knows how to make one. It carries the keyboard and the joysticks as well, because a machine that cannot be typed at is a machine standing at its prompt forever. [Its sound](#the-sound) is its own too, heard with nothing placed inside it.
 
 The element is named for the machine rather than for its part in a page, so that [the Spectrum](spectrum.en.md) stands beside it rather than underneath it — and the panels, which watch chips and not machines, came along to that one unchanged.
 
@@ -25,8 +25,10 @@ The element is named for the machine rather than for its part in a page, so that
 | `symbols`   | —         | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called.                                                                                                                                                                         |
 | `roms`      | `/roms`   | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                                                                                                                                                                                              |
 | `joystick`  | —         | `cursors` puts [joystick 0 on the cursor keys](#the-joysticks), with Z, X and C for its buttons. It is read as each key arrives, so it can be set or taken off a living page without a reboot.                                                                                                                                                                                                                 |
+| `volume`    | `0`       | The volume the machine is heard at, in decibels: `0` is the machine as it sounds, and `-60` or anything below it is silence. [The volume panel](debugger/volume.en.md) shows it and sets it.                                                                                                                                                                                                                   |
+| `muted`     | —         | Present, the machine is not heard at all, and no notice asks the reader for a press. Taken off, it is heard as soon as the page lets it be.                                                                                                                                                                                                                                                                    |
 
-Change any of these but `joystick` on a living page and the machine reboots: the one standing stops, a successor boots from the new values, and the element announces `machine:reboot` for every panel to rebuild by. A different game arrives into the same instruments as easily as an attribute is typed.
+Change any of these but `joystick`, `volume` and `muted` on a living page and the machine reboots: the one standing stops, a successor boots from the new values, and the element announces `machine:reboot` for every panel to rebuild by. A different game arrives into the same instruments as easily as an attribute is typed.
 
 The element takes focus, and gives itself a `tabindex` if the page has not given it one. It cannot do that when it is constructed, because an element does not carry its attributes until it reaches the page, and `document.createElement` would break on the way.
 
@@ -52,7 +54,7 @@ A screen that is touched has neither keys nor a pad, and [`<colophon-cpc-joystic
 
 ## What it brings with it
 
-Two things are the debugger's own rather than any page's: the actions offered by the right button, and the form that takes down a breakpoint. Each is raised on the page when it is called for and taken away when it is done with, so neither takes a place among the panels and neither has to be asked for — a page that named no panel at all still has both, because what they carry belongs to the machine and not to the furniture that lists it.
+Three things are the debugger's own rather than any page's: the actions offered by the right button, the form that takes down a breakpoint, and [the notice](#when-the-machine-is-heard) that asks for a press before the machine can be heard. Each is raised on the page when it is called for and taken away when it is done with, so none takes a place among the panels and none has to be asked for — a page that named no panel at all still has all three, because what they carry belongs to the machine and not to the furniture that lists it.
 
 ## When the machine arrives
 
@@ -74,9 +76,17 @@ What it cannot do yet is set out chip by chip [where the machine is built](../em
 
 ## The sound
 
-What is heard is the stereo socket at the back of the case: the sound chip's three channels joined as the board's resistors join them, A with B on the left and C with B on the right, [as the emulator builds it](../emulator/machine.en.md#sound-and-the-keyboard). The socket has no capacitor and carries its direct current, which whatever was plugged into it blocked. The machine's own loudspeaker, behind a filter and an amplifier of its own, is not what is heard.
+What is heard is the stereo socket at the back of the case: the sound chip's three channels joined as the board's resistors join them, A with B on the left and C with B on the right, [as the emulator builds it](../emulator/machine.en.md#sound-and-the-keyboard). The socket has no capacitor and carries its direct current, which whatever was plugged into it blocked. The machine's own loudspeaker, behind a filter and an amplifier of its own, is not what is heard, and nor is the VOLUME control at the rear of the case, which sets that loudspeaker alone: [the 6128's manual](https://archive.org/details/amstrad-cpc-6128-user-manual) says the socket gives "a fixed voltage signal", and leaves its volume to "the controls on the amplifier itself".
 
-It is heard through [`<colophon-amplifier>`](debugger/amplifier.en.md), placed inside the machine like any panel; without one the machine is silent. When the machine is heard at all — from the reader's first key or press on it, while it runs at the speed the hardware ran — is set out there.
+[The 6128's manual](https://archive.org/details/amstrad-cpc-6128-user-manual) tells its owner, in its first chapter, that "the sound can also be fed to the auxiliary input socket of your stereo system, using the socket on the computer marked STEREO", and the element is built as though its machine had been plugged into one: it blocks the direct current, sets the volume, and plays what is left through the reader's own speakers. Nothing has to be placed inside it for the machine to be heard. The volume is the element's, as a `<video>` carries its own: `volume` sets it, `muted` silences it, and [`<colophon-volume>`](debugger/volume.en.md) is where a reader turns it up or down, beside a meter for each channel.
+
+## When the machine is heard
+
+A page may make no sound until its reader has done something on it, and [the browser decides what counts](https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event): a key, though not a modifier or Escape alone, or a click or a touch. A machine built on a page its reader has pressed already, such as one a page builds after a click, is heard at once wherever the browser lets an earlier press count, as [Chromium's policy](https://developer.chrome.com/blog/autoplay) does. Otherwise the machine element lays a notice in the bottom-right corner of the window: `Press a key or click to hear the machine.` The machine is then heard from the first press anywhere on the page, on the machine, on the notice or on the page around them, a click counting as it is let go. The notice stands until the sound runs, and comes back should the browser hold it back again. The player waits for a press even where a browser would let the page sound without one, since most browsers can only be asked by trying, and a refused try leaves a warning on the page's console. A page woken is woken whole, for every machine on it, one built afterwards included. A muted machine asks for nothing and lays no notice.
+
+A machine is then heard while it runs at the speed the hardware ran, and only then. Stopped, or stepped by an instruction, a line, a row or a frame, it is silent, because a stop is a moment and not a sound; stepping over a call or out of one lets it run until the call returns, and that run is heard like any other. Stood in the past, stepped back or profiled it is silent, because what [the record](debugger/record.en.md) runs again to get there was heard once already; and run faster than it ran it is silent, because it would be heard at another pitch.
+
+It is heard about a twentieth of a second after the machine made it: the page runs the machine a frame at a time, and the sound is held that far ahead of the speakers so that the frames are heard as one sound and not as a frame's sound at a time. A page served without a secure context has no way of playing it; there the machine is silent, lays no notice, and [the volume panel](debugger/volume.en.md)'s fader is disabled at its foot.
 
 ## The firmware
 

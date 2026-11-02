@@ -33,7 +33,7 @@ The debugger travels as two files, each pinned to a version that cannot change u
     <colophon-cpc model="cpc6128" snapshot="game.sna">
       <colophon-controls></colophon-controls>
       <colophon-monitor zoom="1.5"></colophon-monitor>
-      <colophon-amplifier></colophon-amplifier>
+      <colophon-volume></colophon-volume>
       <div class="panels">
         <colophon-z80></colophon-z80>
         <colophon-disassembly></colophon-disassembly>
@@ -44,6 +44,8 @@ The debugger travels as two files, each pinned to a version that cannot change u
 ```
 
 The stylesheet dresses the page and not only the elements: it resets the document and sets the body's colour and type, which is why the page above holds nothing else. `panels` is the one class it offers the page, and it stacks what it holds into a column beside the monitor. [The controls](debugger/controls.en.md) take a line to themselves when they are placed directly inside the machine element, rather than standing in one of those columns.
+
+The machine is heard as it runs, once its reader has pressed something on the page; until then a notice in the corner of the window asks for a press, and `muted` on the machine element keeps it quiet. [When it is heard](cpc.en.md#when-the-machine-is-heard) is set out with the CPC's sound.
 
 That page builds a CPC; a Spectrum is the same shape with [`<colophon-spectrum>`](spectrum.en.md) in its place and its own firmware in `/roms`.
 

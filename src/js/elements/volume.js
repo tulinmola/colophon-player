@@ -1,11 +1,8 @@
 import { html, write, writeValue } from "../lang"
-import { Amplifier } from "../sound"
+import { FLOOR_DECIBELS } from "../sound"
 import { MachineObserver } from "./machine_observer"
 
-// The fader's foot is silence rather than a level, and the meters read from
-// the same depth up to full scale.
-const FLOOR_DECIBELS = -60,
-  HEAD_DECIBELS = 12
+const HEAD_DECIBELS = 12
 
 // Rising at once and falling back 20dB in 1.7s, as IEC 60268-18's digital
 // peak meter does ("Table of characteristics",
@@ -25,10 +22,7 @@ function decibelsOf(level) {
   return 20 * Math.log10(level)
 }
 
-class AmplifierElement extends MachineObserver {
-  static observedAttributes = ["volume"]
-
-  #amplifier = null
+class VolumeElement extends MachineObserver {
   #fader
   #meters
   #readings
@@ -36,22 +30,21 @@ class AmplifierElement extends MachineObserver {
   #volume
 
   watch(machine) {
-    const names = CHANNEL_NAMES[machine.soundChannels]
+    const names = CHANNEL_NAMES[machine.soundChannels],
+      { amplifier } = this.host
 
     this.innerHTML = html`
-      <h2>Amplifier</h2>
+      <h2>Volume</h2>
       <div class="levels">
-        <label>
-          <span>Volume</span>
-          <input
-            type="range"
-            name="volume"
-            min="${FLOOR_DECIBELS}"
-            max="${HEAD_DECIBELS}"
-            step="1"
-          />
-          <output name="volume"></output>
-        </label>
+        <input
+          type="range"
+          name="volume"
+          aria-label="Volume"
+          min="${FLOOR_DECIBELS}"
+          max="${HEAD_DECIBELS}"
+          step="1"
+        />
+        <output name="volume" aria-live="off"></output>
         ${names.map(renderMeter).join("")}
       </div>
     `
@@ -63,63 +56,38 @@ class AmplifierElement extends MachineObserver {
     this.#meters = Array.from(this.querySelectorAll("meter"))
     this.#readings = this.#meters.map(() => FLOOR_DECIBELS)
 
-    this.#fader.disabled = !Amplifier.supported
-    if (this.#fader.disabled) {
+    if (amplifier == null) {
+      this.#writeVolume({ volume: FLOOR_DECIBELS, muted: false })
+      this.#fader.disabled = true
       this.#fader.title = "Sound cannot be played on this page"
-    } else {
-      const wake = () => Amplifier.wake(),
-        onLevels = peaks => this.#read(peaks)
-
-      this.#amplifier = new Amplifier(machine, { signal, onLevels })
-      this.host.addEventListener("keydown", wake, { signal })
-      this.host.addEventListener("pointerup", wake, { signal })
-    }
-
-    this.addEventListener("change", this.onChanged.bind(this), { signal })
-    this.#writeVolume()
-  }
-
-  attributeChangedCallback(name) {
-    if (this.machine == null) {
-      super.attributeChangedCallback(name)
       return
     }
 
-    switch (name) {
-      case "volume":
-        this.#writeVolume()
-        break
-
-      default:
-        super.attributeChangedCallback(name)
-        break
-    }
-  }
-
-  dispose() {
-    super.dispose()
-    this.#amplifier?.close()
-    this.#amplifier = null
+    amplifier.addEventListener("amplifier:levels", () => this.#read(amplifier.levels), { signal })
+    amplifier.addEventListener("amplifier:changed", () => this.#writeVolume(amplifier), { signal })
+    this.addEventListener("change", this.onChanged.bind(this), { signal })
+    this.#writeVolume(amplifier)
   }
 
   onChanged(event) {
-    this.setAttribute("volume", event.target.value)
+    this.host.setAttribute("volume", event.target.value)
   }
 
-  #writeVolume() {
-    const decibels = Number(this.getAttribute("volume") ?? 0),
-      silent = decibels <= FLOOR_DECIBELS,
-      sign = decibels < 0 ? "−" : decibels > 0 ? "+" : "",
-      shown = silent ? "Off" : `${sign}${Math.abs(decibels)}dB`
+  #writeVolume({ volume, muted }) {
+    const silent = volume <= FLOOR_DECIBELS,
+      sign = volume < 0 ? "−" : volume > 0 ? "+" : "",
+      shown = muted ? "Muted" : silent ? "Off" : `${sign}${Math.abs(volume)}dB`
 
-    writeValue(this.#fader, String(decibels))
+    writeValue(this.#fader, String(volume))
     write(this.#volume, shown)
 
     if (this.#fader.getAttribute("aria-valuetext") != shown) {
       this.#fader.setAttribute("aria-valuetext", shown)
     }
 
-    this.#amplifier?.setVolume(silent ? -Infinity : decibels)
+    if (this.#fader.disabled != muted) {
+      this.#fader.disabled = muted
+    }
   }
 
   // Null when the machine falls silent, which brings the meters down at once:
@@ -146,4 +114,4 @@ class AmplifierElement extends MachineObserver {
   }
 }
 
-AmplifierElement.define("colophon-amplifier")
+VolumeElement.define("colophon-volume")

@@ -20,8 +20,6 @@ export class MachineObserver extends Element {
   #host = null
   #machine = null
 
-  // The element holding the machine, which is where a reader's keys and
-  // presses on it arrive.
   get host() {
     return this.#host
   }

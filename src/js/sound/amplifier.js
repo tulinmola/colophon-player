@@ -1,3 +1,5 @@
+import { FLOOR_DECIBELS } from "./volume_floor"
+
 // A worklet module is fetched under the page's own policy, which may refuse
 // one inlined as a data: URL, so the processor ships as a file of its own,
 // found beside the module wherever that is served from.
@@ -13,6 +15,10 @@ const VOLUME_EASING_SECONDS = 0.01
 let context = null,
   processorLoaded = null
 
+function gainOf(decibels) {
+  return decibels <= FLOOR_DECIBELS ? 0 : 10 ** (decibels / 20)
+}
+
 function sharedContext() {
   if (context == null) {
     context = new AudioContext()
@@ -24,47 +30,82 @@ function sharedContext() {
 
 // What a machine sounds while it runs live at its own speed, and nothing it
 // sounds otherwise: the delivery, and the volume it is played at.
-export class Amplifier {
+export class Amplifier extends EventTarget {
   #connecting = false
+  #levels = null
   #listening = false
   #machine
+  #muted
   #node = null
-  #onLevels
   #signal
   #spare = []
-  #volume = 0
+  #volume
   #volumeNode = null
+  #waitingForPress = false
 
   static get supported() {
     return "AudioWorkletNode" in window
   }
 
-  // A context begins suspended, and only a gesture lets it run: this is called
-  // from one, and resumes before anything is waited for. A page woken is woken
-  // for every machine on it, those built later included.
-  static wake() {
-    sharedContext().resume()
-  }
+  constructor(machine, { signal, muted, volume }) {
+    super()
 
-  // `onLevels` is given what was played, before the volume, at its peak since
-  // the last time, a level from 0 to 1 for each of the machine's channels; and
-  // null as the machine falls silent.
-  constructor(machine, { signal, onLevels }) {
     this.#machine = machine
     this.#signal = signal
-    this.#onLevels = onLevels
+    this.#muted = muted
+    this.#volume = volume
 
     machine.addEventListener("machine:advance", () => this.#listenOrFallSilent(), { signal })
     machine.addEventListener("machine:frame", () => this.#deliver(), { signal })
     machine.addEventListener("machine:stop", () => this.#fallSilent(), { signal })
+
+    // Caught on the way down, so that a page stopping a press on its way does
+    // not keep it from the sound; a touch is a press only once it is let go.
+    window.addEventListener("keydown", () => this.#wake(), { signal, capture: true })
+    window.addEventListener("pointerup", () => this.#wake(), { signal, capture: true })
+
+    this.#wake()
   }
 
-  // In decibels: 0 plays the machine as it sounds, and -Infinity is silence.
-  setVolume(decibels) {
-    const gain = 10 ** (decibels / 20)
+  // What was played, before the volume, at its peak since the last levels: a
+  // level from 0 to 1 for each of the machine's channels, and null once the
+  // machine has fallen silent.
+  get levels() {
+    return this.#levels
+  }
+
+  get muted() {
+    return this.#muted
+  }
+
+  set muted(muted) {
+    this.#muted = muted
+
+    if (muted) {
+      this.#writeWaitingForPress(false)
+    } else {
+      this.#wake()
+    }
+
+    this.#changed()
+  }
+
+  // In decibels: 0 plays the machine as it sounds, and the floor or anything
+  // below it is silence.
+  get volume() {
+    return this.#volume
+  }
+
+  set volume(decibels) {
+    const gain = gainOf(decibels)
 
     this.#volume = decibels
     this.#volumeNode?.gain.setTargetAtTime(gain, context.currentTime, VOLUME_EASING_SECONDS)
+    this.#changed()
+  }
+
+  get waitingForPress() {
+    return this.#waitingForPress
   }
 
   close() {
@@ -85,8 +126,55 @@ export class Amplifier {
 
     if (this.#listening) {
       this.#machine.setListeningRate(context.sampleRate * adjustment)
-      this.#onLevels(peaks)
+      this.#writeLevels(peaks)
     }
+  }
+
+  #changed() {
+    const changed = new Event("amplifier:changed")
+    this.dispatchEvent(changed)
+  }
+
+  #writeWaitingForPress(waiting) {
+    if (this.#waitingForPress != waiting) {
+      this.#waitingForPress = waiting
+      this.#changed()
+    }
+  }
+
+  #writeLevels(levels) {
+    const read = new Event("amplifier:levels")
+
+    this.#levels = levels
+    this.dispatchEvent(read)
+  }
+
+  // A context made on a page not yet pressed is refused, with a warning on the
+  // console. Not every key is a press: Escape is not, by HTML's
+  // activation-triggering input events
+  // (https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event),
+  // and Chromium and Firefox leave out a modifier alone as well.
+  #wake() {
+    if (this.#muted) {
+      return
+    }
+
+    if (!navigator.userActivation.hasBeenActive) {
+      this.#writeWaitingForPress(true)
+      return
+    }
+
+    const shared = sharedContext(),
+      onStateChanged = () => this.#writeWaitingForPress(!this.#muted && shared.state != "running")
+
+    if (!this.#connecting) {
+      this.#connecting = true
+      shared.addEventListener("statechange", onStateChanged, { signal: this.#signal })
+      this.#makeNode()
+    }
+
+    shared.resume()
+    onStateChanged()
   }
 
   async #makeNode() {
@@ -98,7 +186,7 @@ export class Amplifier {
 
     const options = { numberOfInputs: 0, outputChannelCount: [2] },
       node = new AudioWorkletNode(context, PROCESSOR, options),
-      gain = 10 ** (this.#volume / 20),
+      gain = gainOf(this.#volume),
       volumeNode = new GainNode(context, { gain })
 
     node.port.onmessage = event => this.onReturned(event.data)
@@ -108,16 +196,9 @@ export class Amplifier {
     this.#volumeNode = volumeNode
   }
 
-  // Before each run. The page's context is looked for here, since whichever
-  // machine was pressed woke it for all of them.
   #listenOrFallSilent() {
-    if (context != null && !this.#connecting) {
-      this.#connecting = true
-      this.#makeNode()
-    }
-
     const machine = this.#machine,
-      heard = this.#node != null && context.state == "running" && machine.speed == 1
+      heard = !this.#muted && this.#node != null && context.state == "running" && machine.speed == 1
 
     if (heard && !this.#listening) {
       machine.listen(context.sampleRate)
@@ -160,6 +241,6 @@ export class Amplifier {
     this.#deliver()
     this.#machine.stopListening()
     this.#listening = false
-    this.#onLevels(null)
+    this.#writeLevels(null)
   }
 }

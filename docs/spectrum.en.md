@@ -1,6 +1,6 @@
 ---
 title: The Spectrum
-description: The element that builds a ZX Spectrum, holds it for every panel watching it, and carries the keyboard.
+description: The element that builds a ZX Spectrum, holds it for every panel watching it, and carries the keyboard and the sound.
 order: 2
 ---
 
@@ -21,8 +21,10 @@ What was promised of the panels held. The processor, the memory, the disassembly
 | `symbols`  | —            | A file of named addresses, fetched relative to the page, under which the program can be read back. [Which dialect it is in](debugger/symbols.en.md#the-files-it-reads) is settled by the file itself rather than by what it is called. |
 | `tape`     | —            | A `.tap`, `.tzx` or `.cdt` to put in the deck, fetched relative to the page. It goes in stopped: [pressing PLAY](debugger/tape.en.md#who-turns-the-reel) is the reader's.                                                              |
 | `roms`     | `/roms`      | Where the firmware is looked for. The default stands at the root of the site whatever the page's own address; a relative value here is resolved against the page.                                                                      |
+| `volume`   | `0`          | The volume the machine is heard at, in decibels: `0` is the machine as it sounds, and `-60` or anything below it is silence. [The volume panel](debugger/volume.en.md) shows it and sets it.                                           |
+| `muted`    | —            | Present, the machine is not heard at all, and no notice asks the reader for a press. Taken off, it is heard as soon as the page lets it be.                                                                                            |
 
-Change any of these on a living page and the machine reboots, and the element announces `machine:reboot` for every panel to rebuild by — the same rule the CPC element follows, for the same reason.
+Change any of these but `volume` and `muted` on a living page and the machine reboots, and the element announces `machine:reboot` for every panel to rebuild by — the same rule the CPC element follows, for the same reason.
 
 The element takes focus, and gives itself a `tabindex` if the page has not given it one.
 
@@ -42,7 +44,7 @@ The release rule is the CPC's, and for the same reason: the firmware reads the m
 
 It boots its firmware, shows the copyright line Sinclair put in it, takes what is typed at it and runs BASIC. It runs at the speed the hardware ran, which on this machine means [the ULA stopping the processor's clock rather than asserting a wait line](../emulator/machine.en.md#the-zx-spectrum) — so what an instruction costs depends on where in the frame it began, and the debugger's tick count is the machine's own.
 
-Every panel but the ones that watch a CPC's own chips answers here: [the controls](debugger/controls.en.md), [the monitor](debugger/monitor.en.md), [the amplifier](debugger/amplifier.en.md), [the ULA](debugger/ula.en.md), [the Z80](debugger/z80.en.md), [the disassembly](debugger/disassembly.en.md), [the memory](debugger/memory.en.md), [the keyboard](debugger/keyboard.en.md), [the tape](debugger/tape.en.md), [the breakpoints](debugger/breakpoints.en.md) and [the profile](debugger/profile.en.md). The memory panel's physical space begins where the machine's RAM begins, which on this board is `&4000`: nothing answers below it, so physical zero is the first byte the processor can write.
+Every panel but the ones that watch a CPC's own chips answers here: [the controls](debugger/controls.en.md), [the monitor](debugger/monitor.en.md), [the volume](debugger/volume.en.md), [the ULA](debugger/ula.en.md), [the Z80](debugger/z80.en.md), [the disassembly](debugger/disassembly.en.md), [the memory](debugger/memory.en.md), [the keyboard](debugger/keyboard.en.md), [the tape](debugger/tape.en.md), [the breakpoints](debugger/breakpoints.en.md) and [the profile](debugger/profile.en.md). The memory panel's physical space begins where the machine's RAM begins, which on this board is `&4000`: nothing answers below it, so physical zero is the first byte the processor can write.
 
 It loads from tape — `.tap` and `.tzx`, and the `.cdt` that is a `.tzx` under another name — and [the deck](debugger/tape.en.md) is the reader's to turn, because this machine has no motor line to turn it with. It sounds, through its loudspeaker, as [the next section](#the-sound) sets out. [The screen](debugger/screen.en.md) is the CPC's alone, because reading a region of memory as a picture means reading it in that machine's own arrangement, and a Spectrum's is not the CPC's.
 
@@ -50,7 +52,7 @@ It loads from tape — `.tap` and `.tzx`, and the `.cdt` that is a `.tzx` under 
 
 What is heard is the loudspeaker inside the case, in both ears: the voltage that bits 4 and 3 of the last write to the ULA leave across it, [as the emulator builds it](../emulator/machine.en.md#the-zx-spectrum). A playing tape reached the same speaker on the hardware and does not reach it here, so a tape loads in silence.
 
-It is heard through [`<colophon-amplifier>`](debugger/amplifier.en.md), in both ears, on the same terms as a CPC: without one the machine is silent.
+It is heard in both ears, on the same terms as [a CPC](cpc.en.md#the-sound): by the element itself, at its `volume` and unless it is `muted`, with nothing placed inside it, and [only when a CPC would be heard](cpc.en.md#when-the-machine-is-heard).
 
 ## The firmware
 

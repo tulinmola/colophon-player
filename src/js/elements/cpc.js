@@ -34,6 +34,7 @@ function gamepadsAllowed() {
 
 class CpcElement extends MachineElement {
   static observedAttributes = [
+    ...MachineElement.observedAttributes,
     "crtc-type",
     "disc",
     "disc-b",
